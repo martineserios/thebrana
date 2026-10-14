@@ -1886,6 +1886,29 @@ mod tests {
             "TaskType enum must include an Epic variant mapping to \"epic\", got {names:?}"
         );
     }
+
+    /// t-3471: `--scene` is an alternative frame sampler to `--every`, so the two are refused
+    /// together, and like `--every` it only makes sense with `--frames`.
+    #[test]
+    fn transcribe_scene_excludes_every_and_requires_frames() {
+        let parsed = Cli::try_parse_from(["brana", "transcribe", "v.mp4", "--frames", "o", "--scene", "0.3"])
+            .expect("--frames --scene is valid");
+        match parsed.command {
+            Commands::Transcribe { scene, every, .. } => {
+                assert_eq!(scene, Some(0.3));
+                assert_eq!(every, 10, "default --every is untouched by --scene");
+            }
+            _ => panic!("expected Transcribe"),
+        }
+        assert!(
+            Cli::try_parse_from(["brana", "transcribe", "v.mp4", "--frames", "o", "--every", "5", "--scene", "0.3"]).is_err(),
+            "--scene and --every must conflict"
+        );
+        assert!(
+            Cli::try_parse_from(["brana", "transcribe", "v.mp4", "--scene", "0.3"]).is_err(),
+            "--scene requires --frames"
+        );
+    }
 }
 
 
