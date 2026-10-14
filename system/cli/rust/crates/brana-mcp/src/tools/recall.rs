@@ -28,7 +28,8 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 // Local vector recall (t-2620) — ruflo kept only as query embedder.
                 let vectors = Arc::new(
                     VectorProvider::new(brana_core::vector::knowledge_db_path(), Arc::new(RufloEmbedder))
-                        .with_threshold(0.25),
+                        .with_threshold(0.25)
+                        .with_memory_files(true),
                 ) as Arc<dyn SearchProvider>;
                 let provider = HybridProvider::new(fts5, vectors);
                 provider.query(&input.query, input.top_k)

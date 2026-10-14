@@ -134,6 +134,36 @@ impl KnowledgeStore {
         Ok(())
     }
 
+    /// Stored `content` for `key`, if the row exists.
+    pub fn content_of(&self, key: &str) -> Result<Option<String>> {
+        use rusqlite::OptionalExtension;
+        self.conn()?
+            .query_row("SELECT content FROM knowledge WHERE key = ?1", params![key], |r| r.get(0))
+            .optional()
+            .with_context(|| format!("reading content of {key}"))
+    }
+
+    /// Keys of every row whose `source` column equals `source`, key-ordered.
+    pub fn keys_with_source(&self, source: &str) -> Result<Vec<String>> {
+        let conn = self.conn()?;
+        let mut stmt = conn
+            .prepare("SELECT key FROM knowledge WHERE source = ?1 ORDER BY key")
+            .context("preparing keys_with_source")?;
+        let keys = stmt
+            .query_map(params![source], |r| r.get::<_, String>(0))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(keys)
+    }
+
+    /// Delete one row by key. Returns whether a row was removed.
+    pub fn delete(&self, key: &str) -> Result<bool> {
+        let n = self
+            .conn()?
+            .execute("DELETE FROM knowledge WHERE key = ?1", params![key])
+            .with_context(|| format!("deleting {key}"))?;
+        Ok(n > 0)
+    }
+
     /// Write the scoring-pass columns for an existing entry (t-3311).
     /// `relevant_projects` is JSON `[{"project", "score"}]`. Unknown keys are
     /// a no-op — the pass scores rows it read from this same store.
@@ -530,6 +560,10 @@ pub struct VectorProvider {
     embedder: Arc<dyn Embedder>,
     /// Hits below this cosine similarity are dropped.
     threshold: f32,
+    /// Include embedded memory-file rows (t-3510). Off by default: knowledge
+    /// search documents that the store holds only `knowledge:` entries, so only
+    /// recall opts in.
+    memory_files: bool,
 }
 
 impl VectorProvider {
@@ -538,11 +572,18 @@ impl VectorProvider {
             db_path: db_path.into(),
             embedder,
             threshold: 0.0,
+            memory_files: false,
         }
     }
 
     pub fn with_threshold(mut self, t: f32) -> Self {
         self.threshold = t;
+        self
+    }
+
+    /// Opt in to embedded curated memory files, returned as `DocRef::MemoryFile`.
+    pub fn with_memory_files(mut self, on: bool) -> Self {
+        self.memory_files = on;
         self
     }
 }
@@ -564,7 +605,8 @@ impl SearchProvider for VectorProvider {
         ) else {
             return Vec::new();
         };
-        let Ok(mut stmt) = conn.prepare("SELECT key, content, vec FROM knowledge") else {
+        let Ok(mut stmt) = conn.prepare("SELECT key, content, vec, tags, source FROM knowledge")
+        else {
             return Vec::new();
         };
         let rows = stmt.query_map([], |r| {
@@ -572,16 +614,23 @@ impl SearchProvider for VectorProvider {
                 r.get::<_, String>(0)?,
                 r.get::<_, String>(1)?,
                 r.get::<_, Vec<u8>>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, Option<String>>(4)?,
             ))
         });
         let Ok(rows) = rows else { return Vec::new() };
 
-        let mut scored: Vec<(f32, String, String)> = rows
+        let mut scored: Vec<(f32, String, String, Option<String>, Option<String>)> = rows
             .filter_map(|row| {
-                let (key, content, blob) = row.ok()?;
+                let (key, content, blob, tags, source) = row.ok()?;
+                if !self.memory_files
+                    && source.as_deref() == Some(crate::memory_vectors::MEMORY_SOURCE)
+                {
+                    return None;
+                }
                 let v = blob_to_vec(&blob)?;
                 let score = cosine(&qvec, &v);
-                (score >= self.threshold).then_some((score, key, content))
+                (score >= self.threshold).then_some((score, key, content, tags, source))
             })
             .collect();
         scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
@@ -589,17 +638,31 @@ impl SearchProvider for VectorProvider {
 
         scored
             .into_iter()
-            .map(|(score, key, content)| SearchHit {
-                doc: DocRef::KnowledgeEntry {
-                    key,
-                    namespace: "knowledge".to_string(),
-                },
-                snippet: truncate_chars(&content, 300),
-                // Cosine similarity at the provider level — single-provider
-                // callers (knowledge search, t-2734) display it directly.
-                // HybridProvider overwrites this during RRF merge, so the
-                // "0.0 until merged" contract only relaxes, never breaks.
-                rrf_score: score as f64,
+            .map(|(score, key, content, tags, source)| {
+                // Embedded memory files surface as `MemoryFile` with the FTS
+                // leg's identity so the RRF merge fuses both signals (t-3510).
+                let memory = crate::memory_vectors::memory_doc_ref(
+                    &key,
+                    tags.as_deref(),
+                    source.as_deref(),
+                );
+                let snippet = if memory.is_some() {
+                    crate::memory_vectors::memory_snippet(&content, 300)
+                } else {
+                    truncate_chars(&content, 300)
+                };
+                SearchHit {
+                    doc: memory.unwrap_or(DocRef::KnowledgeEntry {
+                        key,
+                        namespace: "knowledge".to_string(),
+                    }),
+                    snippet,
+                    // Cosine similarity at the provider level — single-provider
+                    // callers (knowledge search, t-2734) display it directly.
+                    // HybridProvider overwrites this during RRF merge, so the
+                    // "0.0 until merged" contract only relaxes, never breaks.
+                    rrf_score: score as f64,
+                }
             })
             .collect()
     }

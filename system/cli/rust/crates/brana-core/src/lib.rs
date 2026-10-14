@@ -10,6 +10,7 @@ pub mod learn;
 pub mod ruflo;
 pub mod lint;
 pub mod memory;
+pub mod memory_vectors;
 pub mod notify;
 pub mod project_vectors;
 pub mod search;

@@ -293,6 +293,9 @@ fn main() {
             KnowledgeCmd::VectorSync { source, dest, tag_cap, json } => {
                 run_or_exit(commands::knowledge::cmd_vector_sync(source, dest, tag_cap, json))
             }
+            KnowledgeCmd::EmbedMemory { dest, json } => {
+                run_or_exit(commands::knowledge::cmd_embed_memory(dest, json))
+            }
             KnowledgeCmd::Relevant { project, min_score, dest, json } => {
                 run_or_exit(commands::knowledge::cmd_relevant(&project, min_score, dest, json))
             }

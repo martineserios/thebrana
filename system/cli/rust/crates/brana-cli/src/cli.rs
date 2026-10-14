@@ -612,6 +612,19 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Embed the curated memory files (~/.claude/memory and
+    /// ~/.claude/projects/*/memory) into knowledge.db so `brana recall` matches
+    /// them by meaning as well as keyword (t-3510). Incremental: unchanged files
+    /// are skipped, changed files re-embedded, rows for deleted files pruned.
+    /// Embeds through ruflo's ONNX MiniLM (~1s per file on first run).
+    EmbedMemory {
+        /// Destination store (default: ~/.claude/memory/knowledge.db)
+        #[arg(long)]
+        dest: Option<PathBuf>,
+        /// Output stats as JSON
+        #[arg(long)]
+        json: bool,
+    },
     /// List the knowledge.db rows the scoring pass tagged as relevant to one
     /// project — or to thebrana itself — best score first (t-3313).
     ///

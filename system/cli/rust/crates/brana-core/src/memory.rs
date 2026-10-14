@@ -454,13 +454,35 @@ pub fn fts_index_path() -> PathBuf {
 /// full cross-project scan so the index mirrors what `index-patterns.sh`
 /// produced.
 pub fn reindex_fts(_project_root: &Path, db_path: &Path) -> Result<usize> {
+    reindex_fts_dirs(&memory_dirs(), db_path)
+}
+
+/// One curated memory file with the identity both recall legs must agree on.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemoryFileRef {
+    pub scope: String,
+    pub path: PathBuf,
+    pub slug: String,
+    pub mtype: String,
+}
+
+/// Derive `(mtype, slug)` from a memory file stem — the single rule shared by the
+/// FTS5 index and the vector index so one file has one identity (t-3510).
+///
+/// `pattern_foo_2026-06-09T10-00-00` → `("pattern", "foo")`; a stem with no
+/// `type_` prefix → `("", stem)`.
+pub fn memory_file_identity(stem: &str) -> (String, String) {
+    match stem.split_once('_') {
+        Some((t, rest)) => (t.to_string(), slug_from_rest(rest).to_string()),
+        None => (String::new(), stem.to_string()),
+    }
+}
+
+/// Every memory scope directory: global + each `~/.claude/projects/*/memory/`.
+pub fn memory_dirs() -> Vec<(String, PathBuf)> {
     let h = home();
-    let mut dirs: Vec<(String, PathBuf)> = vec![
-        ("global".to_string(), h.join(".claude/memory")),
-    ];
-    // Glob all project memory dirs
-    let projects_base = h.join(".claude/projects");
-    if let Ok(entries) = fs::read_dir(&projects_base) {
+    let mut dirs: Vec<(String, PathBuf)> = vec![("global".to_string(), h.join(".claude/memory"))];
+    if let Ok(entries) = fs::read_dir(h.join(".claude/projects")) {
         for entry in entries.flatten() {
             let mem_dir = entry.path().join("memory");
             if mem_dir.is_dir() {
@@ -468,7 +490,28 @@ pub fn reindex_fts(_project_root: &Path, db_path: &Path) -> Result<usize> {
             }
         }
     }
-    reindex_fts_dirs(&dirs, db_path)
+    dirs
+}
+
+/// List the `*.md` files (excluding `MEMORY.md`) of each `(scope, dir)` pair, sorted
+/// per directory, with their recall identity.
+pub fn list_memory_files(dirs: &[(String, PathBuf)]) -> Vec<MemoryFileRef> {
+    let mut out = Vec::new();
+    for (scope, dir) in dirs {
+        let Ok(read) = fs::read_dir(dir) else { continue };
+        let mut paths: Vec<PathBuf> = read
+            .filter_map(|e| e.ok().map(|e| e.path()))
+            .filter(|p| p.extension().map(|e| e == "md").unwrap_or(false))
+            .filter(|p| p.file_name().map(|n| n != "MEMORY.md").unwrap_or(true))
+            .collect();
+        paths.sort();
+        for path in paths {
+            let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+            let (mtype, slug) = memory_file_identity(&stem);
+            out.push(MemoryFileRef { scope: scope.clone(), path, slug, mtype });
+        }
+    }
+    out
 }
 
 /// Rebuild the FTS5 index from an explicit list of `(scope, dir)` pairs.
@@ -501,38 +544,17 @@ pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<us
              VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
 
-        for (scope, dir) in dirs {
-            if !dir.exists() {
-                continue;
-            }
-            let mut paths: Vec<PathBuf> = fs::read_dir(dir)?
-                .filter_map(|e| e.ok().map(|e| e.path()))
-                .filter(|p| p.extension().map(|e| e == "md").unwrap_or(false))
-                .filter(|p| p.file_name().map(|n| n != "MEMORY.md").unwrap_or(true))
-                .collect();
-            paths.sort();
-
-            for path in &paths {
-                let stem = path
-                    .file_stem()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
-                let (mtype, slug) = match stem.split_once('_') {
-                    Some((t, rest)) => (t.to_string(), slug_from_rest(rest).to_string()),
-                    None => (String::new(), stem.clone()),
-                };
-                // Content read verbatim — bound parameter, no escaping needed.
-                let content = fs::read_to_string(path).unwrap_or_default();
-                insert.execute(rusqlite::params![
-                    slug,
-                    mtype,
-                    scope,
-                    path.to_string_lossy(),
-                    content,
-                ])?;
-                count += 1;
-            }
+        for f in list_memory_files(dirs) {
+            // Content read verbatim — bound parameter, no escaping needed.
+            let content = fs::read_to_string(&f.path).unwrap_or_default();
+            insert.execute(rusqlite::params![
+                f.slug,
+                f.mtype,
+                f.scope,
+                f.path.to_string_lossy(),
+                content,
+            ])?;
+            count += 1;
         }
     }
     tx.commit()?;
@@ -718,5 +740,62 @@ mod fts_tests {
         assert_eq!(n, 1);
         assert!(search_fts(&db, "alpha", 10).unwrap().is_empty(), "stale doc gone");
         assert_eq!(search_fts(&db, "delta", 10).unwrap().len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn identity_strips_type_prefix_and_timestamp() {
+        assert_eq!(
+            memory_file_identity("pattern_foo-bar_2026-06-09T10-00-00"),
+            ("pattern".to_string(), "foo-bar".to_string())
+        );
+    }
+
+    #[test]
+    fn identity_without_type_prefix_has_empty_mtype() {
+        assert_eq!(
+            memory_file_identity("batrade-broker-role"),
+            (String::new(), "batrade-broker-role".to_string())
+        );
+    }
+
+    #[test]
+    fn list_memory_files_skips_index_and_non_markdown_and_sorts() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        fs::create_dir_all(&mem).unwrap();
+        fs::write(mem.join("pattern_b.md"), "b").unwrap();
+        fs::write(mem.join("feedback_a.md"), "a").unwrap();
+        fs::write(mem.join("MEMORY.md"), "index").unwrap();
+        fs::write(mem.join("notes.txt"), "no").unwrap();
+
+        let files = list_memory_files(&[("project".to_string(), mem.clone()), ("global".to_string(), tmp.path().join("missing"))]);
+        let slugs: Vec<_> = files.iter().map(|f| f.slug.as_str()).collect();
+        assert_eq!(slugs, vec!["a", "b"], "sorted by filename, MEMORY.md and .txt excluded, missing dir ignored");
+        assert_eq!(files[0].scope, "project");
+        assert_eq!(files[0].mtype, "feedback");
+        assert_eq!(files[0].path, mem.join("feedback_a.md"));
+    }
+
+    #[test]
+    fn fts_hit_identity_equals_list_identity() {
+        // The two recall legs must agree on a file's identity or RRF cannot fuse them.
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        fs::create_dir_all(&mem).unwrap();
+        fs::write(mem.join("pattern_scraping-tips_2026-06-09T10-00-00.md"), "web scraping tips").unwrap();
+        let dirs = vec![("project".to_string(), mem)];
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&dirs, &db).unwrap();
+
+        let hit = search_fts(&db, "scraping", 5).unwrap().remove(0);
+        let f = list_memory_files(&dirs).remove(0);
+        assert_eq!((hit.slug, hit.mtype, hit.scope, hit.path), (f.slug, f.mtype, f.scope, f.path.to_string_lossy().to_string()));
     }
 }

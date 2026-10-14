@@ -11,10 +11,13 @@ pub fn cmd_recall(query: &str, top_k: usize, json: bool, db: Option<String>) -> 
     let fts5 = Arc::new(FTS5Provider::new(db_path)) as Arc<dyn brana_core::search::SearchProvider>;
     // Local vector recall over the brana-owned store (t-2620) — replaces the
     // broken ruflo retrieval stack; ruflo remains only as query embedder.
-    // Threshold 0.25 keeps sub-topical noise out of the RRF pool.
+    // Threshold 0.25 keeps sub-topical noise out of the RRF pool. Embedded
+    // curated memory files join this leg (t-3510); `brana knowledge embed-memory`
+    // fills them, and without it recall is exactly the old FTS + knowledge fusion.
     let vectors = Arc::new(
         VectorProvider::new(brana_core::vector::knowledge_db_path(), Arc::new(RufloEmbedder))
-            .with_threshold(0.25),
+            .with_threshold(0.25)
+            .with_memory_files(true),
     ) as Arc<dyn brana_core::search::SearchProvider>;
     let provider = HybridProvider::new(fts5, vectors);
 
