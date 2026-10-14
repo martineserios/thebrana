@@ -283,3 +283,11 @@ independent of the Rust changes and can land first.
   (t-3324 already repoints every one); `--skip-worktree` as a stopgap (no index entry on
   `dev`). Also surfaced: the interim hourly backup missed ~9 h on 2026-09-08 because the
   scheduler's per-project lock skipped the post-resume catch-up (t-3326 context).
+- 2026-10-14 (t-3501): decision 1's common-root resolution had a side effect — any test
+  suite run from a linked worktree resolved the LIVE ledger (a repaired readiness suite wrote
+  t-3526 into it). Closed with `BRANA_TASKS_FILE`: an explicit, absolute ledger override
+  honoured before the common root by every resolver (core `find_tasks_file`, `--file` on the
+  running repo's conventional name, sync, sync_linear, receipt), exported per suite by the
+  runner, must-fire `tests/scripts/test-suite-ledger-isolation.sh`. Unusable override → error,
+  never the live file; relative → ignored. Ship 2b hard-stops on a ledger DECREASE across the
+  sweep (the wipe signature this ADR records), WARNs on an increase.
