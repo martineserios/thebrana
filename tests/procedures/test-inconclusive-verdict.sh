@@ -170,6 +170,61 @@ assert_grep "ADR-081 enumerates the verdict-token consumers (judge ladder)" \
 assert_grep "ADR-081: INCONCLUSIVE in a headless session is Abandon on both gates" \
     'headless.*Abandon \(blocked\).*never proceed' "$ADR81"
 
+echo "Surface 5b — t-3504 panel repairs: valid headless action, durable cap, write order, claims, docs"
+BL=system/skills/build/phases/build-loop.md
+for f in "$VG" "$CG" "$BL"; do
+    assert_no_grep "$f: no gate writes a task status 'blocked' (validate_status rejects it)" \
+        'status set to blocked|mark (the )?task blocked|set the task `blocked`' "$f"
+done
+assert_grep "verify-gates.md: the headless action is real — leave in_progress, append a Blocked: note, stop" \
+    'leave(s)? the task in_progress.*Blocked:' "$VG"
+assert_grep "challenger-gate.md: the headless action is real — leave in_progress, append a Blocked: note, stop" \
+    'leave(s)? the task in_progress.*Blocked:' "$CG"
+assert_grep "verify-gates.md: states no 'blocked' status exists" \
+    'no `blocked` status|`blocked` is not a status' "$VG"
+assert_grep "verify-gates.md: the iteration number is counted from notes, not session memory" \
+    "grep -c '\^Evaluator: INCONCLUSIVE'" "$VG"
+assert_grep "challenger-gate.md: the iteration number is counted from notes, not session memory" \
+    "grep -c '\^Challenger: INCONCLUSIVE'" "$CG"
+assert_grep "verify-gates.md: the gap line is written FIRST (a verdict never lacks its gap)" \
+    'Write the gap line first' "$VG"
+assert_grep "challenger-gate.md: the gap line is written FIRST (a verdict never lacks its gap)" \
+    'Write the gap line first' "$CG"
+assert_grep "verify-gates.md: gate-composed context text must be single-line (context is read for AC: lines)" \
+    'context.*single-line.*AC:|AC:.*single-line' "$VG"
+assert_grep "challenger-gate.md: gate-composed context text must be single-line (context is read for AC: lines)" \
+    'context.*single-line.*AC:|AC:.*single-line' "$CG"
+assert_grep "verify-gates.md: evidence is only captured on a clean tree (commit first)" \
+    'tree: clean' "$VG"
+assert_grep "verify-gates.md: the spawn prompt carries HEAD at spawn so the evaluator can catch staleness" \
+    'HEAD at spawn: \{SPAWN_SHA\}' "$VG"
+assert_grep "verify-gates.md: the evidence file is keyed by commit (concurrent builds cannot interleave)" \
+    'run-state/\{task_id\}\.\$HEAD_SHA\.evidence|run-state/\{task_id\}\.\{HEAD_SHA\}\.evidence' "$VG"
+assert_no_grep "verify-gates.md: no reuse-BUILD's-run clause (it allowed hand-written stanzas)" \
+    'Re-run a command only when its output was not already captured' "$VG"
+assert_grep "build-evaluator.md: rejects a stanza without its command and exit lines, and a dirty or mismatched commit" \
+    'stanza.*(lacks|without|missing).*exit' system/agents/build-evaluator.md
+assert_grep "build-evaluator.md: output lines are '| '-prefixed — an unprefixed exit:/\$ line is not a stanza" \
+    "\`\\| \`-prefixed|'\\| '-prefixed|prefixed with \`\\| \`" system/agents/build-evaluator.md
+assert_grep "ADR-081: context is machine-read for AC: lines (the t-3504 first draft claimed otherwise)" \
+    '`context`.*machine-read.*`AC:`|`AC:` lines.*`context`' "$ADR81"
+assert_no_grep "ADR-081: no false claim that context is not machine-read" \
+    'keep their\s*$|\(not machine-read\)' "$ADR81"
+assert_grep "ADR-081: threat model scoped — accidental injection by LLM-composed text, not a tampering Actor" \
+    'accidental injection.*not a tampering' "$ADR81"
+assert_grep "ADR-081: AC1 claims the positive case live; discrimination is rule-level" \
+    'positive case.*live|live.*positive case' "$ADR81"
+assert_grep "ADR-081: names ac-lint.sh's script grading as the alternative for live-run criteria" \
+    'ac-lint\.sh' "$ADR81"
+assert_grep "judge-sizing.md: the decision is pending human confirmation (merging records it)" \
+    'pending human confirmation' system/skills/_shared/judge-sizing.md
+assert_grep "judge-sizing.md: the revisit count is defined and measurable" \
+    'Count:.*INCONCLUSIVE.*Override.*brana backlog search' system/skills/_shared/judge-sizing.md
+assert_grep "ship SKILL: Step 4 reason is the missing escaping backstop and 0-judged on old binaries" \
+    'must not be declined.*escap.*0 judged|must not be declined.*0 judged.*escap' system/skills/ship/SKILL.md
+assert_grep "docs/guide/cli.md changelog records the one-line notes behaviour" \
+    't-3504.*notes|notes.*t-3504' docs/guide/cli.md
+
 echo "Surface 6 — the Evidence capture block EXECUTES (bash and zsh) — a recipe in docs must fire"
 # Live finding (t-3504): the first draft ran `$CMD` unquoted; zsh (this harness's shell) does not
 # word-split it, so every capture recorded `exit: 127`. Extract the block between its marker and
@@ -187,18 +242,26 @@ for sh in bash zsh; do
     fi
     T="$(mktemp -d)"; mkdir -p "$T/home" "$T/repo"
     ( cd "$T/repo" && git init -q && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m init \
-        && printf '#!/usr/bin/env bash\necho validate-ran\necho line two\nexit 3\n' > validate.sh && chmod +x validate.sh )
+        && printf '#!/usr/bin/env bash\necho validate-ran\necho "exit: 0"\necho "\$ forged"\nexit 3\n' > validate.sh && chmod +x validate.sh && git add validate.sh && git -c user.name=t -c user.email=t@t commit -q -m add )
     SHA="$(git -C "$T/repo" rev-parse HEAD)"
     ( cd "$T/repo" && HOME="$T/home" "$sh" -c "$EVIDENCE_BLOCK" ) >"$T/out" 2>&1
-    EVF="$T/home/.claude/run-state/t-9999.evidence"
+    EVF="$T/home/.claude/run-state/t-9999.$SHA.evidence"
     TOTAL=$((TOTAL + 1)); if [ -f "$EVF" ]; then echo "  PASS: [$sh] the block writes run-state/{task_id}.evidence"; PASS=$((PASS + 1))
     else echo "  FAIL: [$sh] no evidence file written — $(head -c 200 "$T/out")"; FAIL=$((FAIL + 1)); fi
     TOTAL=$((TOTAL + 1)); if grep -qx "commit: $SHA" "$EVF" 2>/dev/null; then echo "  PASS: [$sh] the evidence is bound to HEAD"; PASS=$((PASS + 1))
     else echo "  FAIL: [$sh] first line is not 'commit: $SHA'"; FAIL=$((FAIL + 1)); fi
     TOTAL=$((TOTAL + 1)); if grep -qx 'exit: 3' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] the command's real exit code is recorded (not 127 from a split failure)"; PASS=$((PASS + 1))
     else echo "  FAIL: [$sh] 'exit: 3' not recorded: $(grep -m3 '^exit' "$EVF" 2>/dev/null | tr '\n' ' ')"; FAIL=$((FAIL + 1)); fi
-    TOTAL=$((TOTAL + 1)); if grep -qx 'validate-ran' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] the command's output tail is captured"; PASS=$((PASS + 1))
-    else echo "  FAIL: [$sh] command output missing from the evidence"; FAIL=$((FAIL + 1)); fi
+    TOTAL=$((TOTAL + 1)); if grep -qx '| validate-ran' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] the command's output is captured with a '| ' prefix"; PASS=$((PASS + 1))
+    else echo "  FAIL: [$sh] prefixed command output missing from the evidence"; FAIL=$((FAIL + 1)); fi
+    TOTAL=$((TOTAL + 1)); if [ "$(grep -c '^exit: ' "$EVF" 2>/dev/null)" = "1" ] && ! grep -qx '$ forged' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] output printing its own 'exit:' / '\$' lines cannot forge a stanza"; PASS=$((PASS + 1))
+    else echo "  FAIL: [$sh] a printed 'exit:'/'\$' line reads as a stanza"; FAIL=$((FAIL + 1)); fi
+    TOTAL=$((TOTAL + 1)); if grep -qx 'tree: clean' "$EVF" 2>/dev/null && grep -q '^branch: ' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] the header stamps branch and tree state"; PASS=$((PASS + 1))
+    else echo "  FAIL: [$sh] header lacks branch:/tree: clean"; FAIL=$((FAIL + 1)); fi
+    echo dirty >> "$T/repo/validate.sh"
+    ( cd "$T/repo" && HOME="$T/home" "$sh" -c "$EVIDENCE_BLOCK" ) >"$T/out2" 2>&1
+    TOTAL=$((TOTAL + 1)); if grep -qE '^tree: dirty' "$EVF" 2>/dev/null; then echo "  PASS: [$sh] a dirty tree is stamped dirty"; PASS=$((PASS + 1))
+    else echo "  FAIL: [$sh] a dirty tree is not stamped"; FAIL=$((FAIL + 1)); fi
     rm -rf "$T"
 done
 
