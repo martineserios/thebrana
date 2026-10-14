@@ -15,7 +15,8 @@ bad() { FAIL=$((FAIL+1)); echo "  FAIL: $1"; }
 assert() { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1 (expected '$2', got '$3')"; fi; }
 has() { case "$2" in *"$1"*) echo yes;; *) echo no;; esac; }
 echo "=== test-ship-blocks-executed.sh ==="
-T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+T="$(mktemp -d)" || exit 2; trap 'rm -rf "$T"' EXIT
+REALGIT="$(command -v git)"
 
 # extract <name> → $T/<name>.sh : marker-delimited, fences and list indentation stripped
 extract() {
@@ -34,6 +35,7 @@ mkdir -p "$T/bin" "$T/sc"
 cat > "$T/bin/gh" <<'STUB'
 #!/usr/bin/env bash
 S="$GH_STUB_DIR"
+echo "gh $1 $2" >> "$S/events"
 case "$1 $2" in
   "pr list") cat "$S/pr_number" 2>/dev/null; exit 0 ;;
   "pr create") echo "https://github.com/o/r/pull/$(cat "$S/pr_number_after_create")"; cp "$S/pr_number_after_create" "$S/pr_number"; echo created >> "$S/events"; exit 0 ;;
@@ -58,10 +60,10 @@ esac
 exit 0
 STUB
 # git: push is stubbed (never touches a remote); everything else goes to the real git.
-cat > "$T/bin/git" <<'STUB'
+cat > "$T/bin/git" <<STUB
 #!/usr/bin/env bash
-if [ "$1" = push ]; then echo "push $*" >> "$GH_STUB_DIR/events"; exit "${GIT_PUSH_RC:-0}"; fi
-exec /usr/bin/git "$@"
+if [ "\$1" = push ]; then echo "push \$*" >> "\$GH_STUB_DIR/events"; exit "\${GIT_PUSH_RC:-0}"; fi
+exec "$REALGIT" "\$@"
 STUB
 # cargo: "builds" scripts into target/release; brana-cli always, brana-mcp only when asked.
 cat > "$T/bin/cargo" <<'STUB'
@@ -111,11 +113,11 @@ mk_home() {  # $1 = with_mcp (1|0)
 # a tiny real repo: main == dev, system/cli committed, a suite runner that honours a red-file
 mk_repo() {
   rm -rf "$T/repo"; mkdir -p "$T/repo/system/cli/rust/src" "$T/repo/system/scripts" "$T/repo/tests/x"
-  ( cd "$T/repo" && /usr/bin/git init -q -b main . && /usr/bin/git config user.email t@t && /usr/bin/git config user.name t
+  ( cd "$T/repo" && "$REALGIT" init -q -b main . && "$REALGIT" config user.email t@t && "$REALGIT" config user.name t
     echo 'fn main(){}' > system/cli/rust/src/main.rs
     printf '#!/usr/bin/env bash\nif [ -f "$GH_STUB_DIR/sweep_red" ]; then echo "Failed tests:"; echo "  - tests/x/red.sh"; exit 1; fi\necho "all green"\n' > system/scripts/run-test-suites.sh
     chmod +x system/scripts/run-test-suites.sh; echo 'exit 0' > tests/x/ok.sh
-    /usr/bin/git add -A && /usr/bin/git commit -qm init && /usr/bin/git branch dev )
+    "$REALGIT" add -A && "$REALGIT" commit -qm init && "$REALGIT" branch dev )
 }
 reset_sc() { rm -rf "$T/sc"; mkdir -p "$T/sc"; echo 7 > "$T/sc/pr_number"; echo 8 > "$T/sc/pr_number_after_create"; echo 0 > "$T/sc/watch_rc"; : > "$T/sc/links"; : > "$T/sc/infra_ids"; echo "deadbeef" > "$T/sc/head_sha"; }
 
@@ -128,16 +130,24 @@ run_block() {
 }
 
 for sh in bash zsh; do
-  if ! command -v "$sh" >/dev/null 2>&1; then echo "  SKIP: $sh not installed"; continue; fi
+  if ! command -v "$sh" >/dev/null 2>&1; then
+    if [ "${BRANA_REQUIRE_ZSH:-}" = 1 ]; then bad "$sh required (BRANA_REQUIRE_ZSH=1) but not installed — the zsh leg is the one that catches no-word-split bugs"; else echo "  SKIP: $sh not installed"; fi
+    continue
+  fi
   echo "--- Shell: $sh"
 
   # ── Part A tail: push → PR → checks (rerun path) → gate ─────────────────────────────
   mk_repo; mk_home 1; reset_sc
   # ship_pr_matches_dev reads `gh pr view` for head sha + isCrossRepository; feed dev's sha
-  DEVSHA=$(cd "$T/repo" && /usr/bin/git rev-parse dev); printf '%s false\n' "$DEVSHA" > "$T/sc/pr_view"; echo "$DEVSHA" > "$T/sc/head_sha"
+  DEVSHA=$(cd "$T/repo" && "$REALGIT" rev-parse dev); printf '%s false\n' "$DEVSHA" > "$T/sc/pr_view"; echo "$DEVSHA" > "$T/sc/head_sha"
   run_block "$sh" SHIP-TAIL-BLOCK SHIP-CHECKS-BLOCK
   assert "$sh tail: green CI → prints PR and SHA, rc 0" "0|yes" "$RC|$(has "PR=7 SHA=$DEVSHA" "$OUT")"
-  assert "$sh tail: pushed dev BEFORE any gh call (first event is the push)" yes "$(has 'push origin dev' "$(head -1 "$T/sc/events")")"
+  assert "$sh tail: pushed dev BEFORE any gh call" yes "$([ "$(grep -n 'push origin dev' "$T/sc/events" | head -1 | cut -d: -f1)" -lt "$(grep -n '^gh ' "$T/sc/events" | head -1 | cut -d: -f1)" ] && echo yes || echo no)"
+  # mutation: move the push after the PR lookup → the order assertion above must be able to flip
+  awk '/^git push origin dev/ { held = $0; next } /^\[ -n "\$PR" \]/ && held { print; print held; held = ""; next } { print }' "$T/SHIP-TAIL-BLOCK.sh" > "$T/MUT-TAIL3.sh"
+  reset_sc; printf '%s false\n' "$DEVSHA" > "$T/sc/pr_view"; echo "$DEVSHA" > "$T/sc/head_sha"
+  run_block "$sh" MUT-TAIL3 SHIP-CHECKS-BLOCK
+  assert "$sh tail mutation 3: with the push moved after the PR lookup, a gh call precedes the push (so the order test is live)" no "$([ "$(grep -n 'push origin dev' "$T/sc/events" | head -1 | cut -d: -f1)" -lt "$(grep -n '^gh ' "$T/sc/events" | head -1 | cut -d: -f1)" ] && echo yes || echo no)"
   reset_sc; printf '%s false\n' "$DEVSHA" > "$T/sc/pr_view"; echo "$DEVSHA" > "$T/sc/head_sha"
   OUT="$( cd "$T/repo" && HOME="$T/home" GH_STUB_DIR="$T/sc" GIT_PUSH_RC=1 PATH="$T/bin:$T/home/.local/bin:$PATH" "$sh" -c "source '$T/SHIP-CHECKS-BLOCK.sh'; source '$T/SHIP-TAIL-BLOCK.sh'" 2>&1 )"; RC=$?
   assert "$sh tail: push failure stops before any PR lookup" "1|yes|no" "$RC|$(has 'push failed' "$OUT")|$(has created "$(cat "$T/sc/events" 2>/dev/null)")"
@@ -179,9 +189,13 @@ for sh in bash zsh; do
   assert "$sh sweep: ledger stats differ after the sweep → WARN" yes "$(has 'ledger stats changed' "$OUT")"
   # a source checkout whose system/cli differs from dev would sweep dev's suites with a mismatched brana
   mk_repo; mk_home 1; reset_sc; echo "tasks: 42" > "$T/sc/stats"
-  ( cd "$T/repo" && echo 'fn other(){}' >> system/cli/rust/src/main.rs && /usr/bin/git commit -qam "main-only cli change" )
+  ( cd "$T/repo" && echo 'fn other(){}' >> system/cli/rust/src/main.rs && "$REALGIT" commit -qam "main-only cli change" )
   run_block "$sh" SHIP-SWEEP-BLOCK
-  assert "$sh sweep: source tree's system/cli != dev's → stop before building or cloning" "1|yes|no" "$RC|$(has 'differs from dev' "$OUT")|$(has 'sweep rc=' "$OUT")"
+  assert "$sh sweep: source tree's system/cli != dev's → stop before building or cloning" "1|yes|yes|no" "$RC|$(has 'differs from dev' "$OUT")|$(has 'shared checkout on dev' "$OUT")|$(has 'sweep rc=' "$OUT")"
+  mk_repo; mk_home 1; reset_sc; echo "tasks: 42" > "$T/sc/stats"
+  echo '// local edit' >> "$T/repo/system/cli/rust/src/main.rs"                 # uncommitted edit under system/cli
+  run_block "$sh" SHIP-SWEEP-BLOCK
+  assert "$sh sweep: an UNCOMMITTED edit under system/cli is refused too" "1|yes|no" "$RC|$(has 'differs from dev' "$OUT")|$(has 'sweep rc=' "$OUT")"
   mk_repo; mk_home 1; reset_sc; echo "tasks: 42" > "$T/sc/stats"
   printf '#!/usr/bin/env bash\nn=$(cat "$GH_STUB_DIR/n" 2>/dev/null || echo 0); echo $((n+1)) > "$GH_STUB_DIR/n"; case "$1" in --version) echo old;; backlog) echo "tasks: $((42+n))";; esac\n' > "$T/home/.local/bin/brana"; chmod +x "$T/home/.local/bin/brana"
   sed '/LEDGER_BEFORE" = /d' "$T/SHIP-SWEEP-BLOCK.sh" > "$T/MUT-SWEEP.sh"; rm -f "$T/sc/n"
