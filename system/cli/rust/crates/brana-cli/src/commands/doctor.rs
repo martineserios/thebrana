@@ -80,6 +80,10 @@ pub fn check_plugin(home: &Path) -> CheckResult {
     };
 
     match find_brana_plugin(&val) {
+        Some((key, _)) if entry_list_is_empty(&val, &key) => CheckResult::fail(
+            "Plugin registered",
+            format!("{key} has no install entries in ~/{shown} (every scope removed)"),
+        ),
         Some((key, version)) if is_legacy => CheckResult::pass(
             "Plugin registered",
             format!("{key} {version} (legacy ~/{LEGACY} — the engine registry ~/{ENGINE} is absent)"),
@@ -87,6 +91,24 @@ pub fn check_plugin(home: &Path) -> CheckResult {
         Some((key, version)) => CheckResult::pass("Plugin registered", format!("{key} {version}")),
         None => CheckResult::fail("Plugin registered", format!("brana not found in ~/{shown}")),
     }
+}
+
+/// True when the registry value under `key` is an empty list — the engine keeps the key after
+/// the last scope is uninstalled, and "unknown" must not read as registered (t-3502 panel).
+fn entry_list_is_empty(val: &serde_json::Value, key: &str) -> bool {
+    fn walk(v: &serde_json::Value, key: &str) -> Option<bool> {
+        match v {
+            serde_json::Value::Object(map) => {
+                if let Some(e) = map.get(key).or_else(|| if key == "brana@brana" { map.get("brana") } else { None }) {
+                    return Some(matches!(e, serde_json::Value::Array(a) if a.is_empty()));
+                }
+                map.values().find_map(|x| walk(x, key))
+            }
+            serde_json::Value::Array(arr) => arr.iter().find_map(|x| walk(x, key)),
+            _ => None,
+        }
+    }
+    walk(val, key).unwrap_or(false)
 }
 
 /// Version string of a registry value: an object's `version`/`v`, or the first entry of a
