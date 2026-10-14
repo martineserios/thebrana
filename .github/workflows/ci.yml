@@ -22,7 +22,12 @@ env:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    # Pinned (t-3484): GitHub moves the ubuntu-latest label to Ubuntu 26 from 2026-10-19.
+    # The real-ffmpeg transcribe frame tests assert exact labels verified only on ffmpeg
+    # 6.1.1 (ubuntu-24.04), so the ubuntu jobs pin to 24.04 rather than float onto an
+    # unverified ffmpeg. Revisit: workflow_dispatch this workflow on ubuntu-26.04, and
+    # unpin once the rust job is green there. Asserted by tests/scripts/test-ci-rust-tests.sh.
+    runs-on: ubuntu-24.04
     # A hung suite must fail the job with a name, not sit until GitHub's 6h
     # limit: the first tier-2 rehearsal run (t-3023) spent 70+ minutes inside
     # "Run tests" with no output available until the job ended.
@@ -106,7 +111,12 @@ jobs:
   # regression of the same suites plus one net-new one; t-3319 (2026-09-07)
   # finally flipped branch protection so a red run here blocks merges to main.
   tests:
-    runs-on: ubuntu-latest
+    # Pinned (t-3484): GitHub moves the ubuntu-latest label to Ubuntu 26 from 2026-10-19.
+    # The real-ffmpeg transcribe frame tests assert exact labels verified only on ffmpeg
+    # 6.1.1 (ubuntu-24.04), so the ubuntu jobs pin to 24.04 rather than float onto an
+    # unverified ffmpeg. Revisit: workflow_dispatch this workflow on ubuntu-26.04, and
+    # unpin once the rust job is green there. Asserted by tests/scripts/test-ci-rust-tests.sh.
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -231,7 +241,12 @@ jobs:
             tests/*/*.sh system/hooks/tests/*.sh system/scripts/tests/*.sh
 
   rust:
-    runs-on: ubuntu-latest
+    # Pinned (t-3484): GitHub moves the ubuntu-latest label to Ubuntu 26 from 2026-10-19.
+    # The real-ffmpeg transcribe frame tests assert exact labels verified only on ffmpeg
+    # 6.1.1 (ubuntu-24.04), so the ubuntu jobs pin to 24.04 rather than float onto an
+    # unverified ffmpeg. Revisit: workflow_dispatch this workflow on ubuntu-26.04, and
+    # unpin once the rust job is green there. Asserted by tests/scripts/test-ci-rust-tests.sh.
+    runs-on: ubuntu-24.04
     # Required check: a hung test must fail it, not hold it pending for GitHub's 6 h default.
     timeout-minutes: 45
     steps:
