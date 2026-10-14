@@ -139,6 +139,12 @@ fn resolve_tasks_file_override_in(
 
 /// Two git common roots name the same repo. Compared canonicalized (symlinked checkouts,
 /// `/tmp` vs `/private/tmp`), falling back to the raw paths when either cannot be resolved.
+///
+/// Known gap (t-3501 verifier R1, sev 2): with the process cwd OUTSIDE the running repo (a
+/// suite that `cd`s into a mktemp fixture) and an absolute `--file <live repo>/.claude/tasks.json`,
+/// the cwd side resolves to None, this returns false, and the write lands on the live ledger
+/// despite an active override. No suite does that today (the only `--file <ledger>` call in
+/// the test trees targets its own fixture); widen the rule with a test if one ever must.
 fn same_root(a: &Path, b: Option<&Path>) -> bool {
     let Some(b) = b else { return false };
     match (a.canonicalize(), b.canonicalize()) {
