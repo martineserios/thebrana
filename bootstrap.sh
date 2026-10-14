@@ -1220,13 +1220,19 @@ mods_installed_guard() {
     MODS_GUARD_HIT=""
     local chk="$SCRIPT_DIR/system/scripts/mods-check.sh" out
     [ -f "$chk" ] && [ -f "$TARGET_DIR/plugins/installed_plugins.json" ] || return 0
-    if out="$(bash "$chk" --installed "$TARGET_DIR" 2>&1)"; then return 0; fi
+    local rc=0; out="$(bash "$chk" --installed "$TARGET_DIR" 2>&1)" || rc=$?
+    [ "$rc" -eq 0 ] && return 0
     # any non-zero exit is a hit — a checker that died (rc 2, python3 missing, unreadable registry)
     # must never pass the guard silently (challenger F2, t-3493)
     MODS_GUARD_HIT="$(printf '%s\n' "$out" | tail -1)"; [ -n "$MODS_GUARD_HIT" ] || MODS_GUARD_HIT="mods-check --installed exited non-zero with no output"
     echo "Installed mods guard:"
     printf '%s\n' "$out" | grep -E '^  ' | sed 's/^  /  ! /'   || true   # grep returns 1 on no indented line; under set -e + pipefail that aborted bootstrap before the exit-3 summary
-    echo "  ! an installed mod calls \$.model/\$.http or is refused by the engine at load (ADR-096 Law 3, t-3493) — uninstall it (claude plugin uninstall <name>); the mods step is refused until then"
+    if [ "$rc" -eq 1 ]; then
+        echo "  ! an installed mod calls \$.model/\$.http or is refused by the engine at load (ADR-096 Law 3, t-3493) — uninstall it (claude plugin uninstall <name>); a plugin that cannot be uninstalled is acknowledged in system/config/mods-acknowledged.txt; the mods step is refused until then"
+    else
+        # exit 2 (or anything else): the scan did not run — never a verdict on a mod, never "uninstall" (t-3505)
+        echo "  ! the installed mods could not be scanned (mods-check exit $rc: python3 missing, or plugins/installed_plugins.json unreadable) — fix python3 / the registry file; this is not a finding about any mod; the mods step is refused until it scans"
+    fi
     return 0
 }
 

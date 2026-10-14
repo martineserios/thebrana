@@ -96,16 +96,21 @@ OUT=$(cat "$TMP" 2>/dev/null); rm -f "$TMP"
 
 case "$RC" in
     124|137) emit "⚠ installed-mods Law 3 scan did not run: timed out after 8 s — $REMEDY"; exit 0 ;;
-    1) ;;   # the checker's own verdict — handled below
+    1) ;;   # the checker's own verdict (a Law 3 finding) — handled below
+    2) ;;   # the checker could not scan (python3 missing, unreadable registry) — relayed as such below (t-3505)
     *) emit "⚠ installed-mods Law 3 scan did not run: mods-check --installed exit $RC — $REMEDY"; exit 0 ;;
 esac
 
-# Exit 1: either violations in scanned mods, or the checker failing CLOSED before scanning
-# (unreadable or mis-shaped registry, python3 missing) — its summary then says "0 mod(s) scanned".
+# Exit 1 = violations in scanned mods. Exit 2 = the checker could not scan (unreadable or mis-shaped
+# registry, python3 missing): always "could not run", never a verdict on a mod, whatever its summary says (t-3505).
 SUMMARY=$(printf '%s\n' "$OUT" | grep -E '^mods-check --installed:' | tail -n 1)
 FIRST=$(printf '%s\n' "$OUT" | grep -m1 -E '^  [^ ]' | sed -E 's/^  //')
 # (anchored on ": 0 mod(s)" — a bare "0 mod(s) scanned" substring also matched 10/20/100 mods
 # and relayed a real violation as "could not run" with no remedy: verifier N1)
+if [ "$RC" -eq 2 ]; then
+    emit "⚠ installed-mods Law 3 scan could not run: $(safe_text "${FIRST##* — }" 120) ($(safe_text "$SUMMARY" 160)) — $REMEDY"
+    exit 0
+fi
 case "$SUMMARY" in
     *": 0 mod(s) scanned"*)
         emit "⚠ installed-mods Law 3 scan could not run: $(safe_text "${FIRST##* — }" 120) ($(safe_text "$SUMMARY" 160)) — $REMEDY"
