@@ -120,8 +120,8 @@ VG=system/skills/build/phases/verify-gates.md
 CG=system/skills/_shared/challenger-gate.md
 assert_grep "verify-gates.md: the evaluator spawn prompt carries an orchestrator-captured Evidence: block" \
     '^Evidence \(orchestrator-captured, commit \{HEAD_SHA\}\):' "$VG"
-assert_grep "verify-gates.md: the Evidence capture step writes the run-state evidence file" \
-    'run-state/\{task_id\}\.evidence' "$VG"
+assert_grep "verify-gates.md: the Evidence capture step writes the run-state evidence file (keyed by commit)" \
+    'run-state/\{task_id\}\.\$HEAD_SHA\.evidence' "$VG"
 assert_grep "verify-gates.md: states the evaluator is read-only so Evidence is its only live-run channel" \
     'read-only.*Evidence.*(only|sole) channel' "$VG"
 assert_grep "verify-gates.md: evidence is bound to the commit it was captured at (stale evidence is not evidence)" \

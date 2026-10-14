@@ -451,7 +451,7 @@ Run post-deploy checks to confirm the deploy succeeded.
 | Docker | `docker run <image> --version` or health check |
 | Custom | Ask user for verification command |
 
-**Step 4's CLI install must not be declined (t-3504).** The verdict wording (`Evaluator-gap:`, `Challenger-gap:`, the one-line `notes` contract) lands in the rules before the rebuilt binary does, and until the new `brana` is installed the machine-read lines read as `0 judged`, hiding that a judge ran and could not decide. If the human declines the install, the ship is reported UNVERIFIED (the installed binary lags the deployed rules), never done.
+**Step 4's CLI install must not be declined (t-3504).** Until the rebuilt `brana` is installed, an older binary reads the machine-read verdict lines as `0 judged` (pre-t-3494) and has no newline-escaping backstop on `notes` writes (t-3504), so free text is protected by prose alone. If the human declines the install, the ship is reported UNVERIFIED (the installed binary lags the deployed rules), never done.
 
 **Tier-2 ship: rebuild and install the CLI and the MCP server.** `bootstrap.sh` deploys rules, skills
 and docs but does **not** build `brana` or `brana-mcp`; it only prints "brana-cli binary may be stale"
