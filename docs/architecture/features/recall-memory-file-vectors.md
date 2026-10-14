@@ -70,6 +70,34 @@ question whose answer was crowded out of the shared pool. Median latency is unch
 0.9 s). The first full `embed-memory` run over 1,106 files takes about an hour because every
 text starts a Node process; later runs only touch changed files.
 
+## Gate repair (2026-10-14)
+
+The build-exit gates (evaluator, challenger, two blind finders, rung-2 verify)
+confirmed these defects in the first version; all are fixed with tests:
+
+- **A folder that cannot be read is never treated as empty.** Directory listing
+  reports each folder as complete, failed (exists, unreadable) or missing.
+  `embed-memory` prunes only under complete folders; `brana memory reindex`
+  refuses to rebuild (before dropping the table) when a folder failed, and skips
+  missing ones as before. `memory_dirs` errors on an unreadable
+  `~/.claude/projects` instead of returning only the global folder.
+- **Embedding version.** Rows carry `emb:minilm-l6-384:1500`; a row without the
+  current tag is re-embedded even if its text is unchanged. `--force` re-embeds
+  everything.
+- **Ghost rows.** Both the keyword and vector legs drop memory-file hits whose
+  file no longer exists (the keyword leg over-fetches first so ghosts cannot
+  crowd out live hits). This also closes the older keyword-leg case, where the
+  weekly FTS index surfaced deleted notes.
+- **Leading-dash text** is shielded for ruflo's `memory search -q` as well as
+  `embeddings generate -t` (`ruflo::argv_safe_text`).
+- **Eval counter-metric.** `recall-eval.sh` also reports the top-k mix of memory
+  files versus knowledge entries, and how many calls sat at the 2 s deadline.
+
+Not fixed here, tracked elsewhere: purely numeric text cannot be embedded through
+the ruflo CLI (t-3522 removes the CLI transport); `memory store --value` text is
+not shielded (t-3532); concurrent `embed-memory` runs (t-3511
+scheduling); per-project scoping of recall results (ADR-099, t-3516).
+
 ## Out of scope
 
 Replacing the ruflo embedder, removing ruflo from `.mcp.json`, changing the RRF constant, and

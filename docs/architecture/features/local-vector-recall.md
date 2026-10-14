@@ -217,6 +217,10 @@ because the migration stamps every row `source = "memory_entries"`.
 - Both `brana recall` (CLI) and the `recall` MCP tool now build
   `HybridProvider(FTS5, VectorProvider)`; `RufloProvider` remains in
   `search.rs` but has no production call site.
+  - **Superseded 2026-10-14 by t-3510:** recall now fuses three lists — FTS5
+    keyword, knowledge-entry vectors, and a dedicated memory-file vector list —
+    built by one factory (`vector::recall_provider`) shared by the CLI and MCP.
+    See [recall-memory-file-vectors.md](recall-memory-file-vectors.md).
 - Verified live: `brana recall "python web scraping framework"` returns the
   `knowledge:url:…python-framework-scrapes…` entry captured via Telegram —
   the first `knowledge:url` hit semantic search has ever returned. 0.7s total

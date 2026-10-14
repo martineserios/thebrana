@@ -648,6 +648,41 @@ it never contends with the drain cron's whole-invocation `lock_pipeline()`.
 
 ---
 
+## brana knowledge embed-memory
+
+```
+brana knowledge embed-memory [--force] [--json] [--dest PATH]
+```
+
+Embed the curated memory files (`~/.claude/memory/*.md` and
+`~/.claude/projects/*/memory/*.md`, top level only, `MEMORY.md` excluded) into
+the vector store (`~/.claude/memory/knowledge.db`, default `--dest`), so
+`brana recall` finds them by meaning as well as by keyword (t-3510). Rows are
+keyed `memory-file:<absolute path>` with `source = memory-file`; recall ranks them
+in their own list and fuses it with the keyword and knowledge lists through RRF.
+
+- **Incremental.** A file whose stored text is unchanged and whose row carries
+  the current embedding version tag (`emb:minilm-l6-384:1500`) is skipped.
+  Changed files are re-embedded. The first full run over about 1,100 files takes
+  about an hour (one ruflo ONNX call per file); later runs embed only what
+  changed.
+- **`--force`** re-embeds every file. Use it after an embedder or model change.
+- **Pruning.** Rows whose file is gone are deleted only for folders that listed
+  completely. A folder that is missing or unreadable prunes nothing, and its
+  name is reported on stderr.
+- **Fail-open.** If ruflo returns nothing for every file the command exits
+  non-zero with a clear message; recall keeps working on keywords alone.
+- **When to run.** After memory files change. It is not scheduled yet (t-3511);
+  until then, recall hides hits whose file no longer exists, so a stale row never
+  surfaces a deleted note.
+- **Known limitation.** Text that is purely a number (for example a query of
+  `2026`) cannot be embedded through the ruflo CLI; that call fails open to the
+  keyword leg. The in-process embedder spike (t-3522) removes this class.
+
+`--json` prints `{dest, scanned, embedded, unchanged, pruned, failed}`.
+
+---
+
 ## brana knowledge project-vectors
 
 Embed one curated descriptor per portfolio project into the `project_vectors`

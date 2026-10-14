@@ -682,4 +682,36 @@ mod tests {
         assert!(hits.is_empty(), "ghost memory row surfaced: {hits:?}");
         assert_eq!(store.count().unwrap(), 1, "the row itself stays until embed-memory prunes it");
     }
+
+    struct NoEmbedder;
+    impl Embedder for NoEmbedder {
+        fn embed(&self, _text: &str) -> Option<Vec<f32>> {
+            None
+        }
+    }
+
+    #[test]
+    fn recall_provider_fails_open_to_keywords_when_the_embedder_returns_nothing() {
+        // t-3510 gate F7: ruflo missing or crashing must leave keyword recall working.
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let d = dirs(&f);
+        reindex_fts_dirs(&d, &f.fts).unwrap();
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&d), &Fake::new(), false).unwrap();
+
+        let hits = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(NoEmbedder)).query("scraping", 5);
+
+        assert_eq!(hits.len(), 1, "keyword leg alone: {hits:?}");
+        assert!(matches!(&hits[0].doc, DocRef::MemoryFile { slug, .. } if slug == "scraping-tips"));
+    }
+
+    #[test]
+    fn cached_embedder_caches_a_failed_embedding_within_one_provider() {
+        let inner = Arc::new(Fake::new());
+        let cached = CachedEmbedder::new(inner.clone());
+        assert!(cached.embed("UNEMBEDDABLE text").is_none());
+        assert!(cached.embed("UNEMBEDDABLE text").is_none());
+        assert_eq!(inner.calls(), 1, "a None result is not retried within one query");
+    }
 }

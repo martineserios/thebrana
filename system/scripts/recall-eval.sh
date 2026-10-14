@@ -13,6 +13,11 @@
 # The question set is built from private memory files and is deliberately NOT
 # committed: pass a path. Prints one summary line and each miss. Exit 0 always
 # (a measurement, not a gate); read the line.
+#
+# Counter-metric (t-3510 gate, F4): the summary also reports the mean share of
+# top-<top> results that are knowledge entries (links, feeds) versus memory
+# files, and how many calls sat at the 2 s semantic deadline (a dropped leg), so
+# a memory-file gain that crowds out knowledge entries is visible.
 set -u
 
 QUESTIONS="${1:?usage: recall-eval.sh <questions.json> [top]}"
@@ -42,6 +47,7 @@ def in_scope(key):
     return any(glob.glob(p) for p in pats)
 
 hits, lat, misses, reach, reach_hits = 0, [], [], 0, 0
+mem_share, kn_share = [], []
 for q in qs:
     key = q["answer_key"]
     scoped = in_scope(key)
@@ -55,6 +61,10 @@ for q in qs:
     except Exception:
         res = []
     stems, slugs = [], []
+    kinds = [next(iter(r.get("doc") or {"?": 0})) for r in res]
+    if kinds:
+        mem_share.append(kinds.count("MemoryFile") / len(kinds))
+        kn_share.append(kinds.count("KnowledgeEntry") / len(kinds))
     for r in res:
         mf = r["doc"].get("MemoryFile")
         if mf:
@@ -66,8 +76,11 @@ for q in qs:
     if not ok:
         misses.append((q.get("n"), key, stems[:2], scoped))
 
+at_deadline = sum(1 for x in lat if x >= 2.0)
+mix = (f"| top-{top} mix: memory {statistics.mean(mem_share):.0%} / knowledge {statistics.mean(kn_share):.0%} "
+       if mem_share else "| top-{top} mix: n/a ")
 print(f"recall-eval: hits@{top} = {hits}/{len(qs)} | in-scope {reach_hits}/{reach} "
-      f"| median latency {statistics.median(lat):.2f}s | bin={brana}")
+      f"{mix}| median latency {statistics.median(lat):.2f}s ({at_deadline} at the 2 s deadline) | bin={brana}")
 for n, key, got, scoped in misses:
     tag = "" if scoped else "  [out of scope: file not at top level of a memory dir]"
     print(f"  miss #{n}: want {key}  got {got}{tag}")

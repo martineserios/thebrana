@@ -1359,6 +1359,30 @@ mod tests {
         assert_eq!(rows[0].key, "knowledge:url:good");
     }
 
+    #[test]
+    fn link_and_feed_filter_never_selects_memory_file_rows() {
+        // t-3510 gate F16: memory-file rows share the table; the relevance pass must not score them.
+        let tmp = tempdir().unwrap();
+        let store = KnowledgeStore::open(tmp.path().join("knowledge.db")).unwrap();
+        store
+            .upsert("knowledge:url:good", "ok", Some("github"), Some("memory_entries"), 1, &unit(0))
+            .unwrap();
+        store
+            .upsert(
+                "memory-file:/home/u/.claude/memory/pattern_x.md",
+                "note about github",
+                Some(&format!("memory-file,scope:global,{}", crate::memory_vectors::EMBED_VERSION)),
+                Some(crate::memory_vectors::MEMORY_SOURCE),
+                2,
+                &unit(0),
+            )
+            .unwrap();
+
+        let rows = store.rows_with_vec(RowFilter::LinkAndFeed).unwrap();
+
+        assert_eq!(rows.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(), vec!["knowledge:url:good"]);
+    }
+
     // ── provider ──────────────────────────────────────────────────────────────
 
     fn seeded_store(dir: &Path) -> PathBuf {
