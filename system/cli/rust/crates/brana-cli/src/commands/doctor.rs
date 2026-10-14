@@ -675,6 +675,21 @@ mod tests {
     }
 
     #[test]
+    fn test_check_plugin_prefers_a_real_entry_over_an_emptied_key() {
+        // verifier (t-3502): with two brana@ keys the first in map order used to win, so an
+        // emptied brana@brana hid a real registration under another marketplace.
+        let tmp = TempDir::new().unwrap();
+        create_file(
+            &tmp,
+            ".claude/plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"brana@brana":[],"brana@fork":[{"installPath":"/f","version":"3.0.0"}]}}"#,
+        );
+        let result = check_plugin(tmp.path());
+        assert!(result.passed, "{}", result.detail);
+        assert!(result.detail.contains("brana@fork") && result.detail.contains("3.0.0"), "{}", result.detail);
+    }
+
+    #[test]
     fn test_check_plugin_similar_key_does_not_match() {
         let tmp = TempDir::new().unwrap();
         create_file(

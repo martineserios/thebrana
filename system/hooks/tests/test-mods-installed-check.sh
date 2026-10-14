@@ -152,13 +152,18 @@ assert "hostile clone: exit 0" 0 "$RC"
 assert "hostile clone: says the checker was not found" yes "$(has 'not found' "$(ctx)")"
 
 echo ""
-echo "--- challenger: an explicit per-shell opt-out silences the gauge (the valve stays [77c]) ---"
+echo "--- challenger/verifier: the opt-out is a USER-owned file, never an env var ---"
+# A project's .claude/settings.json env block reaches hook processes, so an env opt-out could be
+# set by a hostile clone (the class closed for the checker path). The switch is a file under the
+# engine's config dir that only the user writes.
 reg good:"$GOOD" billing:"$BILL"
+touch "$CFG/mods-installed-check.skip"
+run_hook
+assert "opt-out file: exit 0" 0 "$RC"
+assert "opt-out file: silent" "" "$(ctx)"
+rm -f "$CFG/mods-installed-check.skip"
 run_hook BRANA_MODS_INSTALLED_SKIP=1
-assert "opt-out: exit 0" 0 "$RC"
-assert "opt-out: silent" "" "$(ctx)"
-run_hook BRANA_MODS_INSTALLED_SKIP=0
-assert "opt-out=0 is not an opt-out: still reported" yes "$(has 'billing@x' "$(ctx)")"
+assert "an env var is NOT an opt-out: still reported" yes "$(has 'billing@x' "$(ctx)")"
 
 echo ""
 echo "--- verifier N1: a summary of 10/20/100 mods is not '0 mod(s) scanned' ---"
