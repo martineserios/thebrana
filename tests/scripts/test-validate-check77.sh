@@ -16,6 +16,10 @@ PASS=0; FAIL=0
 assert() { if [ "$2" = "$3" ]; then PASS=$((PASS+1)); echo "  PASS: $1"; else FAIL=$((FAIL+1)); echo "  FAIL: $1 (expected '$2', got '$3')"; fi; }
 has() { case "$2" in *"$1"*) echo yes;; *) echo no;; esac; }
 cd "$ROOT" || exit 2
+# Hermetic (t-3505): Check 77c reads CLAUDE_CONFIG_DIR/plugins/installed_plugins.json — without this seed the
+# suite scanned the operator's REAL registry, so a flagged mod on the machine failed an unrelated test.
+export CLAUDE_CONFIG_DIR="$(mktemp -d)"; mkdir -p "$CLAUDE_CONFIG_DIR/plugins"
+trap 'rm -rf "$CLAUDE_CONFIG_DIR"' EXIT
 echo "=== test-validate-check77.sh ==="
 
 echo "--- static surface"
@@ -49,6 +53,19 @@ assert "77c passes without claude (static half, refusal check noted as skipped)"
 assert "77b FAILS without claude" yes "$(has 'FAIL: Check 77b' "$OUT")"
 assert "...with the documented message" yes "$(has 'claude CLI not on PATH — install it or run with --fast' "$OUT")"
 assert "validate exits non-zero" yes "$(has 'VALIDATION FAILED' "$OUT")"
+
+echo "--- 77c remedy text follows the checker's exit code (t-3505)"
+printf '[]' > "$CLAUDE_CONFIG_DIR/plugins/installed_plugins.json"
+OUT="$(./validate.sh --check 77 --fast 2>&1)"
+assert "an unreadable/mis-shaped registry FAILS 77c" yes "$(has 'FAIL: Check 77c' "$OUT")"
+assert "...saying the scan could not run" yes "$(has 'could not scan' "$OUT")"
+assert "...and NOT telling the operator to uninstall a mod" no "$(has 'uninstall the mod' "$OUT")"
+printf '{"version":2,"plugins":{"probe@other":[{"scope":"user","installPath":"%s","version":"1.0.0"}]}}' "$ROOT/tests/fixtures/mods/captures/t-3493-model-billing/mod" > "$CLAUDE_CONFIG_DIR/plugins/installed_plugins.json"
+OUT="$(./validate.sh --check 77 --fast 2>&1)"
+assert "an installed billing mod FAILS 77c" yes "$(has 'FAIL: Check 77c' "$OUT")"
+assert "...with the uninstall remedy" yes "$(has 'uninstall the mod' "$OUT")"
+rm -f "$CLAUDE_CONFIG_DIR/plugins/installed_plugins.json"
+assert "remedy registry [77c] distinguishes could-not-scan from a violating mod" yes "$(has 'could not scan' "$(grep -F '[77c]=' system/scripts/validate-remedies.sh)")"
 
 if command -v claude >/dev/null 2>&1; then
 echo "--- claude present: both pass on this checkout"

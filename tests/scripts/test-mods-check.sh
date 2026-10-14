@@ -275,10 +275,10 @@ assert "...naming Law 3" yes "$(has 'Law 3' "$(out)")"
 golden_validate
 echo "--- --installed fails closed and follows the engine's module list (challenger F1/F2/F5)"
 printf '[]' > "$H2/.claude/plugins/installed_plugins.json"
-assert "a registry of the wrong shape fails, never '0 scanned'" 1 "$(inst)"
+assert "a registry of the wrong shape fails, never '0 scanned' (exit 2: could not scan, not a verdict)" 2 "$(inst)"
 assert "...saying it cannot verify" yes "$(has 'cannot verify' "$(out)")"
 printf '{"version":2,"plugins":5}' > "$H2/.claude/plugins/installed_plugins.json"
-assert "a registry with a non-object plugins field fails" 1 "$(inst)"
+assert "a registry with a non-object plugins field fails (exit 2)" 2 "$(inst)"
 OUTSIDE="$H2/outside"; mkdir -p "$OUTSIDE/hooks" "$OUTSIDE/lib"
 printf '{ "modules": ["../lib/entry.ts", "./probe.test.ts"] }' > "$OUTSIDE/hooks/hooks.json"
 printf 'export const register = (on) => { on("session.start", async ($, e, next) => { await $.model.complete({ prompt: "x" }); return next(e) }) }\n' > "$OUTSIDE/lib/entry.ts"
@@ -294,6 +294,159 @@ reg linked:"$LINKED"; golden_validate; golden_test
 assert "a symlinked installPath validates" 0 "$(inst_engine)"
 assert "...and the audit never deletes inside the real mod (types/ survives)" yes "$( [ -f "$T/mods/good-minimal/.claude-plugin/types/keep.d.ts" ] && echo yes || echo no)"
 rm -rf "$T/mods/good-minimal/.claude-plugin/types"
+
+echo "--- t-3505: raw NUL-safe scan, no comment stripping (third-party code: false positives are fine for a deny guard)"
+NULMOD="$H2/nulmod"; mkdir -p "$NULMOD/hooks"; printf '{ "modules": ["./a.ts"] }' > "$NULMOD/hooks/hooks.json"
+printf 'export const a = 1;\0\nexport const b = ($) => $.model.complete({})\n' > "$NULMOD/hooks/a.ts"
+reg nul:"$NULMOD"
+assert "a module containing a NUL byte is still scanned (grep -a; a binary-file skip hid it)" 1 "$(inst)"
+assert "...naming the model rule" yes "$(has 'model — Law 3' "$(out)")"
+printf 'export const w = async ($) => { /* a */ await $.model.complete(x) /* b */ }\n' > "$NULMOD/hooks/a.ts"
+assert "a call sandwiched between two block comments is flagged (the greedy strip erased it)" 1 "$(inst)"
+printf '// $.model mentioned in a comment\nexport const ok = 1\n' > "$NULMOD/hooks/a.ts"
+assert "a comment that mentions \$.model is flagged too — comments are not stripped for installed code" 1 "$(inst)"
+if [ "$(id -u)" != 0 ]; then
+    printf 'export const ok = 1\n' > "$NULMOD/hooks/a.ts"; chmod 000 "$NULMOD/hooks/a.ts"
+    assert "a non-empty module that scans zero lines is a violation, never a pass" 1 "$(inst)"
+    assert "...saying unscannable" yes "$(has 'unscannable' "$(out)")"
+    chmod 644 "$NULMOD/hooks/a.ts"
+fi
+rm -rf "$NULMOD"
+
+echo "--- t-3505: python3 -I — a planted json.py in the session repo is never imported"
+EVILCWD="$T/evilcwd"; mkdir -p "$EVILCWD"; git -C "$EVILCWD" init -q
+printf 'open("%s/PYPWNED", "w").write("x")\n' "$T" > "$EVILCWD/json.py"
+reg good:"$T/mods/good-minimal"
+( cd "$EVILCWD" && PATH="$NOCLAUDE_PATH" bash "$CHECK" --installed "$H2/.claude" >"$T/out" 2>&1 )
+assert "the hostile json.py never ran (the checker cds into the session repo; python3 - puts cwd first on sys.path)" no "$([ -f "$T/PYPWNED" ] && echo yes || echo no)"
+assert "...and the scan still completed" yes "$(has 'mod(s) scanned' "$(out)")"
+assert "no python3 invocation in mods-check.sh lacks -I" 0 "$(grep -E 'python3 ' "$CHECK" | grep -vE 'python3 -I|command -v python3|python3 missing|^[[:space:]]*#' | wc -l | tr -d ' ')"
+NOPY_PATH="$(path_without python3)"
+reg good:"$T/mods/good-minimal"
+PATH="$NOPY_PATH" bash "$CHECK" --installed "$H2/.claude" >"$T/out" 2>&1; assert "python3 missing -> exit 2 (could not scan, not a verdict)" 2 "$?"
+assert "...saying python3 is missing" yes "$(has 'python3 missing' "$(out)")"
+
+echo "--- t-3505: stdin isolation and the scanned == entries integrity count"
+FAKE2="$T/fake2"; mkdir -p "$FAKE2/bin"
+cat > "$FAKE2/bin/claude" <<'SHIM2'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FAKE/argv.log"
+cat >/dev/null 2>&1   # a claude that reads stdin swallows the registry lines the loop is still reading
+case "$1 ${2:-}" in
+  "plugin validate") cat "$FAKE/validate.json"; exit "$(cat "$FAKE/validate.rc")" ;;
+  "--version "*)     echo "2.1.288 (shim)" ;;
+esac
+SHIM2
+chmod +x "$FAKE2/bin/claude"
+for i in 1 2 3; do rm -rf "$H2/g$i"; cp -R "$T/mods/good-minimal" "$H2/g$i"; done
+reg g1:"$H2/g1" g2:"$H2/g2" g3:"$H2/g3"; golden_validate
+: > "$FAKE/argv.log"; FAKE="$FAKE" PATH="$FAKE2/bin:$NOCLAUDE_PATH" bash "$CHECK" --installed "$H2/.claude" >"$T/out" 2>&1; assert "three mods + a claude that reads stdin: exit 0" 0 "$?"
+assert "...plugin validate ran for ALL three (the loop's stdin is not the engine's)" 3 "$(grep -c 'plugin validate' "$FAKE/argv.log")"
+assert "...and the summary asserts validated == entries" yes "$(has 'validated 3/3' "$(out)")"
+
+echo "--- t-3505: the engine calls: note is mandatory when modules is non-empty; a skipped half is said, not silent"
+reg good:"$T/mods/good-minimal"; golden_validate
+python3 -I - "$FAKE/validate.json" <<'PYN'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p))
+for sec in d.get("contents") or []:
+    sec["notes"] = [n for n in (sec.get("notes") or []) if " calls: " not in n]
+json.dump(d, open(p, "w"))
+PYN
+assert "validate output without any calls: listing fails (an engine wording change must not silently disable the structural half)" 1 "$(inst_engine)"
+assert "...naming the missing calls: listing" yes "$(has 'no calls: listing' "$(out)")"
+golden_validate
+assert "claude absent: exit 0 (static half) ..." 0 "$(inst)"
+assert "...with a column-0 'WARN: engine half skipped' line (never silent)" yes "$(printf '%s\n' "$(out)" | grep -q '^WARN: engine half skipped' && echo yes || echo no)"
+: > "$FAKE/argv.log"; MODS_INSTALLED_STATIC_ONLY=1 FAKE="$FAKE" PATH="$FAKE/bin:$NOCLAUDE_PATH" bash "$CHECK" --installed "$H2/.claude" >"$T/out" 2>&1
+assert "deliberate static-only: engine never invoked" "" "$(cat "$FAKE/argv.log")"
+assert "...and the WARN names MODS_INSTALLED_STATIC_ONLY" yes "$(has 'WARN: engine half skipped (MODS_INSTALLED_STATIC_ONLY' "$(out)")"
+
+echo "--- t-3505: symlinks resolving outside the install root are rejected, never followed"
+SYMP="$H2/symplug"; rm -rf "$SYMP" "$H2/secret"; cp -R "$T/mods/good-minimal" "$SYMP"; mkdir -p "$H2/secret"; echo s > "$H2/secret/f"
+ln -s "$H2/secret" "$SYMP/hooks/escape"
+reg sym:"$SYMP"; golden_validate; : > "$FAKE/argv.log"
+assert "a symlink escaping the install root is a violation" 1 "$(inst_engine)"
+assert "...naming the link" yes "$(has 'symlink' "$(out)")"
+assert "...and the engine copy was never made (cp -RL would have followed it)" "" "$(cat "$FAKE/argv.log")"
+rm -f "$SYMP/hooks/escape"; ln -s register.ts "$SYMP/hooks/alias.ts"; : > "$FAKE/argv.log"
+assert "a symlink that stays inside the install root is fine" 0 "$(inst_engine)"
+rm -rf "$SYMP" "$H2/secret"
+
+echo "--- t-3505: the acknowledge valve (a plugin that cannot be uninstalled — managed settings) downgrades to a logged WARN"
+BILLP="$H2/billing-copy"; rm -rf "$BILLP"; cp -R "$BILL" "$BILLP"; reg billing:"$BILLP"; rm -f "$H2/.claude/mods-acknowledged.txt"
+assert "no acknowledgement: the billing mod fails" 1 "$(inst)"
+ACKH="$(grep -oE 'sha256:[0-9a-f]{64}' "$T/out" | head -1)"
+assert "...and the output prints the content hash to acknowledge" yes "$([ -n "$ACKH" ] && echo yes || echo no)"
+printf '# comment line\nbilling@x %s  # managed-settings plugin, cannot uninstall (test)\n' "$ACKH" > "$H2/.claude/mods-acknowledged.txt"
+assert "acknowledged by name@marketplace + content hash: exit 0" 0 "$(inst)"
+assert "...logged as a WARN naming the entry and the reason" yes "$(printf '%s\n' "$(out)" | grep -q '^WARN: acknowledged billing@x.*cannot uninstall' && echo yes || echo no)"
+assert "...the violation is still shown (downgraded, never hidden)" yes "$(has 'model — Law 3' "$(out)")"
+printf '\n// updated by the marketplace\n' >> "$BILLP/hooks/register.ts"
+assert "the plugin auto-updates (content hash changes): the acknowledgement no longer applies" 1 "$(inst)"
+assert "...saying the acknowledgement does not match the content" yes "$(has 'does not match' "$(out)")"
+printf 'billing@x sha256:%064d  # wrong\n' 0 > "$H2/.claude/mods-acknowledged.txt"
+assert "an acknowledgement with the wrong hash does not downgrade" 1 "$(inst)"
+rm -f "$H2/.claude/mods-acknowledged.txt"
+HOSTILE="$T/hostile-ack"; mkdir -p "$HOSTILE/system/config"; git -C "$HOSTILE" init -q
+cp "$BILL/hooks/register.ts" "$T/ack-probe.ts" 2>/dev/null || true
+for f in "$HOSTILE/mods-acknowledged.txt" "$HOSTILE/system/config/mods-acknowledged.txt"; do printf 'billing@x sha256:%s  # planted by a hostile clone\n' "$ACKH" > "$f"; done
+rm -rf "$BILLP"; cp -R "$BILL" "$BILLP"
+( cd "$HOSTILE" && PATH="$NOCLAUDE_PATH" bash "$CHECK" --installed "$H2/.claude" >"$T/out" 2>&1 ); assert "an acknowledgement list planted in the session repo is never read" 1 "$?"
+assert "the tracked template list exists (repo-tracked source of truth)" yes "$([ -f "$ROOT/system/config/mods-acknowledged.txt" ] && echo yes || echo no)"
+rm -rf "$BILLP"
+
+echo "--- t-3505: --refusal-canary counts 'refused' only when the engine answered (JSON parsed, success false, non-zero exit)"
+CANF="$T/canfake"; mkdir -p "$CANF/bin"
+cat > "$CANF/bin/claude" <<'SHIM3'
+#!/usr/bin/env bash
+case "$1 ${2:-}" in
+  "plugin validate") cat "$FAKE/validate.json"; exit "$(cat "$FAKE/validate.rc")" ;;
+  "--version "*)     echo "2.1.288 (shim)" ;;
+esac
+SHIM3
+chmod +x "$CANF/bin/claude"
+canary() { FAKE="$CANF" PATH="$CANF/bin:$NOCLAUDE_PATH" bash "$CHECK" --refusal-canary "$T" >"$T/out" 2>&1; echo $?; }
+echo '{"success":false,"contents":[]}' > "$CANF/validate.json"; echo 1 > "$CANF/validate.rc"
+assert "engine refuses every variant (JSON, success:false, rc 1): exit 0" 0 "$(canary)"
+assert "...saying still refused" yes "$(has 'still refused' "$(out)")"
+echo '{"success":true,"contents":[]}' > "$CANF/validate.json"; echo 0 > "$CANF/validate.rc"
+assert "engine ACCEPTS a bypass spelling (success:true, rc 0): exit 1" 1 "$(canary)"
+assert "...the message names the rule that is no longer sufficient" yes "$(has "Law 3's literal grep is no longer sufficient" "$(out)")"
+echo 'definitely not json' > "$CANF/validate.json"; echo 1 > "$CANF/validate.rc"
+assert "garbage output with rc 1 (engine could not be asked): exit 1, never 'still refused'" 1 "$(canary)"
+assert "...saying the engine cannot be asked" yes "$(has 'cannot be asked' "$(out)")"
+assert "...and never printing 'still refused'" no "$(has 'still refused' "$(out)")"
+echo 'definitely not json' > "$CANF/validate.json"; echo 0 > "$CANF/validate.rc"
+assert "garbage output with rc 0: exit 1" 1 "$(canary)"
+echo '{"success":true}' > "$CANF/validate.json"; echo 1 > "$CANF/validate.rc"
+assert "inconsistent answer (success:true but rc 1): exit 1" 1 "$(canary)"
+echo '{"success":false}' > "$CANF/validate.json"; echo 0 > "$CANF/validate.rc"
+assert "inconsistent answer (success:false but rc 0): exit 1" 1 "$(canary)"
+
+echo "--- t-3505: --noexec-canary re-proves per engine version that plugin validate never executes module code"
+cat > "$CANF/bin/claude" <<'SHIM4'
+#!/usr/bin/env bash
+case "$1 ${2:-}" in
+  "plugin validate")
+    # FAKE_EXECS=1 simulates an engine that EVALUATES the module: it performs the top-level Bun.write
+    if [ "${FAKE_EXECS:-0}" = 1 ]; then
+        m="$(grep -rhoE "Bun\.write\('[^']+'" "${3:-$4}" 2>/dev/null | head -1 | sed -E "s/Bun\.write\('//; s/'$//")"; [ -n "$m" ] && printf 'ran' > "$m"
+    fi
+    cat "$FAKE/validate.json"; exit "$(cat "$FAKE/validate.rc")" ;;
+  "--version "*) echo "2.1.288 (shim)" ;;
+esac
+SHIM4
+noexec() { FAKE="$CANF" FAKE_EXECS="${1:-0}" PATH="$CANF/bin:$NOCLAUDE_PATH" bash "$CHECK" --noexec-canary "$T" >"$T/out" 2>&1; echo $?; }
+echo '{"success":true,"contents":[]}' > "$CANF/validate.json"; echo 0 > "$CANF/validate.rc"
+assert "an engine that validates without running the module: exit 0" 0 "$(noexec 0)"
+assert "...saying it did not execute" yes "$(has 'did not execute' "$(out)")"
+assert "an engine that EXECUTES the module's top level: exit 1" 1 "$(noexec 1)"
+assert "...saying the module code was executed" yes "$(has 'EXECUTED' "$(out)")"
+echo '{"success":false,"contents":[]}' > "$CANF/validate.json"; echo 1 > "$CANF/validate.rc"
+assert "the engine refuses the probe mod itself: exit 1 (a refused probe proves nothing — fail closed)" 1 "$(noexec 0)"
+assert "...saying the proof is vacuous" yes "$(has 'vacuous' "$(out)")"
+PATH="$NOCLAUDE_PATH" bash "$CHECK" --noexec-canary "$T" >"$T/out" 2>&1; assert "--noexec-canary without claude -> exit 1 (never a silent pass)" 1 "$?"
 
 echo "--- portability: no apostrophe in a comment inside a python heredoc (stock macOS bash 3.2 mis-parses \$( ... <<'EOF' ... ) bodies)"
 assert "mods-check.sh python heredoc comments contain no apostrophe" 0 "$(awk "/<<'PYV'/ {f=1; next} /^PYV\$/ {f=0} f && /^[[:space:]]*#.*'/ {n++} END {print n + 0}" "$CHECK")"
