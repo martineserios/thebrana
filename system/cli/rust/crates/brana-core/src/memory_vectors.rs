@@ -552,6 +552,15 @@ mod tests {
 
     // ── t-3510 gate repair: F5 (partial scan), F3 (version, --force), F2 (ghost rows) ──
 
+    /// Root ignores mode bits, so permission tests are vacuous as root (same guard
+    /// as brana-cli knowledge.rs).
+    fn running_as_root() -> bool {
+        unsafe extern "C" {
+            fn geteuid() -> u32;
+        }
+        unsafe { geteuid() == 0 }
+    }
+
     fn unreadable(dir: &std::path::Path) {
         use std::os::unix::fs::PermissionsExt;
         fs::set_permissions(dir, fs::Permissions::from_mode(0o000)).unwrap();
@@ -564,6 +573,9 @@ mod tests {
 
     #[test]
     fn rows_under_an_unreadable_dir_are_not_pruned() {
+        if running_as_root() {
+            return;
+        }
         // F5: one project dir unreadable while others list fine must not wipe its rows.
         let f = fixture();
         let other = f._tmp.path().join("other-memory");

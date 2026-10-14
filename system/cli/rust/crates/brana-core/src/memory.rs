@@ -869,6 +869,15 @@ mod identity_tests {
 
     // ── t-3510 gate repair: F5 (failed reads are not empty reads) ──
 
+    /// Root ignores mode bits, so permission tests are vacuous as root (same guard
+    /// as brana-cli knowledge.rs).
+    fn running_as_root() -> bool {
+        unsafe extern "C" {
+            fn geteuid() -> u32;
+        }
+        unsafe { geteuid() == 0 }
+    }
+
     fn set_mode(dir: &std::path::Path, mode: u32) {
         use std::os::unix::fs::PermissionsExt;
         fs::set_permissions(dir, fs::Permissions::from_mode(mode)).unwrap();
@@ -876,6 +885,9 @@ mod identity_tests {
 
     #[test]
     fn listing_reports_failed_dirs_separately_from_complete_ones() {
+        if running_as_root() {
+            return;
+        }
         let tmp = tempdir().unwrap();
         let ok = tmp.path().join("ok");
         let locked = tmp.path().join("locked");
@@ -936,6 +948,9 @@ mod identity_tests {
 
     #[test]
     fn reindex_refuses_a_partial_listing_and_keeps_the_existing_index() {
+        if running_as_root() {
+            return;
+        }
         let tmp = tempdir().unwrap();
         let a = tmp.path().join("a");
         let b = tmp.path().join("b");
@@ -957,6 +972,9 @@ mod identity_tests {
 
     #[test]
     fn memory_dirs_in_errors_when_the_projects_root_is_unreadable() {
+        if running_as_root() {
+            return;
+        }
         let tmp = tempdir().unwrap();
         let projects = tmp.path().join(".claude/projects");
         fs::create_dir_all(projects.join("p1/memory")).unwrap();
@@ -990,5 +1008,49 @@ mod identity_tests {
         let hits = FTS5Provider::new(db).query("scraping", 5);
 
         assert_eq!(hits.len(), 1, "ghost hit surfaced: {hits:?}");
+    }
+
+    #[test]
+    fn reindex_refuses_an_unreadable_file_and_keeps_the_existing_index() {
+        // Gate iteration 2: an unreadable note must not be indexed as empty text.
+        if running_as_root() {
+            return;
+        }
+        let tmp = tempdir().unwrap();
+        let a = tmp.path().join("a");
+        fs::create_dir_all(&a).unwrap();
+        fs::write(a.join("pattern_alpha.md"), "alpha scraping").unwrap();
+        fs::write(a.join("pattern_beta.md"), "beta pricing").unwrap();
+        let dirs = vec![("project".to_string(), a.clone())];
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&dirs, &db).unwrap();
+
+        set_mode(&a.join("pattern_beta.md"), 0o000);
+        let res = reindex_fts_dirs(&dirs, &db);
+        set_mode(&a.join("pattern_beta.md"), 0o644);
+
+        assert!(res.is_err(), "an unreadable file must abort the rebuild");
+        assert_eq!(search_fts(&db, "pricing", 5).unwrap().len(), 1, "old index kept");
+        assert_eq!(search_fts(&db, "scraping", 5).unwrap().len(), 1, "old index kept");
+    }
+
+    #[test]
+    fn memory_dirs_in_errors_when_a_project_memory_dir_cannot_be_checked() {
+        // Gate iteration 2: is_dir() swallowed stat errors, so an unreadable project
+        // silently dropped out of the rebuild.
+        if running_as_root() {
+            return;
+        }
+        let tmp = tempdir().unwrap();
+        let projects = tmp.path().join(".claude/projects");
+        fs::create_dir_all(projects.join("p1/memory")).unwrap();
+        fs::create_dir_all(projects.join("p2-no-memory")).unwrap();
+
+        set_mode(&projects.join("p1"), 0o000);
+        let res = memory_dirs_in(tmp.path());
+        set_mode(&projects.join("p1"), 0o755);
+
+        assert!(res.is_err(), "a project whose memory dir cannot be checked must not vanish silently");
+        assert_eq!(memory_dirs_in(tmp.path()).unwrap().len(), 2, "global + p1; p2 has no memory dir");
     }
 }
