@@ -545,4 +545,133 @@ mod tests {
         assert!(!entry.sha256.is_empty());
         fs::remove_dir_all(&dir).unwrap();
     }
+
+    // ── t-3473: atomic .part download, stale-part sweep, manifest containment ──
+
+    fn entry(path: &str, url: Option<&str>) -> FileEntry {
+        FileEntry { path: path.into(), sha256: "x".into(), size: 0, url: url.map(String::from), r2_key: None }
+    }
+
+    fn part_files(dir: &Path) -> Vec<String> {
+        fs::read_dir(dir)
+            .map(|rd| {
+                rd.flatten()
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .filter(|n| n.contains(".part-"))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn download_writes_to_part_then_renames() {
+        let d = tempfile::tempdir().unwrap();
+        let dest = d.path().join("models").join("m.bin");
+        let seen = std::cell::RefCell::new(None);
+        download_file_with("https://x/m.bin", &dest, None, |url, tmp: &Path| {
+            assert_eq!(url, "https://x/m.bin");
+            assert!(!dest.exists(), "dest must not exist while the download is in flight");
+            let name = tmp.file_name().unwrap().to_string_lossy().into_owned();
+            assert!(name.starts_with("m.bin.part-"), "got {name}");
+            *seen.borrow_mut() = Some(tmp.to_path_buf());
+            fs::write(tmp, b"hello")?;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), b"hello");
+        assert!(!seen.borrow().as_ref().unwrap().exists(), "part file must be renamed away");
+        assert!(part_files(dest.parent().unwrap()).is_empty());
+        let pid = std::process::id();
+        assert!(part_path(&dest).to_string_lossy().ends_with(&format!("m.bin.part-{pid}")));
+    }
+
+    #[test]
+    fn failed_download_leaves_nothing_at_dest() {
+        let d = tempfile::tempdir().unwrap();
+        let dest = d.path().join("m.bin");
+        let r = download_file_with("https://x/m.bin", &dest, None, |_, tmp: &Path| {
+            fs::write(tmp, b"half")?; // interrupted mid-stream
+            bail!("connection reset")
+        });
+        assert!(r.is_err());
+        assert!(!dest.exists(), "a failed download must leave no file at dest");
+        assert!(part_files(d.path()).is_empty(), "and no partial behind");
+    }
+
+    #[test]
+    fn sha_is_verified_before_rename() {
+        let d = tempfile::tempdir().unwrap();
+        let dest = d.path().join("m.bin");
+        let hello = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
+        let other = "0000000000000000000000000000000000000000000000000000000000000000";
+        let fetch = |_: &str, tmp: &Path| { fs::write(tmp, b"hello")?; Ok(()) };
+        let r = download_file_with("https://x/m.bin", &dest, Some(other), fetch);
+        assert!(r.is_err(), "hash mismatch must fail");
+        assert!(!dest.exists(), "mismatched content must never reach dest");
+        assert!(part_files(d.path()).is_empty());
+        download_file_with("https://x/m.bin", &dest, Some(hello), fetch).unwrap();
+        assert!(dest.exists());
+    }
+
+    #[test]
+    fn stale_parts_are_swept_fresh_ones_kept() {
+        let d = tempfile::tempdir().unwrap();
+        let old = d.path().join("old.bin.part-1");
+        let fresh = d.path().join("fresh.bin.part-2");
+        let keep = d.path().join("keep.bin");
+        for p in [&old, &fresh, &keep] {
+            fs::write(p, b"x").unwrap();
+        }
+        let two_h_ago = std::time::SystemTime::now() - STALE_PART_AGE * 2;
+        fs::File::options().write(true).open(&old).unwrap().set_modified(two_h_ago).unwrap();
+        assert_eq!(sweep_stale_parts(d.path()), 1);
+        assert!(!old.exists(), "stale partial swept");
+        assert!(fresh.exists(), "in-flight partial kept");
+        assert!(keep.exists(), "non-partials untouched");
+        assert_eq!(sweep_stale_parts(&d.path().join("missing")), 0, "missing dir is a no-op");
+    }
+
+    #[test]
+    fn validate_entry_rejects_hostile_paths_and_urls() {
+        let d = tempfile::tempdir().unwrap();
+        let root = d.path();
+        for bad in ["/etc/passwd", "../escape.bin", "models/../../escape.bin", ""] {
+            assert!(validate_entry(root, &entry(bad, Some("https://h/x"))).is_err(), "path {bad:?} must be rejected");
+        }
+        for bad in ["http://h/x", "file:///etc/passwd", "ftp://h/x", "HTTPS://h/x "] {
+            assert!(validate_entry(root, &entry("models/m.bin", Some(bad))).is_err(), "url {bad:?} must be rejected");
+        }
+        assert_eq!(
+            validate_entry(root, &entry("models/m.bin", Some("https://h/x"))).unwrap(),
+            root.join("models/m.bin")
+        );
+        assert!(validate_entry(root, &entry("models/m.bin", None)).is_ok(), "url is optional");
+    }
+
+    #[test]
+    fn download_file_refuses_non_https_before_any_write() {
+        let d = tempfile::tempdir().unwrap();
+        let dest = d.path().join("sub").join("x.bin");
+        assert!(download_file("http://127.0.0.1:9/x", &dest, None).is_err());
+        assert!(!d.path().join("sub").exists(), "no directory or file may be created for a rejected URL");
+    }
+
+    #[test]
+    fn pull_rejects_hostile_manifest_entries_without_writing() {
+        let d = tempfile::tempdir().unwrap();
+        let proj = d.path().join("proj");
+        fs::create_dir_all(&proj).unwrap();
+        let abs = d.path().join("abs.bin");
+        let mut m = Manifest::default();
+        m.add("esc".into(), entry("../escape.bin", Some("https://127.0.0.1:9/x")));
+        m.add("abs".into(), entry(abs.to_str().unwrap(), Some("https://127.0.0.1:9/x")));
+        m.add("plain".into(), entry("ok.bin", Some("http://127.0.0.1:9/x")));
+        let r = pull(&m, &proj).unwrap();
+        assert_eq!(r.downloaded, 0);
+        assert_eq!(r.failed.len(), 3, "{:?}", r.failed);
+        assert!(!d.path().join("escape.bin").exists());
+        assert!(!abs.exists());
+        assert!(!proj.join("ok.bin").exists());
+        assert!(part_files(d.path()).is_empty() && part_files(&proj).is_empty());
+    }
 }

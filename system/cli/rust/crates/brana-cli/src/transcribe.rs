@@ -1113,6 +1113,28 @@ mod tests {
         assert_eq!(names, vec!["base"]);
     }
 
+    // ── t-3473: manifest-tracked model containment ─────────────────────
+
+    #[test]
+    fn tracked_model_path_requires_exact_name_and_contained_path() {
+        let d = tempfile::tempdir().unwrap();
+        let root = d.path();
+        let mk = |p: &str, url: &str| files::FileEntry {
+            path: p.into(), sha256: "x".into(), size: 0, url: Some(url.into()), r2_key: None,
+        };
+        assert_eq!(
+            tracked_model_path(root, &mk("models/ggml-base.bin", "https://h/m"), "ggml-base.bin"),
+            Some(root.join("models/ggml-base.bin"))
+        );
+        // substring matches used to pass: a `.bak` or `ggml-base.bin-old` entry is not the model
+        assert!(tracked_model_path(root, &mk("models/ggml-base.bin.bak", "https://h/m"), "ggml-base.bin").is_none());
+        assert!(tracked_model_path(root, &mk("models/xggml-base.bin", "https://h/m"), "ggml-base.bin").is_none());
+        // a hostile checkout cannot point the download at an attacker-chosen path or a plain-http URL
+        assert!(tracked_model_path(root, &mk("/tmp/ggml-base.bin", "https://h/m"), "ggml-base.bin").is_none());
+        assert!(tracked_model_path(root, &mk("../ggml-base.bin", "https://h/m"), "ggml-base.bin").is_none());
+        assert!(tracked_model_path(root, &mk("models/ggml-base.bin", "http://h/m"), "ggml-base.bin").is_none());
+    }
+
     #[test]
     fn whisper_failure_names_model_and_recovery() {
         let msg = whisper_failure_message(Path::new("/m/ggml-small.bin"), "error: failed to load model");
