@@ -394,6 +394,34 @@ t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshne
   stale index with exit 0.
 - **Surface:** `brana-core/src/memory.rs` (incremental upsert, build-time metadata).
 
+## Index freshness — design (t-3536, 2026-10-15)
+
+- **Change tracking, per file:** `index.db` gains `memory_files(path, mtime_ns, size)` and
+  `memory_meta(key, value)` (`refreshed_at`, unix seconds). A full rebuild rewrites both in the
+  same transaction as `memory_fts`. Tracking each file's own mtime and size, not "newer than the
+  build", also catches edits and files copied in with an old mtime.
+- **Refresh (`memory::refresh_fts_dirs(dirs, db, budget) -> FreshnessReport`):** lists the in-scope
+  folders; a note whose stat differs from `memory_files` (or is absent there) is stale and is
+  re-indexed (delete by path, insert); an indexed row under a folder that listed completely whose
+  file is gone is dropped. A folder that is missing or could not be listed changes nothing.
+  One transaction; nothing is written when nothing is stale.
+- **Unreadable note (decision 2026-10-15):** skipped; its previous row stays as it was and it is
+  counted in `unreadable`. Every other change still lands.
+- **Budget and locks:** the refresh checks its budget before each note and waits for a lock no
+  longer than the remaining budget. Over budget, locked, or any write error: roll back, keep the
+  stale index, report the reason. It never returns an error and never blocks the bundle.
+- **Who calls it (decision 2026-10-15):** the bundle only (t-3537). Plain recall and MCP stay
+  read-only.
+- **Report fields:** `index_age_s` (since `refreshed_at`; absent for an index built before this
+  change), `stale_notes`, `deleted_notes`, `unreadable`, `outcome` (`fresh | refreshed | stale`
+  plus a reason). `unembedded` comes from `memory_vectors::unembedded_count`: in-scope notes with
+  no vector row, a row without the current `EMBED_VERSION` tag, or a row older than the file.
+- **Indexes from older binaries** have no `memory_files`: the first refresh treats every in-scope
+  note as stale and re-indexes it once. Deleted-note detection reads `memory_fts` paths, so it
+  works on old indexes too.
+- **Lock waits elsewhere:** the full rebuild waits up to 5 s for a lock; the keyword search leg
+  waits up to 200 ms, inside its 500 ms deadline.
+
 ## Challenger findings
 
 **Shaping review (idea doc, 2026-10-14):** three lenses, H1–H4 and C1–C8, all incorporated before
