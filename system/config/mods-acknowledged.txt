@@ -1,17 +1,20 @@
 # mods-acknowledged.txt — plugins that cannot be uninstalled but are known to match an ADR-096 Law 3 rule.
 #
-# One entry per line:   name@marketplace sha256:<content hash>  # reason, who, date
+# One entry per line:   name@marketplace sha256:<hash of the whole install>  # reason, who, date
 #
-# An acknowledged plugin is downgraded from a violation to a loud, logged WARN on every run
-# (`mods-check.sh --installed`, validate Check 77c, bootstrap 7i) — never a silent pass. The entry is
-# bound to the plugin's CONTENT hash (listed modules + hooks.json), so when the marketplace
-# auto-updates the plugin the acknowledgement stops applying and the violation returns.
+# An acknowledged plugin has its Law 3 RULE hits downgraded from a violation to a loud, logged WARN on every
+# run (`mods-check.sh --installed`, validate Check 77c, bootstrap 7i) — never a silent pass, and the findings
+# are still printed. Nothing else is downgraded: an engine refusal, an engine `calls:` hit, a symlink or path
+# escape, an unattestable encoding and every scanner fault stay failures. The hash covers EVERY file in the
+# plugin's install tree (a helper a module imports, a new symlink, anything), so when the marketplace
+# auto-updates the plugin the acknowledgement stops applying and the violation returns. `sha256:unknown` is
+# never honoured.
 #
-# Where this file is read from — ONLY these two, never from the repo of the current session
-# (a hostile clone must not be able to acknowledge itself):
-#   1. this tracked list (next to scripts/ in the repo: system/config/mods-acknowledged.txt)
-#   2. the user-owned list  <config dir>/mods-acknowledged.txt  (default ~/.claude/mods-acknowledged.txt)
+# This file is the ONLY source. The checker reads it from next to itself: system/config/ in the repo, and
+# ~/.claude/config/ after bootstrap deploys it. It is never read from the Claude config dir (a plugin with
+# process.run can write there) and never from the repo of the current session (a hostile clone must not be
+# able to acknowledge itself). Changing it is a repo change: review it like one (ADR-096 amendment, t-3505).
 #
-# The hash to put here is printed by the failing run (the `hint:` line). Example (do not uncomment
-# without a real plugin and a real reason):
+# The hash to put here is printed by the failing run (the `hint:` line). Example (do not uncomment without
+# a real plugin and a real reason):
 #   some-plugin@some-marketplace sha256:0000000000000000000000000000000000000000000000000000000000000000  # managed settings, cannot uninstall — <name>, 2026-10-14

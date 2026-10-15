@@ -424,6 +424,9 @@ assert "an entry whose hooks.json does not parse is a scanner-side fault, exit 2
 assert "...a sha256:unknown acknowledgement is never honoured" no "$(has 'acknowledged bad@x' "$(out)")"
 assert "...and no hint ever offers sha256:unknown as the hash to acknowledge" no "$(has 'hint:.*sha256:unknown' "$(out)")"
 assert "the tracked template list exists (repo-tracked source of truth)" yes "$([ -f "$ROOT/system/config/mods-acknowledged.txt" ] && echo yes || echo no)"
+assert "the tracked template's header does not claim a user-owned list is read (the code refuses one)" no "$(has 'user-owned' "$(cat "$ROOT/system/config/mods-acknowledged.txt")")"
+assert "...nor that the config dir is a source" no "$(has '<config dir>/mods-acknowledged.txt' "$(cat "$ROOT/system/config/mods-acknowledged.txt")")"
+assert "...and states the whole-install hash binding" yes "$(has 'whole install' "$(cat "$ROOT/system/config/mods-acknowledged.txt")")"
 rm -rf "$BILLP" "$HDIR"
 
 echo "--- t-3505 repair: plugin-controlled text never reaches the output raw; encodings and paths that cannot be attested are findings"
