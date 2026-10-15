@@ -512,6 +512,38 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
 - **Fail-open:** a missing task, tasks file or index gives an empty bundle with the reason in the
   legs and on stderr, exit 0. The command's exit is non-zero only for argument errors.
 
+### Privacy and untrusted text (t-3537 gate)
+
+- **Scope is proven on the real file.** `RecallScope::allows` requires the path to sit directly in
+  a scope folder and, when it is a symlink, to resolve to a file directly in a scope folder
+  (folders compared after resolving them; a dangling link is not shown to be in scope). Before
+  this a link planted in global memory that pointed into a client's memory passed the lexical
+  check, was indexed and read, and its description was printed. The rule lives in `allows`, so
+  the bundle, `brana recall --scope project` and the vector leg all inherit it; the keyword leg
+  post-checks it after its SQL prefix filter; the bundle checks scope before it opens a candidate.
+- **Everything printed from a note is cleaned.** Gists, refs, flags and the task id lose control
+  characters, escape sequences and bidirectional overrides (line breaks become spaces in a gist
+  and are dropped elsewhere). A `superseded by [[x]]` target is accepted only if it looks like a
+  note name (letters, digits, `_`, `-`, `.`; 80 characters at most), so a note body cannot put
+  prose, a forged pointer line or a long string into a flag. JSON output is escaped by the
+  serialiser.
+- **Reads are capped** at 64 KiB per note (frontmatter is at the top). A cut inside a multi-byte
+  character is not an error; invalid UTF-8 inside the cap is (counted in `skipped_unreadable`).
+- **Supersession targets:** a full stem removes exactly that note. A slug-only target removes
+  notes of the superseding note's own type and that slug, except the newest dated twin.
+  Relations may list `type` and `to` in either order, with or without indentation of the list
+  dash, or as an inline `{type: …, to: …}` map. `status`, `description` and `type` are read from
+  the top level and from the `metadata:` block (top level wins).
+- **Known limits, kept on purpose:**
+  - The assistant's project-folder naming folds `/` and `_` to `-`, so two projects whose paths
+    differ only by `_` versus `-` share one memory folder and therefore one scope. That comes from
+    the host's naming, not from this code.
+  - A pointer's `ref` is the bare file stem; the same stem in global and project memory is
+    ambiguous (rare; the pointer still names a real note in scope).
+  - An undated note is never flagged against a dated twin ("older dated twin" needs a date).
+  - Folder comparison is exact and case-sensitive; on a case-insensitive filesystem a differently
+    cased path fails closed (notes dropped), never open.
+
 ## Challenger findings
 
 **Shaping review (idea doc, 2026-10-14):** three lenses, H1–H4 and C1–C8, all incorporated before
