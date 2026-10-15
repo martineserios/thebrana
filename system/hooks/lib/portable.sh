@@ -198,6 +198,10 @@ _p_lock_stale() {
 _p_lock_not_plain() {
     [ -e "$1" ] || [ -L "$1" ] || return 1
     [ -f "$1" ] && [ ! -L "$1" ] && return 1
+    # The holder may have released (removed) the lock between the two tests above: a path that is gone
+    # is not a refusal. Only something still present and not a plain file is (t-3545 — without this,
+    # test-lock-stress.sh lost a contender to a spurious rc 3 under load).
+    [ -e "$1" ] || [ -L "$1" ] || return 1
     echo "p_lock: lock path $1 is not a regular file (symlink/dir/device) — refusing" >&2
     return 0
 }
