@@ -47,10 +47,23 @@ pub fn memory_row_key(path: &Path) -> String {
     format!("{KEY_PREFIX}{}", path.to_string_lossy())
 }
 
-/// How many of `files` have no current vector: no row, a row without the current
-/// [`EMBED_VERSION`] tag, or a row older than the file (t-3536, the bundle's
-/// `unembedded` field). A missing store means nothing is embedded.
-pub fn unembedded_count(knowledge_db: &Path, files: &[crate::memory::MemoryFileRef]) -> Result<usize> {
+/// Whether a stored memory-file row still matches the file: same text and the
+/// current [`EMBED_VERSION`] tag. The one rule shared by [`embed_memory_files`]
+/// (skip as `unchanged`) and [`unembedded_count`], so they cannot disagree.
+fn row_is_current(stored: &str, tags: Option<&str>, content: &str) -> bool {
+    stored == content && parse_tags(tags.unwrap_or("")).iter().any(|t| t == EMBED_VERSION)
+}
+
+/// How many of `files` lack a current vector by the embedder's own rule
+/// ([`row_is_current`]): no row, a row with other text, or an old version tag. A
+/// missing store means nothing is embedded; an unreadable file counts as not
+/// embedded (it cannot be confirmed). `lock_wait` bounds each wait for the store
+/// (t-3536, the bundle's `unembedded` field).
+pub fn unembedded_count(
+    knowledge_db: &Path,
+    files: &[crate::memory::MemoryFileRef],
+    lock_wait: std::time::Duration,
+) -> Result<usize> {
     use anyhow::Context as _;
     if !knowledge_db.exists() {
         return Ok(files.len());
@@ -60,28 +73,23 @@ pub fn unembedded_count(knowledge_db: &Path, files: &[crate::memory::MemoryFileR
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )
     .with_context(|| format!("opening vector store {}", knowledge_db.display()))?;
-    let mut stmt = conn.prepare("SELECT key, tags, created_at FROM knowledge WHERE source = ?1")?;
+    conn.busy_timeout(lock_wait)?;
+    let mut stmt = conn.prepare("SELECT key, content, tags FROM knowledge WHERE source = ?1")?;
     let rows = stmt.query_map([MEMORY_SOURCE], |r| {
-        Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?, r.get::<_, i64>(2)?))
+        Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<String>>(2)?))
     })?;
-    let mut rows_by_key: std::collections::HashMap<String, (bool, i64)> = std::collections::HashMap::new();
+    let mut rows_by_key: std::collections::HashMap<String, (String, Option<String>)> =
+        std::collections::HashMap::new();
     for row in rows {
-        let (key, tags, created_at) = row?;
-        let current = parse_tags(tags.as_deref().unwrap_or("")).iter().any(|t| t == EMBED_VERSION);
-        rows_by_key.insert(key, (current, created_at));
+        let (key, content, tags) = row?;
+        rows_by_key.insert(key, (content, tags));
     }
     Ok(files
         .iter()
-        .filter(|f| {
-            let modified_ms = std::fs::metadata(&f.path)
-                .and_then(|m| m.modified())
-                .ok()
-                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                .map(|d| d.as_millis() as i64);
-            match rows_by_key.get(&memory_row_key(&f.path)) {
-                Some((true, created_at)) => modified_ms.is_none_or(|m| m > *created_at),
-                _ => true,
-            }
+        .filter(|f| match rows_by_key.get(&memory_row_key(&f.path)) {
+            Some((stored, tags)) => std::fs::read_to_string(&f.path)
+                .map_or(true, |content| !row_is_current(stored, tags.as_deref(), &content)),
+            None => true,
         })
         .count())
 }
@@ -130,8 +138,7 @@ pub fn embed_memory_files(
         };
         if !force {
             if let Some((stored, tags)) = store.content_and_tags_of(&key)? {
-                let current = parse_tags(tags.as_deref().unwrap_or("")).iter().any(|t| t == EMBED_VERSION);
-                if stored == content && current {
+                if row_is_current(&stored, tags.as_deref(), &content) {
                     stats.unchanged += 1;
                     continue;
                 }
@@ -956,22 +963,32 @@ mod tests {
         embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
         let files = |f: &Fixture| list_memory_listing(&dirs(f)).files;
 
-        assert_eq!(unembedded_count(&f.db, &files(&f)).unwrap(), 0);
+        let wait = std::time::Duration::from_millis(200);
+        let set_mtime = |p: &std::path::Path, offset_s: i64| {
+            let now = std::time::SystemTime::now();
+            let t = if offset_s >= 0 {
+                now + std::time::Duration::from_secs(offset_s as u64)
+            } else {
+                now - std::time::Duration::from_secs((-offset_s) as u64)
+            };
+            fs::File::options().write(true).open(p).unwrap().set_modified(t).unwrap();
+        };
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 0);
 
         put(&f, "pattern_new.md", "not embedded yet");
-        assert_eq!(unembedded_count(&f.db, &files(&f)).unwrap(), 1, "no vector row");
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 1, "no vector row");
 
-        let p = f.mem.join("pattern_pricing.md");
-        fs::File::options()
-            .write(true)
-            .open(&p)
-            .unwrap()
-            .set_modified(std::time::SystemTime::now() + std::time::Duration::from_secs(60))
-            .unwrap();
-        assert_eq!(unembedded_count(&f.db, &files(&f)).unwrap(), 2, "file newer than its row");
+        // Same rule as the embedder: content and version tag, not mtime.
+        let pricing = f.mem.join("pattern_pricing.md");
+        set_mtime(&pricing, 60);
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 1, "touched, same text: current");
+
+        put(&f, "pattern_pricing.md", "pricing notes, edited");
+        set_mtime(&pricing, -3600);
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 2, "edited with an old mtime: stale");
 
         assert_eq!(
-            unembedded_count(&f.mem.join("no-store.db"), &files(&f)).unwrap(),
+            unembedded_count(&f.mem.join("no-store.db"), &files(&f), wait).unwrap(),
             3,
             "no store: nothing is embedded"
         );

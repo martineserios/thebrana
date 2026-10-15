@@ -1462,11 +1462,17 @@ mod freshness_tests {
         let tmp = tempdir().unwrap();
         let dir = tmp.path().join("memory");
         fs::create_dir_all(&dir).unwrap();
-        fs::write(dir.join("pattern_old.md"), "old alpha").unwrap();
+        write_note(&dir.join("pattern_old.md"), "old alpha");
         let db = tmp.path().join("index.db");
         let dirs = vec![("global".to_string(), dir.clone())];
         reindex_fts_dirs(&dirs, &db).unwrap();
         Fx { _tmp: tmp, dir, db, dirs }
+    }
+
+    /// Write a note dated a minute ago, outside the racily-clean window.
+    fn write_note(p: &Path, body: &str) {
+        fs::write(p, body).unwrap();
+        set_mtime(p, -60);
     }
 
     fn found(db: &Path, q: &str) -> Vec<String> {
@@ -1568,7 +1574,9 @@ mod freshness_tests {
         lock.execute_batch("ROLLBACK").unwrap();
 
         assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Busy));
-        assert!(waited < Duration::from_secs(3), "waited {waited:?}, budget was 300 ms");
+        // Every statement re-arms its lock wait from the remaining budget, so the
+        // call as a whole stays near the budget, not a multiple of it.
+        assert!(waited < Duration::from_millis(800), "waited {waited:?}, budget was 300 ms");
         assert_eq!(found(&f.db, "alpha"), vec!["old"]);
     }
 
@@ -1582,7 +1590,7 @@ mod freshness_tests {
         fs::write(&old, "old beta").unwrap();
         set_mtime(&old, 10);
         set_mode(&old, 0o000);
-        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+        write_note(&f.dir.join("pattern_new.md"), "zebra crossing");
 
         let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
         set_mode(&old, 0o644);
@@ -1659,7 +1667,7 @@ mod freshness_tests {
         // (measured 2026-10-15: a 402-note first refresh took 1.6 s).
         let f = fx();
         for i in 0..60 {
-            fs::write(f.dir.join(format!("pattern_bulk-{i}.md")), format!("bulk note {i}")).unwrap();
+            write_note(&f.dir.join(format!("pattern_bulk-{i}.md")), &format!("bulk note {i}"));
         }
         let tiny = Duration::from_nanos(1);
 
@@ -1684,5 +1692,110 @@ mod freshness_tests {
         let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
 
         assert_eq!((r.refreshed_notes, r.deleted_notes, r.outcome), (1, 1, FreshnessOutcome::Refreshed));
+    }
+
+    #[test]
+    fn a_note_replaced_by_a_non_note_is_dropped_even_though_its_path_exists() {
+        // Second variant of "deleted": the path still exists but is no longer a
+        // note (here a folder took its name), so "file gone" never fires; the
+        // listing — the rebuild's own rule — decides.
+        let f = fx();
+        fs::remove_file(f.dir.join("pattern_old.md")).unwrap();
+        fs::create_dir(f.dir.join("pattern_old.md")).unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.deleted_notes, 1);
+        assert!(found(&f.db, "alpha").is_empty());
+    }
+
+    #[test]
+    fn an_unreadable_first_note_does_not_block_progress() {
+        if running_as_root() {
+            return;
+        }
+        let f = fx();
+        let stuck = f.dir.join("pattern_aaa-stuck.md");
+        write_note(&stuck, "stuck");
+        set_mode(&stuck, 0o000);
+        write_note(&f.dir.join("pattern_zzz-new.md"), "zebra crossing");
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_nanos(1));
+        set_mode(&stuck, 0o644);
+
+        assert_eq!(r.refreshed_notes, 1, "the first readable note always goes through: {r:?}");
+        assert_eq!(found(&f.db, "zebra"), vec!["zzz-new"]);
+    }
+
+    #[test]
+    fn only_unreadable_changes_take_no_write_lock() {
+        if running_as_root() {
+            return;
+        }
+        let f = fx();
+        let stuck = f.dir.join("pattern_stuck.md");
+        write_note(&stuck, "stuck");
+        set_mode(&stuck, 0o000);
+        // A writer holds the reserved lock: a refresh that tried to write would
+        // report Busy; one that knows it has nothing to write never asks.
+        let other = Connection::open(&f.db).unwrap();
+        other.execute_batch("BEGIN IMMEDIATE").unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_millis(200));
+        other.execute_batch("ROLLBACK").unwrap();
+        set_mode(&stuck, 0o644);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Unreadable));
+        assert_eq!(r.unreadable, 1);
+    }
+
+    #[test]
+    fn a_write_error_rolls_the_whole_refresh_back() {
+        let f = fx();
+        write_note(&f.dir.join("pattern_fine.md"), "zebra crossing");
+        write_note(&f.dir.join("pattern_boom.md"), "zebra boom");
+        let c = Connection::open(&f.db).unwrap();
+        c.execute_batch(
+            "CREATE TRIGGER boom BEFORE INSERT ON memory_files WHEN NEW.path LIKE '%boom%'
+             BEGIN SELECT RAISE(ABORT, 'boom'); END;",
+        )
+        .unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Error));
+        assert_eq!(r.refreshed_notes, 0);
+        assert!(found(&f.db, "zebra").is_empty(), "nothing from a failed refresh commits");
+        assert_eq!(found(&f.db, "alpha"), vec!["old"]);
+    }
+
+    #[test]
+    fn a_folder_listed_twice_does_not_duplicate_rows() {
+        let f = fx();
+        write_note(&f.dir.join("pattern_new.md"), "zebra crossing");
+        let twice = vec![f.dirs[0].clone(), ("project".to_string(), f.dir.clone())];
+
+        refresh_fts_dirs(&twice, &f.db, BUDGET);
+
+        assert_eq!(search_fts(&f.db, "zebra", 10).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_same_size_rewrite_in_the_same_clock_tick_is_not_missed() {
+        // Racily clean: the state recorded for a note modified moments before it
+        // was recorded cannot prove a later same-size rewrite in the same tick is
+        // different, so such a note is re-read on the next check.
+        let f = fx();
+        let p = f.dir.join("pattern_quick.md");
+        fs::write(&p, "first word").unwrap();
+        let tick = fs::metadata(&p).unwrap().modified().unwrap();
+        refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        fs::write(&p, "other word").unwrap(); // same size
+        fs::File::options().write(true).open(&p).unwrap().set_modified(tick).unwrap();
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.stale_notes, 1);
+        assert_eq!(found(&f.db, "other"), vec!["quick"]);
     }
 }
