@@ -58,12 +58,15 @@
 #
 # Convention (validate.sh header): static assertions never live inside a check gated by --fast
 # or by an optional binary; the gated half FAILS when its binary is absent.
-# Exit: 0 clean, 1 violations, 2 usage/environment (could not scan — NOT a verdict on any mod: python3 missing,
-#       unreadable or mis-shaped registry; callers say "could not scan", never "uninstall a mod", t-3505).
+# Exit: 0 clean, 1 a FINDING about a plugin (Law 3 rule hit, engine refusal, unattestable encoding or path,
+#       symlink escape — and a finding outranks a fault), 2 usage / could not scan (a SCANNER-side fault:
+#       python3 missing, unreadable or mis-shaped registry, unparsable hooks.json, unreadable module, failed
+#       copy, an engine report that could not be parsed, an integrity count that does not add up). Exit 2 is NOT
+#       a verdict on any mod: callers say "could not scan", never "uninstall a mod" (t-3505).
 set -u
-SELF_DIR="$(cd "$(dirname "$0")" && pwd)"   # before any cd: a relative $0 breaks after it
+case "$0" in */*) SELF_DIR="$(cd "${0%/*}" && pwd)" ;; *) SELF_DIR="$(pwd)" ;; esac   # builtins only; before any cd (a relative $0 breaks after it)
 MODE="${1:-}"
-ROOT="${2:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+[ "$MODE" = "--installed" ] || ROOT="${2:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"   # --installed never runs git (a hostile cwd could shadow it)
 case "$MODE" in
     --static|--engine) ;;
     --installed) CLAUDE_DIR="${2:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}}"
@@ -93,56 +96,93 @@ code_lines() { grep -n '' "$1" | sed -E 's#^([0-9]+:)[[:space:]]*/\*.*\*/#\1#' |
 # Raw scan (t-3505): installed code is third-party, so the scan reads each module as bytes —
 # LC_ALL=C grep -a, no comment stripping, no per-line preprocessing — and false positives are
 # fine for a deny guard. A NUL byte, a call sandwiched between block comments, or a call in a
-# comment cannot hide. A non-empty module that scans zero lines is a violation, never a pass.
+# comment cannot hide; a call split across lines or a UTF-16 file still can, which is why a UTF-16
+# module is itself a finding and the engine's calls: listing (when claude runs) is the structural
+# backstop. LC_ALL=C makes the space class ASCII-only (a destructure padded with U+2003 slips).
+#
+# Three classes of line, three effects:
+#   rule    — a Law 3 pattern hit: a finding (exit 1); the ONLY class an acknowledgement may downgrade
+#   hard    — a finding that is never downgraded (engine refusal / calls: hit, symlink or path escape,
+#             unattestable encoding, listed module missing): exit 1
+#   fault   — the SCANNER could not do its job (unreadable module, bad hooks.json, failed copy, an
+#             engine report that could not be parsed, an integrity count that does not add up): exit 2
 LAW3_RULE_NAMES="model http bracket-model bracket-http reflect destructure fetch"   # by name, not position
-ENTRY_BUF=(); ENTRY_V=0
-eviol() { ENTRY_V=$((ENTRY_V + 1)); ENTRY_BUF+=("  $1"); }
-# Acknowledgement lists (a plugin that cannot be uninstalled — managed settings): lines of
-# `name@marketplace sha256:<content hash>  # reason`. Read ONLY from the tracked list next to this
-# script (system/config/ in the repo) and the user-owned list in the config dir — never from the
-# session repo (a hostile clone must not be able to acknowledge itself). Bound to the content hash,
-# so a plugin that auto-updates loses its acknowledgement.
-ACK_FILES=("$SELF_DIR/../config/mods-acknowledged.txt" "${CLAUDE_DIR:-/nonexistent}/mods-acknowledged.txt")
+ENTRY_BUF=(); ENTRY_RULE=0; ENTRY_HARD=0; ENTRY_FAULT=0; FAULT=0
+# plugin-controlled text must never reach the output raw: control characters (an ESC sequence, a CR that
+# rewrites the line) are dropped and the line is capped
+clean() { printf '%s' "$1" | LC_ALL=C tr -d '\000-\010\013-\037\177' | LC_ALL=C cut -c1-400; }
+erule()  { ENTRY_RULE=$((ENTRY_RULE + 1));   ENTRY_BUF+=("  $(clean "$1")"); }
+ehard()  { ENTRY_HARD=$((ENTRY_HARD + 1));   ENTRY_BUF+=("  $(clean "$1")"); }
+efault() { ENTRY_FAULT=$((ENTRY_FAULT + 1)); ENTRY_BUF+=("  $(clean "$1")"); }
+# Acknowledgement list (a plugin that cannot be uninstalled — managed settings): lines of
+# `name@marketplace sha256:<whole-install hash>  # reason`. Read ONLY from <script dir>/../config/
+# — the repo's tracked system/config/ in a checkout, ~/.claude/config/ once bootstrap deploys it. Never
+# from the config dir (a plugin with process.run can write there) and never from the session repo (a hostile
+# clone must not acknowledge itself). Bound to the hash of the WHOLE install tree, so an edit to any file —
+# a helper a module imports, a new symlink — ends the acknowledgement.
+ACK_FILE="$SELF_DIR/../config/mods-acknowledged.txt"
 ack_reason() {   # $1 name@marketplace  $2 sha256:... -> prints the reason, exit 0 when acknowledged
-    local f
-    for f in "${ACK_FILES[@]}"; do
-        [ -f "$f" ] || continue
-        awk -v n="$1" -v h="$2" '$1 == n && $2 == h { r = $0; sub(/^[^#]*#[ \t]*/, "", r); print r; found = 1; exit } END { exit !found }' "$f" && return 0
-    done
-    return 1
+    [ "$2" = "sha256:unknown" ] && return 1      # a hash that could not be computed is never a wildcard
+    [ -f "$ACK_FILE" ] || return 1
+    awk -v n="$1" -v h="$2" '{ sub(/\r$/, "") } $1 == n && $2 == h { r = $0; sub(/^[^#]*#[ \t]*/, "", r); print r; found = 1; exit } END { exit !found }' "$ACK_FILE"
 }
-ack_listed_hash() {   # $1 name@marketplace -> the hash a list names for it (to say "does not match")
-    local f
-    for f in "${ACK_FILES[@]}"; do [ -f "$f" ] && awk -v n="$1" '$1 == n { print $2; exit }' "$f"; done | head -n 1
+ack_listed_hash() { [ -f "$ACK_FILE" ] && awk -v n="$1" '{ sub(/\r$/, "") } $1 == n { print $2; exit }' "$ACK_FILE"; }
+tree_hash() {   # $1 install root -> sha256:<hex> over every file (path + bytes) and symlink (target) in the tree
+    python3 -I - "$1" <<'PYH' 2>/dev/null || echo "sha256:unknown"
+import hashlib, os, sys
+top = sys.argv[1]; h = hashlib.sha256()
+for d, dirs, files in os.walk(top, followlinks=False):
+    dirs.sort()
+    for n in sorted(files + [x for x in dirs if os.path.islink(os.path.join(d, x))]):
+        p = os.path.join(d, n); rel = os.path.relpath(p, top).encode()
+        h.update(rel + b"\0")
+        if os.path.islink(p): h.update(b"->" + os.readlink(p).encode())
+        else:
+            try: h.update(open(p, "rb").read())
+            except Exception: h.update(b"<unreadable>")
+        h.update(b"\0")
+print("sha256:" + h.hexdigest())
+PYH
 }
-flush_entry() {   # $1 comma-joined names  $2 content hash
-    [ "$ENTRY_V" -gt 0 ] || return 0
-    local n ok=1 reasons="" r listed
-    for n in ${1//,/ }; do
-        if r="$(ack_reason "$n" "$2")"; then reasons="${reasons}${reasons:+; }$n: ${r:-no reason given}"; else ok=0; fi
-    done
+flush_entry() {   # $1 comma-joined names  $2 install root
+    local nfind=$((ENTRY_RULE + ENTRY_HARD))
+    if [ "$ENTRY_FAULT" -gt 0 ]; then FAULT=$((FAULT + ENTRY_FAULT)); fi
+    if [ "$nfind" -eq 0 ]; then
+        [ "${#ENTRY_BUF[@]}" -gt 0 ] && printf '%s\n' "${ENTRY_BUF[@]}"
+        ENTRY_BUF=(); ENTRY_RULE=0; ENTRY_HARD=0; ENTRY_FAULT=0; return 0
+    fi
+    local ehash names n ok=1 reasons="" r listed
+    ehash="$(tree_hash "$2")"
+    IFS=',' read -r -a names <<< "$1"
+    if [ "$ENTRY_HARD" -eq 0 ] && [ "$ENTRY_FAULT" -eq 0 ]; then
+        for n in "${names[@]}"; do
+            if r="$(ack_reason "$n" "$ehash")"; then reasons="${reasons}${reasons:+; }$n: ${r:-no reason given}"; else ok=0; fi
+        done
+    else ok=0; fi
     if [ "$ok" = 1 ]; then
-        printf 'WARN: acknowledged %s (%s) — %d Law 3 finding(s) downgraded, content %s\n' "$1" "$reasons" "$ENTRY_V" "$2"
+        printf 'WARN: acknowledged %s (%s) — %d Law 3 finding(s) downgraded, install %s\n' "$1" "$reasons" "$nfind" "$ehash"
         printf '%s\n' "${ENTRY_BUF[@]}" | sed 's/^  /WARN:   /'
     else
         printf '%s\n' "${ENTRY_BUF[@]}"
-        VIOL=$((VIOL + ENTRY_V))
-        for n in ${1//,/ }; do
+        VIOL=$((VIOL + nfind))
+        for n in "${names[@]}"; do
             listed="$(ack_listed_hash "$n")"
-            if [ -n "$listed" ] && [ "$listed" != "$2" ]; then
-                echo "note: the acknowledgement for $n does not match this plugin's content ($listed listed, $2 installed) — it changed since it was acknowledged"
+            if [ -n "$listed" ] && [ "$listed" != "$ehash" ]; then
+                echo "note: the acknowledgement for $n does not match this plugin's content ($listed listed, $ehash installed) — it changed since it was acknowledged"
             fi
         done
-        echo "hint: a plugin that cannot be uninstalled can be acknowledged (a logged WARN, not a pass): add to ${CLAUDE_DIR:-<config dir>}/mods-acknowledged.txt — $1 $2  # reason"
+        if [ "$ENTRY_HARD" -eq 0 ] && [ "$ENTRY_FAULT" -eq 0 ] && [ "$ehash" != "sha256:unknown" ]; then
+            echo "hint: a plugin that cannot be uninstalled can be acknowledged (a logged WARN, not a pass): add to system/config/mods-acknowledged.txt in the brana repo (bootstrap deploys it) — $1 $ehash  # reason"
+        fi
     fi
-    ENTRY_BUF=(); ENTRY_V=0
+    ENTRY_BUF=(); ENTRY_RULE=0; ENTRY_HARD=0; ENTRY_FAULT=0
 }
 if [ "$MODE" = "--installed" ]; then
     REG="$CLAUDE_DIR/plugins/installed_plugins.json"
     [ -f "$REG" ] || { echo "mods-check --installed: nothing installed ($REG absent)"; exit 0; }
     if ! command -v python3 >/dev/null 2>&1; then
         echo "  $REG: python3 missing — cannot verify installed mods (fail closed)"
-        echo "mods-check --installed: 0 mod(s) scanned in $REG, violations: 0 (could not scan: python3 missing)"; exit 2
+        echo "mods-check --installed: 0 mod(s) scanned in $REG, violations: 0, faults: 1 (could not scan: python3 missing)"; exit 2
     fi
     # name(s)<TAB>installPath<TAB>module... — one line per DISTINCT installPath (dedupe), modules
     # taken from hooks/hooks.json `modules` (the engine's own list), resolved against hooks/.
@@ -159,23 +199,26 @@ try:
             if not p: continue
             seen.setdefault(os.path.normpath(p), []).append(name)
     for p, names in seen.items():
+        label = ",".join(sorted(set(names)))
+        if not os.path.isabs(p):
+            print("\t".join([label, p, "ERR:installPath is not absolute"])); continue
         hooks = os.path.join(p, "hooks", "hooks.json")
         if not os.path.isdir(p) or not os.path.isfile(hooks): continue
         try:
             h = json.load(open(hooks))
         except Exception as ex:
-            print("\t".join([",".join(sorted(set(names))), p, "ERR:hooks.json unparsable: %s" % ex])); continue
+            print("\t".join([label, p, "ERR:hooks.json unparsable: %s" % ex])); continue
         mods = h.get("modules") if isinstance(h, dict) else None
         if not isinstance(mods, list) or not mods: continue
         files = [os.path.normpath(os.path.join(p, "hooks", m)) for m in mods if isinstance(m, str)]
-        print("\t".join([",".join(sorted(set(names))), p] + files))
+        print("\t".join([label, p] + files))
 except Exception as ex:
     print("ERR " + str(ex)); sys.exit(3)
 PYE
 )"; prc=$?
-    if [ "$prc" -ne 0 ] || [ "${ENTRIES#ERR}" != "$ENTRIES" ]; then
+    if [ "$prc" -ne 0 ] || [ "${ENTRIES#ERR }" != "$ENTRIES" ]; then
         echo "  $REG: unparsable or mis-shaped (${ENTRIES#ERR }) — cannot verify installed mods (fail closed)"
-        echo "mods-check --installed: 0 mod(s) scanned in $REG, violations: 0 (could not scan: unreadable registry)"; exit 2
+        echo "mods-check --installed: 0 mod(s) scanned in $REG, violations: 0, faults: 1 (could not scan: unreadable registry)"; exit 2
     fi
     HAVE_CLAUDE=false; command -v claude >/dev/null 2>&1 && [ -z "${MODS_INSTALLED_STATIC_ONLY:-}" ] && HAVE_CLAUDE=true
     WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
@@ -184,19 +227,8 @@ PYE
     while IFS=$'\t' read -r name path rest; do
         [ -n "$name" ] && [ -n "$path" ] || continue
         nmods=$((nmods + 1))
-        ehash="sha256:unknown"; ENTRY_BUF=(); ENTRY_V=0
-        case "$rest" in ERR:*) eviol "$name: ${rest#ERR:} — cannot verify (fail closed)"; nskip=$((nskip + 1)); flush_entry "$name" "$ehash"; continue;; esac
-        # content hash over the listed modules (path + bytes) and hooks.json — what an acknowledgement binds to
-        ehash="$(printf '%s\n' "$rest" | tr '\t' '\n' | python3 -I -c '
-import hashlib, os, sys
-root = sys.argv[1]; h = hashlib.sha256()
-files = sorted(l for l in sys.stdin.read().split("\n") if l) + [os.path.join(root, "hooks", "hooks.json")]
-for f in files:
-    h.update(os.path.relpath(f, root).encode() + b"\0")
-    try: h.update(open(f, "rb").read())
-    except Exception: h.update(b"<unreadable>")
-    h.update(b"\0")
-print("sha256:" + h.hexdigest())' "$path" 2>/dev/null)" || ehash="sha256:unknown"
+        ENTRY_BUF=(); ENTRY_RULE=0; ENTRY_HARD=0; ENTRY_FAULT=0
+        case "$rest" in ERR:*) efault "$name: ${rest#ERR:} — cannot verify (fail closed)"; nskip=$((nskip + 1)); flush_entry "$name" "$path"; continue;; esac
         # symlinks that resolve outside the install root are rejected, never followed (cp -RL below would)
         links="$(python3 -I - "$path" <<'PYL'
 import os, sys
@@ -213,77 +245,95 @@ PYL
         skip_engine=0
         if [ -n "$links" ]; then
             skip_engine=1
-            while IFS=$'\t' read -r lk target; do [ -n "$lk" ] && eviol "$name: $lk: symlink resolves outside the install root ($target) — rejected, not followed"; done <<< "$links"
+            while IFS=$'\t' read -r lk target; do [ -n "$lk" ] && ehard "$name: $lk: symlink resolves outside the install root ($target) — rejected, not followed"; done <<< "$links"
         fi
         # static half: exactly the modules the engine will load, as raw bytes
         while IFS=$'\t' read -r f; do
             [ -n "$f" ] || continue
-            if [ ! -f "$f" ]; then eviol "$name: ${f#$path/}: listed in hooks.json modules but missing — the engine would fail the module load"; continue; fi
-            if [ ! -r "$f" ]; then eviol "$name: ${f#$path/}: unscannable — the module is not readable (fail closed)"; continue; fi
+            case "$f" in "$path"/*) ;; *) ehard "$name: ${f}: module path escapes the install root — cannot be attested"; continue;; esac
+            if [ ! -f "$f" ]; then ehard "$name: ${f#$path/}: listed in hooks.json modules but missing — the engine would fail the module load"; continue; fi
+            if [ ! -r "$f" ]; then efault "$name: ${f#$path/}: unscannable — the module is not readable (fail closed)"; continue; fi
             size="$(wc -c < "$f" 2>/dev/null | tr -d ' ')"
             nl="$(LC_ALL=C grep -a -c '' "$f" 2>/dev/null)" || nl=0
-            if [ "${size:-0}" -gt 0 ] && [ "${nl:-0}" -eq 0 ]; then eviol "$name: ${f#$path/}: unscannable — a non-empty module scanned zero lines (fail closed)"; continue; fi
+            if [ "${size:-0}" -gt 0 ] && [ "${nl:-0}" -eq 0 ]; then efault "$name: ${f#$path/}: unscannable — a non-empty module scanned zero lines (fail closed)"; continue; fi
+            bom="$(head -c2 "$f" 2>/dev/null | od -An -tx1 | tr -d ' \n')"
+            case "$bom" in fffe|feff) ehard "$name: ${f#$path/}: unscannable encoding (UTF-16 BOM) — the engine decodes it, a byte scan cannot read it; cannot be attested"; continue;; esac
             for rid in $LAW3_RULE_NAMES; do
                 i=0; while [ "$i" -lt "${#RULE_ID[@]}" ]; do [ "${RULE_ID[$i]}" = "$rid" ] && break; i=$((i + 1)); done
                 hits="$(LC_ALL=C grep -a -n -E "${RULE_PAT[$i]}" "$f" 2>/dev/null | cut -d: -f1 || true)"
-                for ln in $hits; do eviol "$name: ${f#$path/}:$ln: ${RULE_ID[$i]} — ${RULE_WHY[$i]}"; done
+                for ln in $hits; do erule "$name: ${f#$path/}:$ln: ${RULE_ID[$i]} — ${RULE_WHY[$i]}"; done
             done
         done < <(printf '%s\n' "$rest" | tr '\t' '\n')   # trailing newline: read drops an unterminated last line
         # engine half: an isolated copy (symlinks inside the root only — checked above; never rm inside the real install)
         if $HAVE_CLAUDE && [ "$skip_engine" = 0 ]; then
-            cpy="$WORK/$nmods"; mkdir -p "$cpy"; cp -RL -- "$path/." "$cpy/"; rm -rf "$cpy/.claude-plugin/types" "$cpy/tsconfig.json"
-            vjson="$WORK/validate.$nmods.json"
-            # </dev/null: a claude that reads stdin must not swallow the registry lines this loop is still reading
-            claude plugin validate --json "$cpy" >"$vjson" 2>"$WORK/validate.err" </dev/null; vrc=$?
-            nvalid=$((nvalid + 1))
-            report="$(python3 -I - "$vjson" "$vrc" <<'PYV'
+            cpy="$WORK/$nmods"; mkdir -p "$cpy"
+            if ! cp -RL -- "$path/." "$cpy/" 2>/dev/null; then
+                efault "$name: the engine copy failed (an unreadable or vanished file) — never validated on a partial copy (fail closed)"; nskip=$((nskip + 1))
+            else
+                rm -rf "$cpy/.claude-plugin/types" "$cpy/tsconfig.json"
+                vjson="$WORK/validate.$nmods.json"
+                # </dev/null: a claude that reads stdin must not swallow the registry lines this loop is still reading
+                claude plugin validate --json "$cpy" >"$vjson" 2>"$WORK/validate.err" </dev/null; vrc=$?
+                report="$(python3 -I - "$vjson" "$vrc" <<'PYV'
 import json, re, sys
 path, rc = sys.argv[1], int(sys.argv[2])
 try:
-    d = json.load(open(path))
-except Exception as e:
-    print(f"REFUSED validate output is not JSON (rc={rc}): {e}"); sys.exit(0)
-if not d.get("success") or rc != 0:
-    errs = [f"{e.get('path','?')}: {e.get('message','')}" for sec in [d.get("manifest") or {}] + list(d.get("contents") or []) for e in (sec.get("errors") or [])]
-    print("REFUSED rc=%d: %s" % (rc, "; ".join(errs)[:300] or "no error text"))
-    sys.exit(0)
-# the engine own calls: listing - structural, catches what a grep cannot (the proof from 77b). The note is
-# MANDATORY: without it an engine wording change would silently disable this half. No apostrophes in this heredoc: stock bash 3.2 mis-scans it.
-seen = False
-for line in [n for sec in (d.get("contents") or []) for n in (sec.get("notes") or []) if " calls: " in n]:
-    seen = True
-    body = line.split(" calls: ", 1)[1].strip()
-    if body.startswith("nothing"): continue
-    for raw in body.split(","):
-        c = re.sub(r"\s*\(via [^)]*\)", "", raw).strip()
-        c = c[2:] if c.startswith("$.") else c
-        if c.startswith("model.") or c.startswith("http."):
-            print(f"LAW3 call {c} in the engine's calls: listing")
-if not seen:
-    print("NOCALLS")
+    try:
+        d = json.load(open(path))
+    except Exception as e:
+        print(f"REFUSED validate output is not JSON (rc={rc}): {e}"); print("END"); sys.exit(0)
+    if not d.get("success") or rc != 0:
+        errs = [f"{e.get('path','?')}: {e.get('message','')}" for sec in [d.get("manifest") or {}] + list(d.get("contents") or []) for e in (sec.get("errors") or [])]
+        print("REFUSED rc=%d: %s" % (rc, "; ".join(errs)[:300] or "no error text")); print("END"); sys.exit(0)
+    # the engine own calls: listing - structural, catches what a grep cannot (the proof from 77b). The note is
+    # MANDATORY: without it an engine wording change would silently disable this half. No apostrophes in this heredoc: stock bash 3.2 mis-scans it.
+    seen = False
+    for line in [n for sec in (d.get("contents") or []) for n in (sec.get("notes") or []) if " calls: " in n]:
+        seen = True
+        body = line.split(" calls: ", 1)[1].strip()
+        if body.startswith("nothing"): continue
+        for raw in body.split(","):
+            c = re.sub(r"\s*\(via [^)]*\)", "", raw).strip()
+            c = c[2:] if c.startswith("$.") else c
+            if c.startswith("model.") or c.startswith("http."):
+                print(f"LAW3 call {c} in the engine's calls: listing")
+    if not seen:
+        print("NOCALLS")
+except SystemExit:
+    raise
+except Exception as ex:
+    print("PARSEFAIL %s: %s" % (type(ex).__name__, ex))
+print("END")
 PYV
 )"
-            while IFS= read -r line; do
-                case "$line" in
-                    REFUSED*) eviol "$name: refused by the engine at load (plugin validate failed, ${line#REFUSED }) — yet listed in $REG, and a headless init record's plugins[] would list it as loaded";;
-                    LAW3*)    eviol "$name: ${line#LAW3 } — Law 3: no API-billed calls, no network";;
-                    NOCALLS)  eviol "$name: validate output has no calls: listing — the structural half cannot verify this mod (engine wording changed?) (fail closed)";;
-                esac
-            done <<< "$report"
+                seen_end=0; parse_ok=1
+                while IFS= read -r line; do
+                    case "$line" in
+                        END)       seen_end=1 ;;
+                        PARSEFAIL*) parse_ok=0; efault "$name: the engine report could not be parsed (${line#PARSEFAIL }) — fail closed" ;;
+                        REFUSED*)  ehard "$name: refused by the engine at load (plugin validate failed, ${line#REFUSED }) — yet listed in $REG, and a headless init record's plugins[] would list it as loaded";;
+                        LAW3*)     ehard "$name: ${line#LAW3 } — Law 3: no API-billed calls, no network";;
+                        NOCALLS)   efault "$name: validate output has no calls: listing — the structural half cannot verify this mod (engine wording changed?) (fail closed)";;
+                    esac
+                done <<< "$report"
+                if [ "$seen_end" = 0 ] && [ "$parse_ok" = 1 ]; then parse_ok=0; efault "$name: the engine report parser ended without its end marker — fail closed"; fi
+                [ "$parse_ok" = 1 ] && nvalid=$((nvalid + 1))
+            fi
         elif $HAVE_CLAUDE; then nskip=$((nskip + 1)); fi
-        flush_entry "$name" "$ehash"
+        flush_entry "$name" "$path"
     done <<< "$ENTRIES"
-    if [ "$nmods" -ne "$nentries" ]; then VIOL=$((VIOL + 1)); echo "  integrity: processed $nmods of $nentries registry entries — the scan loop ended early (fail closed)"; fi
+    if [ "$nmods" -ne "$nentries" ]; then FAULT=$((FAULT + 1)); echo "  integrity: processed $nmods of $nentries registry entries — the scan loop ended early (fail closed)"; fi
     if $HAVE_CLAUDE; then
-        if [ $((nvalid + nskip)) -ne "$nentries" ]; then VIOL=$((VIOL + 1)); echo "  integrity: plugin validate ran for $nvalid of $nentries entries ($nskip skipped by a finding) — the engine half is incomplete (fail closed)"; fi
+        if [ $((nvalid + nskip)) -ne "$nentries" ]; then FAULT=$((FAULT + 1)); echo "  integrity: plugin validate parsed $nvalid of $nentries entries ($nskip skipped by a finding or fault) — the engine half is incomplete (fail closed)"; fi
         half="refusal check ran (claude $(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1), validated $nvalid/$nentries)"
     else
         if [ -n "${MODS_INSTALLED_STATIC_ONLY:-}" ]; then why="MODS_INSTALLED_STATIC_ONLY set — deliberate"; else why="claude not on PATH"; fi
         [ "$nmods" -gt 0 ] && echo "WARN: engine half skipped ($why) — $nmods function-hook mod(s) were NOT checked by claude plugin validate or its calls: listing"
         half="claude absent or MODS_INSTALLED_STATIC_ONLY: refusal check skipped"
     fi
-    echo "mods-check --installed: $nmods mod(s) scanned in $REG, violations: $VIOL ($half)"
-    [ "$VIOL" -eq 0 ]; exit $?
+    echo "mods-check --installed: $nmods mod(s) scanned in $REG, violations: $VIOL, faults: $FAULT ($half)"
+    if [ "$VIOL" -gt 0 ]; then exit 1; elif [ "$FAULT" -gt 0 ]; then exit 2; fi
+    exit 0
 fi
 
 # ============================== --refusal-canary (mods-drift.yml, 77b locally) ================
@@ -332,8 +382,10 @@ fi
 # bootstrap/validate, so the premise "validate compiles and statically analyses a module, it never
 # evaluates it" is re-proven per engine version: a scratch mod whose top level writes marker files
 # must validate (success true, so the probe is not vacuous) and leave no marker behind.
-# Proven live 2026-10-14 on claude 2.1.300: control and four side-effect variants all validated, no marker
-# (tests/fixtures/mods/captures/t-3505-validate-no-exec/). t-3505.
+# Proven live 2026-10-14 on claude 2.1.300: control and nine side-effect variants validated or were refused statically, no marker
+# ever written (tests/fixtures/mods/captures/t-3505-validate-no-exec/). Scope: top-level statements of a listed module, an
+# imported helper, a delayed detached write, a bunfig preload; a Bun macro import and an unresolvable bare import are
+# refused statically. Not probed: other engine versions (this canary is the per-version check), engine parser exploits. t-3505.
 if [ "$MODE" = "--noexec-canary" ]; then
     if ! command -v claude >/dev/null 2>&1; then
         echo "  FAIL: claude CLI not on PATH — the no-exec canary needs the engine"; exit 1
@@ -342,7 +394,12 @@ if [ "$MODE" = "--noexec-canary" ]; then
     PROBE="$WORK/mod"; MARK="$WORK/MARKER"
     cp -RL -- tests/fixtures/mods/good-minimal "$PROBE"; mkdir -p "$PROBE/hooks/_shared"
     for f in allowlist probe run snapshot state; do cp -- "mods/_shared/hooks/$f.ts" "$PROBE/hooks/_shared/$f.ts"; done
-    printf "\nBun.write('%s', 'validate executed module code');\nawait Bun.write('%s.tla', 'top-level await ran');\n" "$MARK" "$MARK" >> "$PROBE/hooks/register.ts"
+    # four shapes: a top-level write, a top-level await, an IMPORTED helper's top level, a write that lands 2 s after
+    # validate returns, and a bunfig.toml preload beside the plugin (build-time execution probes, t-3505)
+    printf "\nimport './helper'\nBun.write('%s', 'validate executed module code');\nawait Bun.write('%s.tla', 'top-level await ran');\nsetTimeout(() => Bun.write('%s.delayed', 'delayed write ran'), 2000);\n" "$MARK" "$MARK" "$MARK" >> "$PROBE/hooks/register.ts"
+    printf "Bun.write('%s.helper', 'imported helper ran');\n" "$MARK" > "$PROBE/hooks/helper.ts"
+    printf '[run]\npreload = ["./pre.ts"]\n' > "$PROBE/bunfig.toml"; cp "$PROBE/bunfig.toml" "$PROBE/hooks/bunfig.toml"
+    printf "Bun.write('%s.bunfig', 'bunfig preload ran');\n" "$MARK" > "$PROBE/pre.ts"; cp "$PROBE/pre.ts" "$PROBE/hooks/pre.ts"
     claude plugin validate --json "$PROBE" >"$WORK/v.json" 2>/dev/null </dev/null; rc=$?
     answer="$(python3 -I - "$WORK/v.json" "$rc" <<'PYN'
 import json, sys
@@ -356,8 +413,8 @@ PYN
     if [ "${answer:-NOANSWER}" != VALIDATED ]; then
         viol "the engine did not validate the probe mod (${answer:-NOANSWER}, rc=$rc) — the proof is vacuous: a refused probe shows nothing about execution (fail closed)"
     else
-        sleep 1
-        if [ -e "$MARK" ] || [ -e "$MARK.tla" ]; then
+        sleep 3   # the probe's delayed write lands 2 s after validate returns
+        if [ -e "$MARK" ] || [ -e "$MARK.tla" ] || [ -e "$MARK.helper" ] || [ -e "$MARK.delayed" ] || [ -e "$MARK.bunfig" ]; then
             viol "plugin validate EXECUTED module code (a top-level Bun.write ran) — the installed-mods scan runs it on untrusted code; stop running validate on installed mods and re-decide (t-3505)"
         else
             echo "  ok: plugin validate did not execute the probe module's top level"

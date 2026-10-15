@@ -428,7 +428,7 @@ rm -rf "$BILLP" "$HDIR"
 
 echo "--- t-3505 repair: plugin-controlled text never reaches the output raw; encodings and paths that cannot be attested are findings"
 EVILP="$H2/evilp"; rm -rf "$EVILP"; mkdir -p "$EVILP/hooks"
-printf '{ "modules": ["./a\033[2Jb.ts", "../../outside.ts"] }' > "$EVILP/hooks/hooks.json"; reg evil:"$EVILP"
+printf '{ "modules": ["./a\\u001b[2Jb.ts", "../../outside.ts"] }' > "$EVILP/hooks/hooks.json"; reg evil:"$EVILP"   # JSON \u001b: a raw ESC byte would make hooks.json invalid
 inst >/dev/null
 assert "an escape byte in a plugin-controlled module path never reaches the output" no "$(case "$(cat "$T/out")" in *$'\033'*) echo yes;; *) echo no;; esac)"
 assert "a module path that leaves the install root is a finding" yes "$(has 'escapes the install root' "$(out)")"
