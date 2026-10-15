@@ -905,4 +905,36 @@ mod tests {
 
         assert_eq!(slugs(&hits), vec!["mine-scraping", "shared-scraping"]);
     }
+
+    // ── t-3536: unembedded count for the bundle's freshness fields ───────────
+
+    #[test]
+    fn unembedded_counts_notes_without_a_current_vector() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        put(&f, "pattern_pricing.md", "pricing notes");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+        let files = |f: &Fixture| list_memory_listing(&dirs(f)).files;
+
+        assert_eq!(unembedded_count(&f.db, &files(&f)).unwrap(), 0);
+
+        put(&f, "pattern_new.md", "not embedded yet");
+        assert_eq!(unembedded_count(&f.db, &files(&f)).unwrap(), 1, "no vector row");
+
+        let p = f.mem.join("pattern_pricing.md");
+        fs::File::options()
+            .write(true)
+            .open(&p)
+            .unwrap()
+            .set_modified(std::time::SystemTime::now() + std::time::Duration::from_secs(60))
+            .unwrap();
+        assert_eq!(unembedded_count(&f.db, &files(&f)).unwrap(), 2, "file newer than its row");
+
+        assert_eq!(
+            unembedded_count(&f.mem.join("no-store.db"), &files(&f)).unwrap(),
+            3,
+            "no store: nothing is embedded"
+        );
+    }
 }

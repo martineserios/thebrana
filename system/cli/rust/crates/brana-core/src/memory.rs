@@ -1108,3 +1108,281 @@ mod identity_tests {
         assert_eq!(memory_dirs_in(tmp.path()).unwrap().len(), 2, "global + p1; p2 has no memory dir");
     }
 }
+
+#[cfg(test)]
+mod freshness_tests {
+    //! Index freshness at bundle time (t-3536, ADR-099 §4a).
+    use super::*;
+    use std::fs;
+    use std::time::{Duration, SystemTime};
+    use tempfile::{tempdir, TempDir};
+
+    const BUDGET: Duration = Duration::from_secs(5);
+
+    /// Root ignores mode bits, so permission tests are vacuous as root.
+    fn running_as_root() -> bool {
+        unsafe extern "C" {
+            fn geteuid() -> u32;
+        }
+        unsafe { geteuid() == 0 }
+    }
+
+    fn set_mode(p: &Path, mode: u32) {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(p, fs::Permissions::from_mode(mode)).unwrap();
+    }
+
+    /// Set a file's mtime relative to now (negative = in the past).
+    fn set_mtime(p: &Path, offset_s: i64) {
+        let now = SystemTime::now();
+        let t = if offset_s >= 0 {
+            now + Duration::from_secs(offset_s as u64)
+        } else {
+            now - Duration::from_secs((-offset_s) as u64)
+        };
+        fs::File::options().write(true).open(p).unwrap().set_modified(t).unwrap();
+    }
+
+    struct Fx {
+        _tmp: TempDir,
+        dir: PathBuf,
+        db: PathBuf,
+        dirs: Vec<(String, PathBuf)>,
+    }
+
+    /// One indexed note, `pattern_old.md` ("old alpha"), built by the full rebuild.
+    fn fx() -> Fx {
+        let tmp = tempdir().unwrap();
+        let dir = tmp.path().join("memory");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("pattern_old.md"), "old alpha").unwrap();
+        let db = tmp.path().join("index.db");
+        let dirs = vec![("global".to_string(), dir.clone())];
+        reindex_fts_dirs(&dirs, &db).unwrap();
+        Fx { _tmp: tmp, dir, db, dirs }
+    }
+
+    fn found(db: &Path, q: &str) -> Vec<String> {
+        let mut out: Vec<String> = search_fts(db, q, 10).unwrap().into_iter().map(|h| h.slug).collect();
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn a_note_written_after_the_index_build_is_found_after_refresh() {
+        // Must-fire: without the refresh the new note is invisible.
+        let f = fx();
+        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+        assert!(found(&f.db, "zebra").is_empty(), "fixture: not indexed yet");
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.stale_notes, 1);
+        assert_eq!(r.outcome, FreshnessOutcome::Refreshed);
+        assert_eq!(found(&f.db, "zebra"), vec!["new"]);
+        assert_eq!(found(&f.db, "alpha"), vec!["old"], "untouched notes stay");
+    }
+
+    #[test]
+    fn a_new_note_with_an_old_mtime_is_still_picked_up() {
+        let f = fx();
+        let p = f.dir.join("pattern_copied.md");
+        fs::write(&p, "zebra copied in").unwrap();
+        set_mtime(&p, -365 * 24 * 3600);
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.stale_notes, 1);
+        assert_eq!(found(&f.db, "zebra"), vec!["copied"]);
+    }
+
+    #[test]
+    fn an_edited_note_is_reindexed_with_its_new_text() {
+        let f = fx();
+        let p = f.dir.join("pattern_old.md");
+        fs::write(&p, "old beta").unwrap();
+        set_mtime(&p, 10);
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.stale_notes, 1);
+        assert_eq!(found(&f.db, "beta"), vec!["old"]);
+        assert!(found(&f.db, "alpha").is_empty(), "the old text is replaced, not duplicated");
+    }
+
+    #[test]
+    fn a_deleted_note_is_dropped() {
+        let f = fx();
+        fs::remove_file(f.dir.join("pattern_old.md")).unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.deleted_notes, 1);
+        assert_eq!(r.outcome, FreshnessOutcome::Refreshed);
+        assert!(found(&f.db, "alpha").is_empty());
+    }
+
+    #[test]
+    fn a_fresh_index_is_not_written() {
+        let f = fx();
+        let before = fs::metadata(&f.db).unwrap().modified().unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Fresh);
+        assert_eq!((r.stale_notes, r.deleted_notes, r.unreadable), (0, 0, 0));
+        assert!(r.index_age_s.is_some_and(|a| a < 60), "built moments ago: {:?}", r.index_age_s);
+        assert_eq!(fs::metadata(&f.db).unwrap().modified().unwrap(), before);
+    }
+
+    #[test]
+    fn over_budget_rolls_back_and_keeps_the_stale_index() {
+        let f = fx();
+        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::ZERO);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Timeout));
+        assert_eq!(r.stale_notes, 1, "staleness is still reported");
+        assert!(found(&f.db, "zebra").is_empty());
+        assert_eq!(found(&f.db, "alpha"), vec!["old"]);
+    }
+
+    #[test]
+    fn a_locked_index_falls_back_to_stale_within_the_budget() {
+        let f = fx();
+        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+        let lock = Connection::open(&f.db).unwrap();
+        lock.execute_batch("BEGIN EXCLUSIVE").unwrap();
+
+        let started = std::time::Instant::now();
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_millis(300));
+        let waited = started.elapsed();
+        lock.execute_batch("ROLLBACK").unwrap();
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Busy));
+        assert!(waited < Duration::from_secs(3), "waited {waited:?}, budget was 300 ms");
+        assert_eq!(found(&f.db, "alpha"), vec!["old"]);
+    }
+
+    #[test]
+    fn an_unreadable_note_keeps_its_old_row_and_other_changes_land() {
+        if running_as_root() {
+            return;
+        }
+        let f = fx();
+        let old = f.dir.join("pattern_old.md");
+        fs::write(&old, "old beta").unwrap();
+        set_mtime(&old, 10);
+        set_mode(&old, 0o000);
+        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+        set_mode(&old, 0o644);
+
+        assert_eq!(r.unreadable, 1);
+        assert_eq!(r.outcome, FreshnessOutcome::Refreshed);
+        assert_eq!(found(&f.db, "zebra"), vec!["new"]);
+        assert_eq!(found(&f.db, "alpha"), vec!["old"], "never emptied or dropped");
+        assert!(found(&f.db, "beta").is_empty());
+
+        // Readable again: the next refresh picks the edit up.
+        let again = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+        assert_eq!(again.stale_notes, 1);
+        assert_eq!(found(&f.db, "beta"), vec!["old"]);
+    }
+
+    #[test]
+    fn a_folder_that_cannot_be_listed_keeps_its_rows() {
+        if running_as_root() {
+            return;
+        }
+        let f = fx();
+        let other = f._tmp.path().join("project-memory");
+        fs::create_dir_all(&other).unwrap();
+        fs::write(other.join("pattern_gamma.md"), "gamma ray").unwrap();
+        let dirs = vec![f.dirs[0].clone(), ("project".to_string(), other.clone())];
+        reindex_fts_dirs(&dirs, &f.db).unwrap();
+
+        set_mode(&other, 0o000);
+        let r = refresh_fts_dirs(&dirs, &f.db, BUDGET);
+        set_mode(&other, 0o755);
+
+        assert_eq!(r.deleted_notes, 0);
+        assert_eq!(found(&f.db, "gamma"), vec!["gamma"]);
+    }
+
+    #[test]
+    fn a_missing_folder_keeps_its_rows() {
+        let f = fx();
+        let other = f._tmp.path().join("project-memory");
+        fs::create_dir_all(&other).unwrap();
+        fs::write(other.join("pattern_gamma.md"), "gamma ray").unwrap();
+        let dirs = vec![f.dirs[0].clone(), ("project".to_string(), other.clone())];
+        reindex_fts_dirs(&dirs, &f.db).unwrap();
+        fs::rename(&other, f._tmp.path().join("moved-away")).unwrap();
+
+        let r = refresh_fts_dirs(&dirs, &f.db, BUDGET);
+
+        assert_eq!(r.deleted_notes, 0, "a vanished folder (unmounted, moved) prunes nothing");
+        assert_eq!(found(&f.db, "gamma"), vec!["gamma"]);
+    }
+
+    #[test]
+    fn an_index_from_an_older_build_is_refreshed_once() {
+        let f = fx();
+        // An older binary's index: memory_fts only, no file-state tables.
+        Connection::open(&f.db)
+            .unwrap()
+            .execute_batch("DROP TABLE IF EXISTS memory_files; DROP TABLE IF EXISTS memory_meta;")
+            .unwrap();
+
+        let first = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+        let second = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(first.index_age_s, None, "no build time recorded yet");
+        assert_eq!((first.stale_notes, first.outcome.clone()), (1, FreshnessOutcome::Refreshed));
+        assert_eq!(second.outcome, FreshnessOutcome::Fresh);
+        assert_eq!(found(&f.db, "alpha"), vec!["old"], "re-indexed once, not duplicated");
+    }
+
+    #[test]
+    fn search_waits_briefly_for_a_writer_instead_of_failing() {
+        let f = fx();
+        let db = f.db.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let writer = std::thread::spawn(move || {
+            let c = Connection::open(&db).unwrap();
+            c.execute_batch("BEGIN EXCLUSIVE").unwrap();
+            tx.send(()).unwrap();
+            std::thread::sleep(Duration::from_millis(80));
+            c.execute_batch("COMMIT").unwrap();
+        });
+        rx.recv().unwrap();
+
+        let hits = search_fts(&f.db, "alpha", 5);
+        writer.join().unwrap();
+
+        assert_eq!(hits.unwrap().len(), 1, "a short write lock must not fail the keyword leg");
+    }
+
+    #[test]
+    fn the_full_rebuild_waits_for_a_short_lock_instead_of_failing() {
+        let f = fx();
+        let db = f.db.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let holder = std::thread::spawn(move || {
+            let c = Connection::open(&db).unwrap();
+            c.execute_batch("BEGIN EXCLUSIVE").unwrap();
+            tx.send(()).unwrap();
+            std::thread::sleep(Duration::from_millis(300));
+            c.execute_batch("COMMIT").unwrap();
+        });
+        rx.recv().unwrap();
+
+        let res = reindex_fts_dirs(&f.dirs, &f.db);
+        holder.join().unwrap();
+
+        assert!(res.is_ok(), "{res:?}");
+    }
+}
