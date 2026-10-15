@@ -95,7 +95,7 @@ fn encode_project_path_legacy(root: &Path) -> String {
 /// `None` on total resolution failure (no project root, no directory under either
 /// encoding, no `.jsonl` files) — START does not require a resolvable transcript
 /// (Boundaries table).
-fn resolve_newest_transcript() -> Option<PathBuf> {
+pub(crate) fn resolve_newest_transcript() -> Option<PathBuf> {
     let base = brana_core::util::home().join(".claude/projects");
     let mut candidates: Vec<PathBuf> = Vec::new();
     if let Some(root) = brana_core::util::find_project_root() {
