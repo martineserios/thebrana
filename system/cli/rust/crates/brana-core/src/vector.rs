@@ -709,15 +709,17 @@ impl SearchProvider for VectorProvider {
                     MemoryScope::Only if !is_memory => return None,
                     _ => {}
                 }
+                let v = blob_to_vec(&blob)?;
+                let score = cosine(&qvec, &v);
+                if score < self.threshold {
+                    return None;
+                }
+                // Out-of-scope notes never take a slot (the cut is below). Checked after the
+                // threshold so only candidates pay the filesystem call, which resolves symlinks.
                 if is_memory
                     && !crate::memory_vectors::memory_row_path(&key)
                         .is_some_and(|p| self.recall_scope.allows(&p))
                 {
-                    return None;
-                }
-                let v = blob_to_vec(&blob)?;
-                let score = cosine(&qvec, &v);
-                if score < self.threshold {
                     return None;
                 }
                 // A memory row whose file is gone (deleted, archived, renamed before

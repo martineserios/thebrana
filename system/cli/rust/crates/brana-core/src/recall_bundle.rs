@@ -105,15 +105,18 @@ const FRONT_YAML_MAX_BYTES: usize = 16 * 1024;
 
 /// Whether `text` holds a YAML anchor (`&x`) or alias (`*x`) at a token start. Nested
 /// aliases can expand a few hundred bytes into gigabytes (the "billion laughs" document),
-/// and notes are untrusted text, so such frontmatter never reaches the YAML parser. `*` and
-/// `&` in ordinary prose (`**bold**`, `AT&T`) are not at a token start and do not count.
+/// and every alias hop re-expands the anchored subtree, so frontmatter holding one never
+/// reaches the YAML parser (notes are untrusted text). Name characters are libyaml's:
+/// letters, digits, `_` and `-`. `*` and `&` in ordinary prose (`**bold**`, `AT&T`) are not
+/// at a token start and do not count; text like `*Important*` that the parser would reject
+/// anyway goes to the line reader either way.
 pub(crate) fn has_yaml_alias(text: &str) -> bool {
     let mut prev: Option<char> = None;
     let mut chars = text.chars().peekable();
     while let Some(c) = chars.next() {
         if (c == '&' || c == '*')
-            && chars.peek().is_some_and(|n| n.is_alphanumeric() || *n == '_')
-            && prev.is_none_or(|p| p.is_whitespace() || matches!(p, ':' | '[' | '{' | ',' | '-'))
+            && chars.peek().is_some_and(|n| n.is_alphanumeric() || matches!(n, '_' | '-'))
+            && prev.is_none_or(|p| p.is_whitespace() || matches!(p, ':' | '[' | '{' | ',' | '-' | '?'))
         {
             return true;
         }
@@ -122,24 +125,53 @@ pub(crate) fn has_yaml_alias(text: &str) -> bool {
     false
 }
 
-fn yaml_scalar(v: Option<&serde_yaml::Value>) -> Option<String> {
+/// Every scalar in `v`, flattening lists (and nested lists) and looking through tags.
+/// Maps carry no scalar of their own.
+fn yaml_scalars(v: &serde_yaml::Value, out: &mut Vec<String>) {
     use serde_yaml::Value;
-    let s = match v? {
-        Value::String(s) => s.clone(),
+    let one = match v {
+        Value::String(s) => s.trim().to_string(),
         Value::Number(n) => n.to_string(),
         Value::Bool(b) => b.to_string(),
-        _ => return None,
+        Value::Sequence(items) => {
+            items.iter().for_each(|i| yaml_scalars(i, out));
+            return;
+        }
+        Value::Tagged(t) => {
+            yaml_scalars(&t.value, out);
+            return;
+        }
+        _ => return,
     };
-    let s = s.trim();
-    (!s.is_empty()).then(|| s.to_string())
+    if !one.is_empty() {
+        out.push(one);
+    }
 }
 
-/// Like [`yaml_scalar`], but `to: [[x]]` is a nested YAML list: take its first scalar.
-fn yaml_link(v: Option<&serde_yaml::Value>) -> Option<String> {
-    match v? {
-        serde_yaml::Value::Sequence(items) => yaml_link(items.first()),
-        other => yaml_scalar(Some(other)),
+/// The first scalar of `v`.
+fn yaml_scalar(v: Option<&serde_yaml::Value>) -> Option<String> {
+    let mut all = Vec::new();
+    yaml_scalars(v?, &mut all);
+    all.into_iter().next()
+}
+
+/// Every scalar of `v`: `to: [a, b]` and `to: [[a], [b]]` name several notes.
+fn yaml_links(v: Option<&serde_yaml::Value>) -> Vec<String> {
+    let mut all = Vec::new();
+    if let Some(v) = v {
+        yaml_scalars(v, &mut all);
     }
+    all
+}
+
+/// A status counts as superseded if any scalar in it says so (`[superseded]`, `!tag superseded`).
+fn yaml_status(v: Option<&serde_yaml::Value>) -> Option<String> {
+    let mut all = Vec::new();
+    yaml_scalars(v?, &mut all);
+    if let Some(hit) = all.iter().find(|s| s.eq_ignore_ascii_case("superseded")) {
+        return Some(hit.clone());
+    }
+    all.into_iter().next()
 }
 
 /// The frontmatter read as real YAML. `None` when the block is not valid YAML (an unquoted
@@ -163,17 +195,74 @@ fn front_from_yaml(text: &str) -> Option<Front> {
             let Some(m) = it.as_mapping() else { continue };
             let supersedes_edge =
                 yaml_scalar(m.get("type")).is_some_and(|k| k.eq_ignore_ascii_case("supersedes"));
-            if supersedes_edge && let Some(to) = yaml_link(m.get("to")) {
-                supersedes.push(to);
+            if supersedes_edge {
+                supersedes.extend(yaml_links(m.get("to")));
             }
         }
     }
     Some(Front {
         type_: in_meta("type").or_else(|| yaml_scalar(top.get("type"))),
-        status: yaml_scalar(top.get("status")).or_else(|| in_meta("status")),
+        status: yaml_status(top.get("status"))
+            .or_else(|| yaml_status(meta.and_then(|m| m.get("status")))),
         description: yaml_scalar(top.get("description")).or_else(|| in_meta("description")),
         supersedes,
     })
+}
+
+/// A key with its quotes removed (`"status"` and `'status'` are the key `status`).
+fn unquote_key(k: &str) -> &str {
+    k.trim().trim_matches(['"', '\''])
+}
+
+/// The notes a `to:` value names: `a`, `[a, b]`, `[[a]], [[b]]` (a list in any bracket style).
+fn split_targets(to: &str) -> Vec<String> {
+    to.split(',')
+        .map(|t| t.trim().trim_matches(['[', ']', '"', '\'', ' ']))
+        .filter(|t| !t.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+/// A status value as text. `[superseded]`, `[draft, Superseded]` and `!tag superseded` all
+/// say superseded; anything else is returned cleaned of brackets.
+fn status_text(v: &str) -> String {
+    let v = v.trim();
+    let v = match v.strip_prefix('!') {
+        Some(rest) => rest.split_once(char::is_whitespace).map_or("", |(_, r)| r),
+        None => v,
+    };
+    let parts: Vec<&str> =
+        v.split(',').map(|p| p.trim().trim_matches(['[', ']', '"', '\'', ' '])).filter(|p| !p.is_empty()).collect();
+    match parts.iter().find(|p| p.eq_ignore_ascii_case("superseded")) {
+        Some(hit) => hit.to_string(),
+        None => parts.join(", "),
+    }
+}
+
+/// The `{…}` groups of a flow-style list (`[{a: 1}, {b: 2}]`), quote-aware.
+fn flow_groups(v: &str) -> Vec<&str> {
+    let (mut out, mut depth, mut start, mut quote) = (Vec::new(), 0usize, 0usize, None::<char>);
+    for (i, c) in v.char_indices() {
+        match (quote, c) {
+            (Some(q), c) if c == q => quote = None,
+            (Some(_), _) => {}
+            (None, '"' | '\'') => quote = Some(c),
+            (None, '{') => {
+                if depth == 0 {
+                    start = i;
+                }
+                depth += 1;
+            }
+            (None, '}') if depth > 0 => {
+                depth -= 1;
+                if depth == 0 {
+                    out.push(&v[start..=i]);
+                }
+            }
+            _ => {}
+        }
+    }
+    out
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -197,12 +286,12 @@ impl RelItem {
         if item.kind.as_deref().is_some_and(|k| k.eq_ignore_ascii_case("supersedes"))
             && let Some(to) = item.to
         {
-            out.push(to);
+            out.extend(split_targets(&to));
         }
     }
 
     fn set(&mut self, key: &str, value: &str) {
-        match key {
+        match unquote_key(key) {
             "type" => self.kind = Some(plain(value).to_string()),
             "to" => self.to = Some(plain(value).to_string()),
             _ => {}
@@ -280,10 +369,12 @@ fn front_from_lines(lines: &[&str]) -> Front {
                     {
                         let v = plain(v);
                         if !v.is_empty() {
-                            match k.trim() {
+                            match unquote_key(k) {
                                 "type" => meta_type = Some(v.to_string()),
-                                "status" => meta_status = Some(v.to_string()),
-                                "description" => meta_desc = Some(v.to_string()),
+                                "status" => meta_status = Some(status_text(v)),
+                                "description" if !(v.starts_with('>') || v.starts_with('|')) => {
+                                    meta_desc = Some(v.to_string())
+                                }
                                 _ => {}
                             }
                         }
@@ -304,13 +395,20 @@ fn front_from_lines(lines: &[&str]) -> Front {
         (section, item_dash, item_key, meta_indent) = (Section::None, None, None, None);
         let Some((k, v)) = t.split_once(':') else { continue };
         let vp = plain(v);
-        match k.trim() {
+        match unquote_key(k) {
             "type" if !vp.is_empty() => top_type = Some(vp.to_string()),
-            "status" if !vp.is_empty() => top_status = Some(vp.to_string()),
+            "status" if !vp.is_empty() => top_status = Some(status_text(vp)),
             "description" if vp.starts_with('>') || vp.starts_with('|') => fold = Some(String::new()),
             "description" if !vp.is_empty() => top_desc = Some(vp.to_string()),
             "metadata" => section = Section::Metadata,
-            "relations" => section = Section::Relations,
+            "relations" => {
+                section = Section::Relations;
+                // `relations: [{type: supersedes, to: old}, …]` on one line.
+                for group in flow_groups(v.trim()) {
+                    item.apply(group);
+                    item.flush(&mut front.supersedes);
+                }
+            }
             _ => {}
         }
     }
@@ -384,7 +482,7 @@ fn superseded_by_targets(body: &str) -> Vec<String> {
         if let Some(inner) = rest.strip_prefix("[[")
             && let Some(end) = inner.find("]]")
         {
-            let t = inner[..end].split(['|', '#']).next().unwrap_or("").trim().to_string();
+            let t = bare_name(inner[..end].split(['|', '#']).next().unwrap_or(""));
             if is_plain_ref(&t) && !out.contains(&t) {
                 out.push(t);
             }
@@ -414,10 +512,20 @@ fn is_plain_ref(t: &str) -> bool {
         && t.chars().all(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | '.'))
 }
 
-/// Control characters (escape sequences, bells) and bidirectional overrides: never printed.
+/// Control characters (escape sequences, bells), invisible format characters (zero-width,
+/// tag block), line/paragraph separators and bidirectional overrides: never printed.
 fn is_unsafe_char(c: char) -> bool {
     (c.is_control() && !c.is_whitespace())
-        || matches!(c, '\u{200E}' | '\u{200F}' | '\u{061C}' | '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}')
+        || matches!(
+            c,
+            '\u{00AD}' // soft hyphen
+            | '\u{061C}' | '\u{180E}'
+            | '\u{200B}'..='\u{200F}' // zero-width characters, joiners, direction marks
+            | '\u{2028}'..='\u{202E}' // line and paragraph separators, bidi embeddings and overrides
+            | '\u{2060}'..='\u{206F}' // word joiner, invisible operators, bidi isolates
+            | '\u{FEFF}'
+            | '\u{E0000}'..='\u{E007F}' // tag characters: invisible text
+        )
 }
 
 /// `s` with every unsafe character and every line break removed, for single-line output.
@@ -505,11 +613,15 @@ pub fn assemble(cands: Vec<Candidate>, scope: &RecallScope, newest: &NewestStamp
 
     // 3 supersession, authoritative part: the ADR-057 status and supersedes-targets. A
     // target naming a full stem removes exactly that note. A slug-only target removes
-    // notes of the superseding note's own type and that slug, except the newest dated
-    // twin, which is the live one.
+    // notes of the superseding note's own type and that slug, except that when the
+    // superseding note is itself a twin of that slug (a new version superseding its
+    // older ones) the newest dated twin is the live one and stays. A slug-only target
+    // from an unrelated note replaces every note of that slug, dated or not (assumption,
+    // needs confirmation).
     struct Edge {
         by_stem: String,
         by_type: String,
+        by_slug: String,
         name: String,
     }
     let edges: Vec<Edge> = cands
@@ -518,6 +630,7 @@ pub fn assemble(cands: Vec<Candidate>, scope: &RecallScope, newest: &NewestStamp
             c.meta.supersedes.iter().map(|t| Edge {
                 by_stem: c.stem.clone(),
                 by_type: c.file_type.clone(),
+                by_slug: c.slug.clone(),
                 name: bare_name(t),
             })
         })
@@ -532,8 +645,10 @@ pub fn assemble(cands: Vec<Candidate>, scope: &RecallScope, newest: &NewestStamp
         .filter(|c| {
             let dead = c.meta.status.as_deref().is_some_and(|s| s.trim().eq_ignore_ascii_case("superseded"));
             let targeted = edges.iter().any(|e| {
+                let by_a_twin = e.by_slug == c.slug && e.by_type == c.file_type;
                 e.by_stem != c.stem
-                    && (e.name == c.stem || (e.name == c.slug && e.by_type == c.file_type && !is_newest_twin(c)))
+                    && (e.name == c.stem
+                        || (e.name == c.slug && e.by_type == c.file_type && !(by_a_twin && is_newest_twin(c))))
             });
             !dead && !targeted
         })

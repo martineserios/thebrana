@@ -532,8 +532,24 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
 - **Supersession targets:** a full stem removes exactly that note. A slug-only target removes
   notes of the superseding note's own type and that slug, except the newest dated twin.
   Relations may list `type` and `to` in either order, with or without indentation of the list
-  dash, or as an inline `{type: …, to: …}` map. `status`, `description` and `type` are read from
-  the top level and from the `metadata:` block (top level wins).
+  dash, or as an inline `{type: …, to: …}` map; `to:` may be a list (every entry is a target).
+  `status`, `description` and `type` are read from the top level and from the `metadata:` block:
+  the top level wins for `status` and `description`, `metadata.type` wins for `type`. A status
+  that says superseded in any shape (`[superseded]`, a tagged value) counts.
+- **Assumption (needs confirmation):** a slug-only supersedes target (`to: x`) from a note that
+  is not itself a twin of `x` replaces every note of that type and slug, including the only or
+  newest dated one. When the superseding note is itself a twin of the slug (a new version
+  superseding its older ones), the newest dated twin stays.
+- **Frontmatter is read as YAML first.** The block goes to `serde_yaml`; when it is not valid
+  YAML (an unquoted colon in a description is common), is over 16 KiB, or holds an anchor or alias
+  (`&x`, `*x`, with libyaml's name characters; nested aliases expand a few hundred bytes into
+  gigabytes), the tolerant line reader takes over. The line reader ignores blank lines and
+  comments, reads only the first indent level of `metadata:` and an item's own fields, and
+  understands quoted keys and a one-line `relations: [{…}, {…}]` list. An unclosed `---` block is
+  not frontmatter. A byte-order mark is ignored.
+- **Invisible text:** besides control characters and bidi overrides, output drops zero-width
+  characters, the soft hyphen, line and paragraph separators and the Unicode tag block
+  (U+E0000–E007F, a known channel for hiding text in a model's context).
 - **Known limits, kept on purpose:**
   - The assistant's project-folder naming folds `/` and `_` to `-`, so two projects whose paths
     differ only by `_` versus `-` share one memory folder and therefore one scope. That comes from
@@ -543,6 +559,11 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
   - An undated note is never flagged against a dated twin ("older dated twin" needs a date).
   - Folder comparison is exact and case-sensitive; on a case-insensitive filesystem a differently
     cased path fails closed (notes dropped), never open.
+  - The scope proof is per reader (keyword leg, vector leg, bundle), each calling
+    `RecallScope::allows`; the indexers follow symlinks, so out-of-scope text can sit in the
+    index even though no scoped reader returns it. `allows` treats an unreadable lstat as in
+    scope, a directory-level symlink or a hard link is not covered, and there is a window between
+    the check and the open. Tracked in the follow-up task for scope-proof hardening.
 
 ## Challenger findings
 
