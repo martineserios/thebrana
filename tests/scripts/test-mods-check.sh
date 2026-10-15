@@ -12,6 +12,7 @@ CHECK="$ROOT/system/scripts/mods-check.sh"
 SYNC="$ROOT/system/scripts/mods-sync-shared.sh"
 FIX="$ROOT/tests/fixtures/mods"
 source "$ROOT/tests/lib/path-without.sh"
+source "$ROOT/system/hooks/lib/portable.sh"   # p_timeout: macOS has no timeout(1)
 NOCLAUDE_PATH="$(path_without claude)"
 PASS=0; FAIL=0
 assert() { if [ "$2" = "$3" ]; then PASS=$((PASS+1)); echo "  PASS: $1"; else FAIL=$((FAIL+1)); echo "  FAIL: $1 (expected '$2', got '$3')"; fi; }
@@ -479,7 +480,7 @@ assert "...saying the report could not be parsed" yes "$(has 'could not be parse
 golden_validate; golden_test
 FIFOP="$H2/fifoplug"; rm -rf "$FIFOP"; cp -R "$BILL" "$FIFOP"; mkfifo "$FIFOP/hooks/pipe" 2>/dev/null
 printf '' > "$ACKROOT/config/mods-acknowledged.txt"; reg fifo:"$FIFOP"
-( timeout 30 env PATH="$NOCLAUDE_PATH" bash "$ACKROOT/scripts/mods-check.sh" --installed "$H2/.claude" >"$T/out" 2>&1 ); fr=$?
+( p_timeout 30 env PATH="$NOCLAUDE_PATH" bash "$ACKROOT/scripts/mods-check.sh" --installed "$H2/.claude" >"$T/out" 2>&1 ); fr=$?
 assert "a FIFO inside a plugin cannot hang the whole-install hash (finished, exit 1 — not a 124 timeout)" 1 "$fr"
 rm -rf "$FIFOP"
 echo "--- t-3505 iteration 2: a fault line is never taken for a finding"
