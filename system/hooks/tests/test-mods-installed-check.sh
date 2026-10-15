@@ -199,5 +199,17 @@ assert "stale checker: never run" "" "$(cat "$T/stale.log")"
 assert "stale checker: says to re-run bootstrap" yes "$(has 'bootstrap' "$(ctx)")"
 
 echo ""
+echo "--- t-3505: the hook roots its registry at its OWN location, not at an env var a project settings block could set"
+DEP="$T/dep"; rm -rf "$DEP"; mkdir -p "$DEP/hooks/lib" "$DEP/scripts" "$DEP/plugins"
+cp "$HOOK" "$DEP/hooks/mods-installed-check.sh"; cp "$ROOT/system/hooks/lib/portable.sh" "$DEP/hooks/lib/"; cp "$ROOT/system/scripts/mods-check.sh" "$DEP/scripts/"
+python3 -I - "$DEP/plugins/installed_plugins.json" "$BILL" <<'PYD'
+import json, sys
+json.dump({"version": 2, "plugins": {"billing@x": [{"scope": "user", "installPath": sys.argv[2], "version": "1.0.0"}]}}, open(sys.argv[1], "w"))
+PYD
+EMPTYCFG="$T/emptycfg"; mkdir -p "$EMPTYCFG/plugins"; printf '{"version":2,"plugins":{}}' > "$EMPTYCFG/plugins/installed_plugins.json"
+OUT=$(printf '{"cwd":"%s"}' "$ROOT" | env -u BRANA_MODS_CHECK CLAUDE_CONFIG_DIR="$EMPTYCFG" bash "$DEP/hooks/mods-installed-check.sh" 2>"$T/err"); RC=$?
+assert "env points the config dir at an EMPTY registry: the deployed hook still scans its own registry" yes "$(has 'billing@x' "$(ctx)")"
+
+echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

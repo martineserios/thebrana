@@ -174,6 +174,10 @@ newhome; printf '[]' > "$H/.claude/plugins/installed_plugins.json"; rc="$(boot -
 assert "--check: a registry that could not be scanned says so (t-3505: exit 2 is not a mod violating)" yes "$(has 'could not be scanned' "$(out)")"
 assert "...and does NOT tell the operator to uninstall a mod for it" no "$(has 'uninstall it' "$(out)")"
 assert "...pointing at the registry / python3 instead" yes "$(has 'python3' "$(out)")"
+GOODM="$ROOT/tests/fixtures/mods/good-minimal"
+newhome; printf '{"version":2,"plugins":{"good@other":[{"scope":"user","installPath":"%s","version":"1.0.0"}]}}\n' "$GOODM" > "$H/.claude/plugins/installed_plugins.json"; rc="$(boot --check noclaude)"
+assert "--check: a clean function-hook mod with claude absent prints the skipped-engine WARN (loud on exit 0, t-3505)" yes "$(has 'WARN: engine half skipped' "$(out)")"
+assert "...and that WARN is not a guard hit (the mods step is not refused for it)" no "$(has 'mods step refused' "$(out)")"
 newhome; seed_installed 0.1.0; rc="$(boot --check noclaude)"
 assert "--check: registry without function-hook mods -> exit 0" 0 "$rc"
 deploy2() { local p="$NOCLAUDE_PATH"; [ "${1:-withclaude}" = withclaude ] && p="$SHIM:$p"
@@ -195,5 +199,9 @@ newhome; printf '{"version":2,"plugins":{}}\n' > "$H/.claude/plugins/installed_p
 DIED="$( ( set -euo pipefail; TARGET_DIR="$H/.claude"; SCRIPT_DIR="$FAKE"; eval "$FN2"; mods_installed_guard; echo "AFTER hit=[$MODS_GUARD_HIT]" ) 2>&1 )"
 assert "the guard returns (does not abort) and records the checker's last line as the hit" yes "$(has 'AFTER hit=[mods-check: python3 required]' "$DIED")"
 assert "...and still prints the guard header" yes "$(has 'Installed mods guard:' "$DIED")"
+
+echo "--- t-3505: bootstrap deploys the tracked acknowledgement list; 7i never inherits a static-only switch"
+assert "bootstrap.sh deploys system/config/mods-acknowledged.txt to <target>/config/" yes "$(has 'config/mods-acknowledged.txt' "$(cat "$ROOT/bootstrap.sh")")"
+assert "7i pins MODS_INSTALLED_STATIC_ONLY empty (a project env block must not turn the engine half off)" yes "$(has 'MODS_INSTALLED_STATIC_ONLY= bash' "$FN2")"
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

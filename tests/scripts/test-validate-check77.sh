@@ -64,6 +64,9 @@ printf '{"version":2,"plugins":{"probe@other":[{"scope":"user","installPath":"%s
 OUT="$(./validate.sh --check 77 --fast 2>&1)"
 assert "an installed billing mod FAILS 77c" yes "$(has 'FAIL: Check 77c' "$OUT")"
 assert "...with the uninstall remedy" yes "$(has 'uninstall the mod' "$OUT")"
+printf '{"version":2,"plugins":{"good@other":[{"scope":"user","installPath":"%s","version":"1.0.0"}]}}' "$ROOT/tests/fixtures/mods/good-minimal" > "$CLAUDE_CONFIG_DIR/plugins/installed_plugins.json"
+OUT="$(PATH="$(path_without claude)" ./validate.sh --check 77 2>&1)"
+assert "a skipped engine half reaches validate's WARN channel (counted, not plain text)" yes "$(has 'WARN: Check 77c' "$OUT")"
 rm -f "$CLAUDE_CONFIG_DIR/plugins/installed_plugins.json"
 assert "remedy registry [77c] distinguishes could-not-scan from a violating mod" yes "$(has 'could not scan' "$(grep -F '[77c]=' system/scripts/validate-remedies.sh)")"
 
