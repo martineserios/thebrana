@@ -93,10 +93,20 @@ confirmed these defects in the first version; all are fixed with tests:
 - **Eval counter-metric.** `recall-eval.sh` also reports the top-k mix of memory
   files versus knowledge entries, and how many calls sat at the 2 s deadline.
   **Not yet measured:** recording the mix for the baseline binary versus this
-  build needs the live store embedded (about an hour, after deploy). Pending step
-  at ship: run `brana knowledge embed-memory`, then `recall-eval.sh` with both
-  binaries, and record both summary lines here. AC3's 16/16 was measured before
-  the gate repairs and is expected unchanged.
+  build needs the live store embedded (about an hour, after deploy). 
+  **Measured at ship, 2026-10-15** (after deploy and a full `embed-memory`: 1,125 of 1,126
+  notes embedded, one that fails every run; 20 questions, top 5):
+
+  ```
+  old binary (brana.bak): hits@5 = 15/20 | in-scope 15/16 | top-5 mix: memory 47% / knowledge 53% | median 0.85s (0 at the 2 s deadline)
+  new binary (shipped):   hits@5 = 15/20 | in-scope 15/16 | top-5 mix: memory 68% / knowledge 32% | median 0.83s (0 at the 2 s deadline)
+  ```
+
+  The hit count did not improve (AC3's 16/16 was not reproduced): the new build gains #13
+  (`project_system-architecture-current`) and loses #18 (`topic_backlog-patterns`, now outranked
+  by two `pattern_backlog-*` notes). The gain is the mix: memory files take 68% of the top 5
+  against 47%, with no calls at the 2 s deadline. Four of the five misses are archived files no
+  leg can return. The old binary was run against the already-embedded store.
 - **Reindex is atomic and strict** (gate iteration 2): DROP, CREATE and inserts
   commit in one transaction; a note file that cannot be read aborts the rebuild
   and keeps the previous index; a project memory folder that cannot be checked
