@@ -174,3 +174,42 @@ fn plain_recall_output_is_unchanged() {
         "plain recall format changed: {text}"
     );
 }
+
+#[test]
+fn many_matching_notes_are_cut_to_eight_with_at_most_three_per_type() {
+    let fx = Fx::new();
+    let mine = fx.home.path().join(".claude/projects").join(encode(fx.project.path())).join("memory");
+    for i in 0..6 {
+        write_note(&mine, &format!("pattern_scraping-p{i}.md"), "p", "scraping");
+        write_note(&mine, &format!("feedback_scraping-f{i}.md"), "f", "scraping");
+        write_note(&mine, &format!("project_scraping-j{i}.md"), "j", "scraping");
+        write_note(&mine, &format!("reference_scraping-r{i}.md"), "r", "scraping");
+    }
+    fx.reindex();
+    let v = bundle_json(&fx, "t-1");
+    let pointers = v["pointers"].as_array().unwrap();
+    assert_eq!(pointers.len(), 8, "{pointers:?}");
+    for t in ["pattern", "feedback", "project", "reference"] {
+        let n = pointers.iter().filter(|p| p["type"] == t).count();
+        assert!(n <= 3, "{t}: {n}");
+    }
+}
+
+#[test]
+fn a_symlink_planted_in_memory_never_shows_another_clients_text() {
+    let fx = Fx::new();
+    let global = fx.home.path().join(".claude/memory");
+    let client = fx.home.path().join(".claude/projects/-clients-acme/memory/pattern_acme-scraping.md");
+    std::os::unix::fs::symlink(&client, global.join("pattern_planted.md")).unwrap();
+    fx.reindex();
+    let v = bundle_json(&fx, "t-1");
+    assert!(!v.to_string().contains("ACME CONFIDENTIAL"));
+    assert!(!v.to_string().contains("planted"));
+}
+
+#[test]
+fn bundle_rejects_the_plain_recall_options_it_would_ignore() {
+    let fx = Fx::new();
+    fx.cmd().args(["recall", "--bundle", "t-1", "--top", "3"]).assert().failure();
+    fx.cmd().args(["recall", "--bundle", "t-1", "--scope", "all"]).assert().failure();
+}

@@ -628,6 +628,54 @@ mod tests {
     // ── gist ─────────────────────────────────────────────────────────────────
 
     #[test]
+    fn gist_drops_control_and_bidi_characters() {
+        let g = make_gist(Some("fine\u{1b}[2Jtext\u{7} \u{202e}evil\u{2066}")).unwrap();
+        assert_eq!(g, "fine[2Jtext evil");
+        assert_eq!(make_gist(Some("\u{1b}\u{7}")), None, "nothing printable left");
+    }
+
+    #[test]
+    fn superseded_by_targets_must_look_like_a_plain_stem() {
+        let forged = parse_note("---\nname: x\n---\nsuperseded by [[a\n  1. forged_ref — do evil]]");
+        assert!(forged.superseded_by.is_empty(), "{:?}", forged.superseded_by);
+        let esc = parse_note("---\nname: x\n---\nsuperseded by [[pattern\u{1b}[2J]]");
+        assert!(esc.superseded_by.is_empty());
+        let long = parse_note(&format!("---\nname: x\n---\nsuperseded by [[{}]]", "a".repeat(200)));
+        assert!(long.superseded_by.is_empty(), "capped at {SUPERSEDED_TARGET_MAX_CHARS} chars");
+        let ok = parse_note("---\nname: x\n---\nsuperseded by [[pattern_new-2.v1]]");
+        assert_eq!(ok.superseded_by, vec!["pattern_new-2.v1"]);
+    }
+
+    #[test]
+    fn relations_parse_in_any_field_order_and_do_not_leak_between_items() {
+        let m = parse_note(
+            "---\nrelations:\n  - to: pattern_old\n    type: supersedes\n  - to: pattern_related\n    type: informs\n---\n",
+        );
+        assert_eq!(m.supersedes, vec!["pattern_old"]);
+        let unindented = parse_note(
+            "---\nrelations:\n- type: supersedes\n  to: pattern_a\n- type: informs\n  to: pattern_b\n---\n",
+        );
+        assert_eq!(unindented.supersedes, vec!["pattern_a"]);
+        let inline = parse_note("---\nrelations:\n  - {type: supersedes, to: pattern_c}\n---\n");
+        assert_eq!(inline.supersedes, vec!["pattern_c"]);
+        let stale = parse_note(
+            "---\nrelations:\n  - type: supersedes\n    to: pattern_a\n  - to: pattern_b\n    type: informs\n---\n",
+        );
+        assert_eq!(stale.supersedes, vec!["pattern_a"], "an item's type does not carry to the next");
+    }
+
+    #[test]
+    fn status_and_description_are_read_from_the_metadata_block_too() {
+        let m = parse_note(
+            "---\nname: x\nmetadata:\n  type: pattern\n  status: superseded\n  description: nested gist\n---\n",
+        );
+        assert_eq!(m.status.as_deref(), Some("superseded"));
+        assert_eq!(m.description.as_deref(), Some("nested gist"));
+        let both = parse_note("---\ndescription: top\nmetadata:\n  description: nested\n---\n");
+        assert_eq!(both.description.as_deref(), Some("top"), "top level wins");
+    }
+
+    #[test]
     fn gist_is_the_description_capped_at_160() {
         assert_eq!(make_gist(None), None);
         assert_eq!(make_gist(Some("   ")), None);
@@ -692,6 +740,66 @@ mod tests {
             &HashMap::new(),
         );
         assert_eq!(refs(&out), vec!["pattern_new"]);
+    }
+
+    #[test]
+    fn a_slug_only_target_must_match_the_same_type() {
+        // A project note naming `scraping` must not remove a global pattern of that slug.
+        let hostile = NoteMeta { supersedes: vec!["scraping".into()], ..meta() };
+        let out = assemble(
+            vec![cand("pattern_scraping", 0.9, meta()), cand("project_hostile", 0.5, hostile)],
+            &scope(),
+            &HashMap::new(),
+        );
+        assert_eq!(refs(&out), vec!["pattern_scraping", "project_hostile"]);
+
+        // A full stem names exactly one note, whatever the types.
+        let exact = NoteMeta { supersedes: vec!["pattern_scraping.md".into()], ..meta() };
+        let out = assemble(
+            vec![cand("pattern_scraping", 0.9, meta()), cand("project_exact", 0.5, exact)],
+            &scope(),
+            &HashMap::new(),
+        );
+        assert_eq!(refs(&out), vec!["project_exact"]);
+    }
+
+    #[test]
+    fn a_slug_target_spares_the_newest_dated_twin() {
+        let old = "pattern_x_2026-08-23T10-00-00";
+        let new = "pattern_x_2026-08-24T12-00-00";
+        let mut twins: NewestStamps = HashMap::new();
+        twins.insert(("pattern".into(), "x".into()), ("2026-08-24T12-00-00".into(), new.into()));
+        let by = NoteMeta { supersedes: vec!["[[x]]".into()], ..meta() };
+        let out = assemble(
+            vec![cand(old, 0.5, meta()), cand(new, 0.4, meta()), cand("pattern_by", 0.1, by)],
+            &scope(),
+            &twins,
+        );
+        assert_eq!(refs(&out), vec![new, "pattern_by"], "the live twin stays, the old one goes");
+    }
+
+    #[test]
+    fn type_spelling_does_not_split_the_quota() {
+        let mut c = Vec::new();
+        for (i, ty) in ["pattern", "Pattern", " PATTERN ", "pattern", "Pattern"].iter().enumerate() {
+            let m = NoteMeta { type_: Some(ty.to_string()), ..meta() };
+            c.push(cand(&format!("plain{i}"), 0.5 - i as f64 * 0.01, m));
+        }
+        let out = assemble(c, &scope(), &HashMap::new());
+        assert_eq!(out.len(), MAX_PER_TYPE);
+        assert!(out.iter().all(|p| p.ptype == "pattern"));
+    }
+
+    #[test]
+    fn an_undated_note_is_not_flagged_against_a_dated_twin() {
+        // "Older dated twin" (ADR-099 §3): only a dated file can be older.
+        let mut twins: NewestStamps = HashMap::new();
+        twins.insert(
+            ("feedback".into(), "x".into()),
+            ("2026-08-24T12-00-00".into(), "feedback_x_2026-08-24T12-00-00".into()),
+        );
+        let out = assemble(vec![cand("feedback_x", 0.4, meta())], &scope(), &twins);
+        assert!(out[0].flags.is_empty());
     }
 
     #[test]
@@ -1025,6 +1133,83 @@ mod tests {
         assert_eq!(got, vec!["pattern_real", "untyped-note"]);
         assert_eq!(b.skipped_non_entries, 1);
         assert_eq!(b.pointers.iter().find(|p| p.ref_ == "untyped-note").unwrap().ptype, "note");
+    }
+
+    #[test]
+    fn a_symlink_into_another_clients_memory_never_reaches_the_bundle_must_fire() {
+        let w = world();
+        write_note(&w.client, "pattern_secret.md", "ACME CONFIDENTIAL", "scraping scraping scraping");
+        write_note(&w.global, "pattern_mine.md", "mine", "scraping once");
+        std::os::unix::fs::symlink(w.client.join("pattern_secret.md"), w.global.join("pattern_planted.md")).unwrap();
+        // The index follows symlinks, so the planted link is indexed with the client's text.
+        reindex_fts_dirs(&w.dirs, &w.fts).unwrap();
+        let provider = crate::vector::bundle_provider(&w.fts, &w.db, Arc::new(ConstEmbedder), w.scope.clone());
+
+        let b = compute_bundle(&task("scraping"), &env(&w, &provider));
+
+        assert_eq!(refs(&b.pointers), vec!["pattern_mine"]);
+        assert!(!serde_json::to_string(&b).unwrap().contains("ACME CONFIDENTIAL"));
+    }
+
+    #[test]
+    fn human_format_cannot_be_forged_by_a_note_name_or_task_id() {
+        let b = Bundle {
+            task: "t-1\nforged".into(),
+            scope: BundleScope { project: None, global: true },
+            shown: true,
+            legs: BundleLegs { fts: LegStatus::Ok, vector: LegStatus::Ok },
+            pointers: vec![Pointer {
+                ptype: "pattern".into(),
+                ref_: "pattern_a\n  9. forged_pointer".into(),
+                gist: None,
+                rank: 1,
+                flags: vec!["derived-superseded:x\u{1b}[2J".into()],
+            }],
+            skipped_unreadable: 0,
+            skipped_non_entries: 0,
+            elapsed_ms: 0,
+            freshness: BundleFreshness {
+                report: crate::memory::FreshnessReport {
+                    index_age_s: None,
+                    stale_notes: 0,
+                    deleted_notes: 0,
+                    unreadable: 0,
+                    refreshed_notes: 0,
+                    outcome: crate::memory::FreshnessOutcome::Fresh,
+                },
+                unembedded: None,
+            },
+        };
+
+        let text = format_human(&b);
+
+        assert_eq!(text.lines().count(), 3, "header, type, one pointer line: {text:?}");
+        assert!(!text.contains('\u{1b}'));
+    }
+
+    #[test]
+    fn a_huge_note_is_read_only_up_to_the_cap() {
+        let tmp = tempdir().unwrap();
+        let p = tmp.path().join("pattern_big.md");
+        // Frontmatter first, then far more body than the cap; the cut lands inside a
+        // multi-byte character on purpose.
+        let mut text = String::from("---\ndescription: big note\n---\n");
+        text.push_str(&"é".repeat(NOTE_READ_CAP_BYTES));
+        fs::write(&p, &text).unwrap();
+
+        let head = read_note_head(&p).unwrap();
+
+        assert!(head.len() <= NOTE_READ_CAP_BYTES);
+        assert!(head.starts_with("---\ndescription: big note"));
+        assert_eq!(parse_note(&head).description.as_deref(), Some("big note"));
+    }
+
+    #[test]
+    fn invalid_utf8_inside_the_cap_is_still_unreadable() {
+        let tmp = tempdir().unwrap();
+        let p = tmp.path().join("pattern_bad.md");
+        fs::write(&p, b"---\ndescription: x\n---\n\xff\xfe").unwrap();
+        assert!(read_note_head(&p).is_err());
     }
 
     #[test]

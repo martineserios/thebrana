@@ -1051,4 +1051,58 @@ mod tests {
         assert!(parse_ruflo_hits("[INFO] ok\n[]", "knowledge").unwrap().is_empty());
         assert_eq!(parse_ruflo_hits("[{\"key\":\"k\",\"value\":\"v\"}]", "knowledge").unwrap().len(), 1);
     }
+
+    // ── symlinks cannot smuggle an out-of-scope note into scope (t-3537 gate) ───
+
+    #[test]
+    fn allows_rejects_a_symlink_into_another_projects_memory() {
+        let tmp = tempdir().unwrap();
+        let mine = tmp.path().join("mine");
+        let client = tmp.path().join("client");
+        fs::create_dir_all(&mine).unwrap();
+        fs::create_dir_all(&client).unwrap();
+        fs::write(client.join("pattern_secret.md"), "client secret").unwrap();
+        fs::write(mine.join("pattern_real.md"), "mine").unwrap();
+        std::os::unix::fs::symlink(client.join("pattern_secret.md"), mine.join("pattern_link.md")).unwrap();
+        std::os::unix::fs::symlink(mine.join("pattern_real.md"), mine.join("pattern_alias.md")).unwrap();
+        std::os::unix::fs::symlink(mine.join("gone.md"), mine.join("pattern_dangling.md")).unwrap();
+        let scope = RecallScope::Dirs(vec![mine.clone()]);
+
+        assert!(scope.allows(&mine.join("pattern_real.md")));
+        assert!(!scope.allows(&mine.join("pattern_link.md")), "resolves into another project");
+        assert!(scope.allows(&mine.join("pattern_alias.md")), "resolves to an in-scope note");
+        assert!(!scope.allows(&mine.join("pattern_dangling.md")), "cannot be shown to be in scope");
+    }
+
+    #[test]
+    fn allows_follows_a_scope_folder_that_is_itself_reached_through_a_symlink() {
+        let tmp = tempdir().unwrap();
+        let real = tmp.path().join("real-mem");
+        fs::create_dir_all(&real).unwrap();
+        fs::write(real.join("pattern_a.md"), "a").unwrap();
+        let via = tmp.path().join("via");
+        std::os::unix::fs::symlink(&real, &via).unwrap();
+        fs::write(real.join("pattern_target.md"), "t").unwrap();
+        std::os::unix::fs::symlink(real.join("pattern_target.md"), real.join("pattern_l.md")).unwrap();
+        let scope = RecallScope::Dirs(vec![via.clone()]);
+
+        assert!(scope.allows(&via.join("pattern_l.md")), "link resolves into the same real folder");
+    }
+
+    #[test]
+    fn fts5_scope_excludes_a_symlink_that_resolves_out_of_scope() {
+        let tmp = tempdir().unwrap();
+        let mine = tmp.path().join("mine");
+        let client = tmp.path().join("client");
+        write_mem(&client, "pattern_secret.md", "jwt jwt jwt client secret");
+        write_mem(&mine, "pattern_real.md", "jwt once");
+        std::os::unix::fs::symlink(client.join("pattern_secret.md"), mine.join("pattern_link.md")).unwrap();
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("project".into(), mine.clone())], &db).unwrap();
+
+        let hits = FTS5Provider::new(db).with_scope(RecallScope::Dirs(vec![mine])).query("jwt", 10);
+
+        let slugs: Vec<_> = hits.iter().map(|h| match &h.doc { DocRef::MemoryFile { slug, .. } => slug.clone(), _ => String::new() }).collect();
+        assert_eq!(slugs, vec!["real"], "the symlink's target text must not surface: {slugs:?}");
+    }
 }
