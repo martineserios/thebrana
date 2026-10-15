@@ -1057,6 +1057,57 @@ mod tests {
     }
 
     #[test]
+    fn the_alias_guard_matches_libyamls_anchor_characters() {
+        // libyaml anchor and alias names may contain `-`; the guard must catch every spelling
+        // the parser would accept as an alias (each hop re-expands the anchored subtree).
+        assert!(has_yaml_alias("a: &-a [1]"));
+        assert!(has_yaml_alias("b: [*-a, *-a]"));
+        assert!(has_yaml_alias("c: &a_1-x v"));
+        assert!(has_yaml_alias("d: !tag &anchor v"));
+        assert!(has_yaml_alias("e:\n\t- *ref"));
+        assert!(has_yaml_alias("? &k key"));
+    }
+
+    // A description starting with `*word*` is not valid YAML, so these reach the line reader.
+    const BAD_YAML: &str = "description: *Important* note\n";
+
+    #[test]
+    fn the_line_reader_reads_a_flow_style_relations_list() {
+        let m = parse_note(&format!("---\n{BAD_YAML}relations: [{{type: supersedes, to: old}}, {{type: informs, to: other}}]\n---\n"));
+        assert_eq!(m.supersedes, vec!["old"]);
+    }
+
+    #[test]
+    fn the_line_reader_reads_quoted_keys() {
+        let m = parse_note(&format!("---\n{BAD_YAML}\"status\": superseded\n'type': pattern\n---\n"));
+        assert_eq!((m.status.as_deref(), m.type_.as_deref()), (Some("superseded"), Some("pattern")));
+    }
+
+    #[test]
+    fn a_to_list_supersedes_every_target_in_both_readers() {
+        let yaml = parse_note("---\nrelations:\n  - type: supersedes\n    to: [a, b]\n---\n");
+        assert_eq!(yaml.supersedes, vec!["a", "b"]);
+        let nested = parse_note("---\nrelations:\n  - type: supersedes\n    to: [[a], [b, c]]\n---\n");
+        assert_eq!(nested.supersedes, vec!["a", "b", "c"]);
+        let fallback = parse_note(&format!("---\n{BAD_YAML}relations:\n  - type: supersedes\n    to: [a, b]\n---\n"));
+        assert_eq!(fallback.supersedes, vec!["a", "b"]);
+        let wiki = parse_note("---\nrelations:\n  - type: supersedes\n    to: [[a]], [[b]]\n---\n");
+        assert_eq!(wiki.supersedes, vec!["a", "b"], "invalid YAML, read by the line reader");
+    }
+
+    #[test]
+    fn a_status_that_says_superseded_in_any_shape_counts() {
+        for status in ["[superseded]", "!x superseded", "[draft, Superseded]", "\"Superseded\""] {
+            let yaml = parse_note(&format!("---\nstatus: {status}\n---\n"));
+            assert_eq!(yaml.status.as_deref().map(str::to_lowercase), Some("superseded".to_string()), "yaml: {status}");
+            let fb = parse_note(&format!("---\n{BAD_YAML}status: {status}\n---\n"));
+            assert_eq!(fb.status.as_deref().map(str::to_lowercase), Some("superseded".to_string()), "fallback: {status}");
+        }
+        let live = parse_note("---\nstatus: [active, draft]\n---\n");
+        assert_ne!(live.status.as_deref().map(str::to_lowercase), Some("superseded".to_string()));
+    }
+
+    #[test]
     fn a_dash_tab_list_marker_is_read_by_the_line_reader() {
         // Tabs are not valid YAML indentation, so this reaches the tolerant fallback.
         let m = parse_note("---\nrelations:\n-\ttype: supersedes\n\tto: pattern_old\n---\n");
