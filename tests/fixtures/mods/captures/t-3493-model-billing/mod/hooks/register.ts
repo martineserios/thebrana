@@ -4,7 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 // main-thread request; turn.complete, after the main thread's first API response so
 // rateLimits has a reading): snapshot usage, make one keyless model call through the
 // engine's own client, snapshot usage again, write JSON to <DIR>/probe-log-<phase>.json.
-const DIR = '/tmp/claude-1000/-home-martineserios-enter-thebrana-thebrana/1e8af577-1266-4cc3-9fb1-0cca113c8d15/scratchpad/modprobe/run'
+const DIR = '/tmp/modprobe/run'
 
 async function probe($: EngineInterface, phase: string): Promise<void> {
   const out: Record<string, unknown> = { phase, startedAt: new Date().toISOString() }

@@ -11,7 +11,7 @@ informs: docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.m
 **Date:** 2026-10-07
 **Deciders:** Martín Rios
 **Tags:** skills, upstream-band, mattpocock-mining, adr-084, adr-061, tdd, merge-valve
-**Tasks:** t-3263 (evidence) · P0 t-3489 · P1 t-3495 · P2 t-2981 (organ 4, approved) · P3 t-3490 · P4 t-3491 · P7 t-3492 (filed 2026-10-07); P5, P6, P8–P10 parked in [ideas/pocock-v13-adoption.md](../../ideas/pocock-v13-adoption.md) · twins t-3010 (TDD reference consolidation), t-3018 (refactor-split spike)
+**Tasks:** t-3263 (evidence) · P0 t-3489 (cancelled 2026-10-08, superseded by ADR-098) · P1 t-3495 (cancelled 2026-10-08, superseded by ADR-098) · P2 t-2981 (organ 4, approved; rescoped by ADR-098) · P3 t-3490 (narrowed by ADR-098 §6) · P4 t-3491 · P7 t-3492 (filed 2026-10-07; live); P5, P6, P8–P10 parked in [ideas/pocock-v13-adoption.md](../../ideas/pocock-v13-adoption.md) · twins t-3010 (TDD reference consolidation), t-3018 (refactor-split spike)
 **Extends:** [ADR-084](ADR-084-upstream-skill-band-vendored-pocock-skills.md) — §7a: "that remains a separate follow-up ADR/amendment." This is it. **Amends §1's Valve row** (D1) and **supersedes §3's CONTEXT.md sentence** (D7).
 **Respects:** [ADR-061](ADR-061-goal-integration-three-primitive.md) §4 inv. 2–3 · [ADR-060](ADR-060-branch-strategy-autonomous-agents.md) (executors never merge) · [ADR-092](ADR-092-graduated-loop-autonomy-ladder.md) (no pre-designed L2 classifier)
 **Informs:** [ADR-085](ADR-085-skills-as-stations-no-atom-schema.md) D4/D6 — `tdd` is the one extraction build's granularity floor admits.
@@ -199,12 +199,14 @@ client repo needs an organ, and then by vendoring into that repo with its own lo
 
 | # | Task | Kind | Effort | Blocked by |
 |---|---|---|---|---|
-| P0 (t-3489) | Fix the band's call path: remove `disable-model-invocation` from `diagnose-hard-bug` and `two-axis-review`, add call-site records to all adapters, add one resolution test per organ; re-read ADR-084 §7a's invocation proxy against real records | fix | S | — |
-| P1 (t-3495) | Pin bump v1.2.3 → v1.3.1 per `upstream-band-pin-bump.md`; adapters' `vendored_from:` updated; heading-presence + pin-equality tests created | chore | S | P0 |
-| P2 (t-2981) | t-2981 as corrected: `tdd` organ, callers keep 3d1/3d2, inline fallback, delegation checklist path named | feature | M | P1 |
-| P3 (t-3490) | PR-body template + `--body-file` in ship Part A + runner body + `gh pr create` headings hook; docs updated in the same task | feature | S | — |
+| P0 (t-3489) | **cancelled 2026-10-08, superseded by ADR-098 (the band is retired).** Was: fix the band's call path: remove `disable-model-invocation` from `diagnose-hard-bug` and `two-axis-review`, add call-site records to all adapters, add one resolution test per organ; re-read ADR-084 §7a's invocation proxy against real records | fix | S | — |
+| P1 (t-3495) | **cancelled 2026-10-08, superseded by ADR-098 (no pin to bump).** Was: pin bump v1.2.3 → v1.3.1 per `upstream-band-pin-bump.md`; adapters' `vendored_from:` updated; heading-presence + pin-equality tests created | chore | S | P0 (cancelled) |
+| P2 (t-2981) | t-2981 as corrected: `tdd` organ, callers keep 3d1/3d2, inline fallback, delegation checklist path named. **Rescoped by ADR-098:** call his installed `tdd` from build-loop 3d/3e and `/brana:fix`; keep 3d1/3d2; no vendoring | feature | M | P1 (cancelled) |
+| P3 (t-3490) | PR-body template + `--body-file` in ship Part A + runner body + `gh pr create` headings hook; docs updated in the same task. **Narrowed by ADR-098 §6:** headings hook + `--body-file` only (content from his `pr`; the template file is dropped) | feature | S | — |
 | P4 (t-3491) | Read-only merge-readiness probe at close.md step 10; one sentence in epic-drain §Merge; "explore once, point after" stated for the runner's exploration step | fix | XS | — |
 | P7 (t-3492) | One-shot rules → hooks audit, proposal-only, must-fire test per conversion, scoped by `rules-over-hooks-for-gates.md` | refactor | S | — |
+
+**Plan status (2026-10-15, t-3506), per ADR-098's plan:** P0 and P1 cancelled; P2 rescoped; P3 narrowed; P4 (t-3491) and P7 (t-3492) unchanged and live — t-3490, t-3491, t-3492 are pending.
 
 Parked in the idea doc with their trigger: P5 (retro home), P6 (GLOSSARY wording in t-3013;
 ADR-084 §3 is superseded by D7 here), P8, P9, P10.
