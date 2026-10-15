@@ -137,11 +137,22 @@ impl RecallScope {
         Self::Dirs(dirs)
     }
 
-    /// Whether a memory note at `path` is in scope.
+    /// Whether a memory note at `path` is in scope: it sits directly in a scope folder and,
+    /// if it is a symlink, resolves to a file directly in a scope folder too. Without the
+    /// second half a link planted in global memory could surface another project's note
+    /// (t-3537 gate). A link that cannot be resolved is not shown to be in scope.
     pub fn allows(&self, path: &Path) -> bool {
         match self {
             Self::All => true,
-            Self::Dirs(dirs) => path.parent().is_some_and(|p| dirs.iter().any(|d| d == p)),
+            Self::Dirs(dirs) => {
+                if !path.parent().is_some_and(|p| dirs.iter().any(|d| d == p)) {
+                    return false;
+                }
+                match std::fs::symlink_metadata(path) {
+                    Ok(m) if m.file_type().is_symlink() => resolves_into(path, dirs),
+                    _ => true,
+                }
+            }
         }
     }
 
@@ -152,6 +163,17 @@ impl RecallScope {
             Self::Dirs(dirs) => Some(dirs),
         }
     }
+}
+
+/// Whether the symlink at `path` ends at a file directly inside one of `dirs`
+/// (compared after resolving the folders too, so a scope reached through a link works).
+fn resolves_into(path: &Path, dirs: &[PathBuf]) -> bool {
+    let Ok(real) = std::fs::canonicalize(path) else { return false };
+    if !real.is_file() {
+        return false;
+    }
+    let Some(parent) = real.parent() else { return false };
+    dirs.iter().any(|d| std::fs::canonicalize(d).is_ok_and(|cd| cd == parent))
 }
 
 // ── FTS5Provider ──────────────────────────────────────────────────────────────
@@ -191,6 +213,8 @@ impl SearchProvider for FTS5Provider {
             // The index is rebuilt weekly; a note deleted since then must not
             // surface with a dangling path (t-3510 gate, F2).
             .filter(|h| std::path::Path::new(&h.path).exists())
+            // The SQL prefix is lexical; a symlink in scope must also resolve into scope.
+            .filter(|h| self.scope.allows(std::path::Path::new(&h.path)))
             .take(top_k)
             .map(|h| SearchHit {
                 doc: DocRef::MemoryFile {

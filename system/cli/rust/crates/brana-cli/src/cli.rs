@@ -307,7 +307,7 @@ pub enum Commands {
         /// Compute the recall bundle for a task instead: at most 8 typed pointers
         /// (note + one-line description), scoped to this project plus global memory,
         /// with superseded notes dropped. The query is the task's subject and tags.
-        #[arg(long, value_name = "TASK_ID")]
+        #[arg(long, value_name = "TASK_ID", conflicts_with_all = ["top", "scope"])]
         bundle: Option<String>,
         /// Maximum results to return
         #[arg(long, default_value = "10")]

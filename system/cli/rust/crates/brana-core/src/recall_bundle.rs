@@ -8,7 +8,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -31,6 +31,11 @@ pub const QUERY_MAX_CHARS: usize = 500;
 const CANDIDATE_POOL: usize = 40;
 /// Weight of a note with a derived supersession signal.
 const DERIVED_SUPERSEDED_WEIGHT: f64 = 0.5;
+/// Longest `superseded by [[x]]` target accepted; longer or odd-looking ones are ignored.
+pub const SUPERSEDED_TARGET_MAX_CHARS: usize = 80;
+/// Most bytes read from one note: frontmatter is at the top, and a huge file must not be
+/// pulled into memory once per candidate.
+pub const NOTE_READ_CAP_BYTES: usize = 64 * 1024;
 
 // ── input ────────────────────────────────────────────────────────────────────
 
@@ -79,22 +84,74 @@ fn unquote(v: &str) -> &str {
     v
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum Section {
+    None,
+    Metadata,
+    Relations,
+}
+
+/// One `relations:` list item, collected field by field in any order.
+#[derive(Default)]
+struct RelItem {
+    kind: Option<String>,
+    to: Option<String>,
+}
+
+impl RelItem {
+    /// End the item: keep its target if it is a `supersedes` edge.
+    fn flush(&mut self, out: &mut Vec<String>) {
+        let item = std::mem::take(self);
+        if item.kind.as_deref().is_some_and(|k| k.eq_ignore_ascii_case("supersedes"))
+            && let Some(to) = item.to
+        {
+            out.push(to);
+        }
+    }
+
+    fn set(&mut self, key: &str, value: &str) {
+        match key {
+            "type" => self.kind = Some(unquote(value).to_string()),
+            "to" => self.to = Some(unquote(value).to_string()),
+            _ => {}
+        }
+    }
+
+    /// One payload: `key: value`, or an inline `{key: value, key: value}` map.
+    fn apply(&mut self, payload: &str) {
+        let p = payload.trim();
+        if let Some(inner) = p.strip_prefix('{').and_then(|r| r.strip_suffix('}')) {
+            for part in inner.split(',') {
+                if let Some((k, v)) = part.split_once(':') {
+                    self.set(k.trim(), v);
+                }
+            }
+        } else if let Some((k, v)) = p.split_once(':') {
+            self.set(k.trim(), v);
+        }
+    }
+}
+
 /// Parse a note's frontmatter and body. A note that does not open with a `---` line has
-/// no frontmatter, so no field is read from it; the body signal is still read.
+/// no frontmatter, so no field is read from it; the body signal is still read. `type`,
+/// `status` and `description` are read from the top level and from the `metadata:` block
+/// (the top level wins); `relations` items may list their fields in any order, indented
+/// or not, or as an inline map.
 pub fn parse_note(content: &str) -> NoteMeta {
     let mut meta = NoteMeta::default();
-    let mut lines = content.lines().peekable();
-    let mut body_start = 0usize;
-    if lines.peek().map(|l| l.trim()) == Some("---") {
+    let mut lines = content.lines();
+    let mut consumed = 0usize;
+    let mut closed = false;
+    if content.lines().next().map(str::trim) == Some("---") {
         meta.has_frontmatter = true;
         lines.next();
-        let mut consumed = 1usize;
-        let mut top_type: Option<String> = None;
-        let mut meta_type: Option<String> = None;
-        let mut section = String::new();
-        let mut rel_type: Option<String> = None;
-        let mut pending_fold: Option<String> = None; // description: > / |
-        let mut closed = false;
+        consumed = 1;
+        let (mut top_type, mut meta_type) = (None::<String>, None::<String>);
+        let (mut top_status, mut meta_status) = (None::<String>, None::<String>);
+        let (mut top_desc, mut meta_desc) = (None::<String>, None::<String>);
+        let mut section = Section::None;
+        let mut item = RelItem::default();
+        let mut fold: Option<String> = None; // description: > / |
         for line in lines.by_ref() {
             consumed += 1;
             if line.trim() == "---" {
@@ -102,73 +159,74 @@ pub fn parse_note(content: &str) -> NoteMeta {
                 break;
             }
             let indented = line.starts_with(' ') || line.starts_with('\t');
-            if let Some(buf) = pending_fold.as_mut() {
-                if indented || line.trim().is_empty() {
-                    if !line.trim().is_empty() {
+            let t = line.trim();
+            if let Some(buf) = fold.as_mut() {
+                if indented || t.is_empty() {
+                    if !t.is_empty() {
                         if !buf.is_empty() {
                             buf.push(' ');
                         }
-                        buf.push_str(line.trim());
+                        buf.push_str(t);
                     }
                     continue;
                 }
-                meta.description = Some(std::mem::take(buf));
-                pending_fold = None;
+                top_desc = Some(std::mem::take(buf));
+                fold = None;
             }
-            let t = line.trim();
-            if !indented {
-                section.clear();
-                rel_type = None;
-                let Some((k, v)) = t.split_once(':') else { continue };
-                let v = v.trim();
-                match k.trim() {
-                    "type" if !v.is_empty() => top_type = Some(unquote(v).to_string()),
-                    "status" if !v.is_empty() => meta.status = Some(unquote(v).to_string()),
-                    "description" if v == ">" || v == "|" || v == ">-" || v == "|-" => {
-                        pending_fold = Some(String::new())
+            if section == Section::Relations && (t == "-" || t.starts_with("- ")) {
+                item.flush(&mut meta.supersedes);
+                item.apply(t.trim_start_matches('-'));
+                continue;
+            }
+            if indented {
+                match section {
+                    Section::Metadata => {
+                        if let Some((k, v)) = t.split_once(':') {
+                            let v = unquote(v);
+                            if !v.is_empty() {
+                                match k.trim() {
+                                    "type" => meta_type = Some(v.to_string()),
+                                    "status" => meta_status = Some(v.to_string()),
+                                    "description" => meta_desc = Some(v.to_string()),
+                                    _ => {}
+                                }
+                            }
+                        }
                     }
-                    "description" if !v.is_empty() => meta.description = Some(unquote(v).to_string()),
-                    "metadata" | "relations" => section = k.trim().to_string(),
-                    _ => {}
+                    Section::Relations => item.apply(t),
+                    Section::None => {}
                 }
                 continue;
             }
-            match section.as_str() {
-                "metadata" => {
-                    if let Some(v) = t.strip_prefix("type:") {
-                        let v = unquote(v);
-                        if !v.is_empty() {
-                            meta_type = Some(v.to_string());
-                        }
-                    }
-                }
-                "relations" => {
-                    let item = t.strip_prefix('-').map(str::trim).unwrap_or(t);
-                    if let Some(v) = item.strip_prefix("type:") {
-                        rel_type = Some(unquote(v).to_string());
-                    } else if let Some(v) = item.strip_prefix("to:")
-                        && rel_type.as_deref() == Some("supersedes")
-                    {
-                        meta.supersedes.push(unquote(v).to_string());
-                    }
-                }
+            item.flush(&mut meta.supersedes);
+            section = Section::None;
+            let Some((k, v)) = t.split_once(':') else { continue };
+            let v = v.trim();
+            match k.trim() {
+                "type" if !v.is_empty() => top_type = Some(unquote(v).to_string()),
+                "status" if !v.is_empty() => top_status = Some(unquote(v).to_string()),
+                "description" if matches!(v, ">" | "|" | ">-" | "|-") => fold = Some(String::new()),
+                "description" if !v.is_empty() => top_desc = Some(unquote(v).to_string()),
+                "metadata" => section = Section::Metadata,
+                "relations" => section = Section::Relations,
                 _ => {}
             }
         }
-        if let Some(buf) = pending_fold.take()
+        item.flush(&mut meta.supersedes);
+        if let Some(buf) = fold.take()
             && !buf.is_empty()
         {
-            meta.description = Some(buf);
+            top_desc = Some(buf);
         }
-        meta.type_ = meta_type.or(top_type);
-        // An unclosed block has no body to speak of.
-        body_start = if closed { consumed } else { usize::MAX };
-        if !closed {
-            meta.type_ = None;
+        if closed {
+            meta.type_ = meta_type.or(top_type);
         }
+        meta.status = top_status.or(meta_status);
+        meta.description = top_desc.or(meta_desc);
     }
-    if body_start != usize::MAX {
-        let body: String = content.lines().skip(body_start).collect::<Vec<_>>().join("\n");
+    // An unclosed frontmatter block has no body to speak of.
+    if closed || !meta.has_frontmatter {
+        let body: String = content.lines().skip(consumed).collect::<Vec<_>>().join("\n");
         meta.superseded_by = superseded_by_targets(&body);
     }
     meta
@@ -188,7 +246,7 @@ fn superseded_by_targets(body: &str) -> Vec<String> {
             && let Some(end) = inner.find("]]")
         {
             let t = inner[..end].trim().to_string();
-            if !t.is_empty() && !out.contains(&t) {
+            if is_plain_ref(&t) && !out.contains(&t) {
                 out.push(t);
             }
         }
@@ -208,9 +266,34 @@ pub fn is_memory_entry(file_type: &str, meta: &NoteMeta) -> bool {
     meta.has_frontmatter || meta.type_.is_some() || !file_type.is_empty()
 }
 
+/// A reference printed back to the worker must look like a note name: short, and only
+/// letters, digits, `_`, `-`, `.`. Note bodies are untrusted text.
+fn is_plain_ref(t: &str) -> bool {
+    !t.is_empty()
+        && t.chars().count() <= SUPERSEDED_TARGET_MAX_CHARS
+        && t.chars().all(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | '.'))
+}
+
+/// Control characters (escape sequences, bells) and bidirectional overrides: never printed.
+fn is_unsafe_char(c: char) -> bool {
+    (c.is_control() && !c.is_whitespace())
+        || matches!(c, '\u{200E}' | '\u{200F}' | '\u{061C}' | '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}')
+}
+
+/// `s` with every unsafe character and every line break removed, for single-line output.
+fn clean(s: &str) -> String {
+    s.chars().filter(|c| !is_unsafe_char(*c) && !c.is_control()).collect()
+}
+
 /// One line, whitespace collapsed, at most [`GIST_MAX_CHARS`] characters (159 + `…`).
 pub fn make_gist(description: Option<&str>) -> Option<String> {
-    let collapsed = description?.split_whitespace().collect::<Vec<_>>().join(" ");
+    // Whitespace (including line breaks) becomes a space; escape sequences and bidi
+    // overrides are dropped. Descriptions are untrusted text from note files.
+    let safe: String = description?
+        .chars()
+        .filter_map(|c| if c.is_whitespace() { Some(' ') } else if is_unsafe_char(c) { None } else { Some(c) })
+        .collect();
+    let collapsed = safe.split_whitespace().collect::<Vec<_>>().join(" ");
     if collapsed.is_empty() {
         return None;
     }
@@ -280,14 +363,38 @@ pub fn assemble(cands: Vec<Candidate>, scope: &RecallScope, newest: &NewestStamp
     // 1 scope
     let cands: Vec<Candidate> = cands.into_iter().filter(|c| scope.allows(&c.path)).collect();
 
-    // 3 supersession, authoritative part: the ADR-057 status and supersedes-targets
-    let targets: HashSet<String> =
-        cands.iter().flat_map(|c| c.meta.supersedes.iter().map(|t| bare_name(t))).collect();
+    // 3 supersession, authoritative part: the ADR-057 status and supersedes-targets. A
+    // target naming a full stem removes exactly that note. A slug-only target removes
+    // notes of the superseding note's own type and that slug, except the newest dated
+    // twin, which is the live one.
+    struct Edge {
+        by_stem: String,
+        by_type: String,
+        name: String,
+    }
+    let edges: Vec<Edge> = cands
+        .iter()
+        .flat_map(|c| {
+            c.meta.supersedes.iter().map(|t| Edge {
+                by_stem: c.stem.clone(),
+                by_type: c.file_type.clone(),
+                name: bare_name(t),
+            })
+        })
+        .collect();
+    let is_newest_twin = |c: &Candidate| {
+        memory_file_stamp(&c.stem)
+            .zip(newest.get(&(c.file_type.clone(), c.slug.clone())))
+            .is_some_and(|(stamp, (newest_stamp, _))| stamp == newest_stamp.as_str())
+    };
     let cands: Vec<Candidate> = cands
         .into_iter()
         .filter(|c| {
             let dead = c.meta.status.as_deref().is_some_and(|s| s.trim().eq_ignore_ascii_case("superseded"));
-            let targeted = targets.contains(&c.stem) || targets.contains(&c.slug);
+            let targeted = edges.iter().any(|e| {
+                e.by_stem != c.stem
+                    && (e.name == c.stem || (e.name == c.slug && e.by_type == c.file_type && !is_newest_twin(c)))
+            });
             !dead && !targeted
         })
         .collect();
@@ -323,11 +430,14 @@ pub fn assemble(cands: Vec<Candidate>, scope: &RecallScope, newest: &NewestStamp
         if out.len() >= MAX_POINTERS {
             break;
         }
+        // Spelling variants (`Pattern`, ` pattern `) are one type for the quota.
         let ptype = c
             .meta
             .type_
-            .clone()
-            .or_else(|| (!c.file_type.is_empty()).then(|| c.file_type.clone()))
+            .as_deref()
+            .map(|t| t.trim().to_lowercase())
+            .filter(|t| !t.is_empty())
+            .or_else(|| (!c.file_type.is_empty()).then(|| c.file_type.to_lowercase()))
             .unwrap_or_else(|| "note".to_string());
         let n = per_type.entry(ptype.clone()).or_insert(0);
         if *n >= MAX_PER_TYPE {
@@ -412,7 +522,7 @@ pub fn compute_bundle(task: &BundleTask, env: &BundleEnv) -> Bundle {
     let listing = list_memory_listing(&env.dirs);
     let newest = newest_stamps(&listing.files);
 
-    let (cands, skipped_unreadable, skipped_non_entries) = read_candidates(hits);
+    let (cands, skipped_unreadable, skipped_non_entries) = read_candidates(hits, &env.scope);
     let pointers = assemble(cands, &env.scope, &newest);
 
     let unembedded =
@@ -431,19 +541,42 @@ pub fn compute_bundle(task: &BundleTask, env: &BundleEnv) -> Bundle {
     }
 }
 
+/// The first [`NOTE_READ_CAP_BYTES`] of a note as text. A cut inside a multi-byte character
+/// is not an error; invalid UTF-8 anywhere inside the cap is.
+pub fn read_note_head(path: &Path) -> std::io::Result<String> {
+    use std::io::Read;
+    let mut buf = Vec::new();
+    fs::File::open(path)?.take(NOTE_READ_CAP_BYTES as u64 + 1).read_to_end(&mut buf)?;
+    let truncated = buf.len() > NOTE_READ_CAP_BYTES;
+    buf.truncate(NOTE_READ_CAP_BYTES);
+    match String::from_utf8(buf) {
+        Ok(s) => Ok(s),
+        Err(e) if truncated && e.utf8_error().error_len().is_none() => {
+            let valid = e.utf8_error().valid_up_to();
+            let mut bytes = e.into_bytes();
+            bytes.truncate(valid);
+            String::from_utf8(bytes)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+        }
+        Err(e) => Err(std::io::Error::new(std::io::ErrorKind::InvalidData, e)),
+    }
+}
+
 /// Memory-file hits only (knowledge-store rows are out in v1), each read once. A note
 /// that cannot be read as text is counted, never treated as empty.
-fn read_candidates(hits: Vec<SearchHit>) -> (Vec<Candidate>, usize, usize) {
+fn read_candidates(hits: Vec<SearchHit>, scope: &RecallScope) -> (Vec<Candidate>, usize, usize) {
     let mut seen: HashSet<PathBuf> = HashSet::new();
     let mut out = Vec::new();
     let (mut skipped, mut non_entries) = (0usize, 0usize);
     for h in hits {
         let DocRef::MemoryFile { path, .. } = h.doc else { continue };
-        if !seen.insert(path.clone()) {
+        // Scope is proven before a byte is read: a file that cannot be shown to be in scope
+        // (another project's note behind a planted symlink) is never opened.
+        if !scope.allows(&path) || !seen.insert(path.clone()) {
             continue;
         }
         let Some(stem) = path.file_stem().and_then(|s| s.to_str()).map(str::to_string) else { continue };
-        let Ok(content) = fs::read_to_string(&path) else {
+        let Ok(content) = read_note_head(&path) else {
             skipped += 1;
             continue;
         };
@@ -462,7 +595,7 @@ fn read_candidates(hits: Vec<SearchHit>) -> (Vec<Candidate>, usize, usize) {
 pub fn format_human(b: &Bundle) -> String {
     let mut out = format!(
         "Recall bundle for {} — {} pointer(s) (fts {}, vector {})\n",
-        b.task,
+        clean(&b.task),
         b.pointers.len(),
         b.legs.fts.as_str(),
         b.legs.vector.as_str()
@@ -474,14 +607,15 @@ pub fn format_human(b: &Bundle) -> String {
         }
     }
     for t in types {
-        out.push_str(&format!("{t}\n"));
+        out.push_str(&format!("{}\n", clean(t)));
         for p in b.pointers.iter().filter(|p| p.ptype == t) {
-            out.push_str(&format!("  {}. {}", p.rank, p.ref_));
+            out.push_str(&format!("  {}. {}", p.rank, clean(&p.ref_)));
             if let Some(g) = &p.gist {
-                out.push_str(&format!(" — {g}"));
+                out.push_str(&format!(" — {}", clean(g)));
             }
             if !p.flags.is_empty() {
-                out.push_str(&format!("  [{}]", p.flags.join(", ")));
+                let flags: Vec<String> = p.flags.iter().map(|f| clean(f)).collect();
+                out.push_str(&format!("  [{}]", flags.join(", ")));
             }
             out.push('\n');
         }
