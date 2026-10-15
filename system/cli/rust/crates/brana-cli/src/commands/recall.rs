@@ -1,5 +1,5 @@
 use anyhow::Result;
-use brana_core::search::{DocRef, RecallScope, SearchProvider};
+use brana_core::search::{DocRef, LegStatus, RecallScope, SearchProvider};
 use brana_core::vector::RufloEmbedder;
 use std::sync::Arc;
 
@@ -97,6 +97,15 @@ pub fn cmd_recall_bundle(task_id: &str, json: bool, db: Option<String>) -> Resul
     };
 
     let bundle = compute_bundle(&task, &env);
+    // Say which legs degraded (a healthy bundle is silent); the legs are also in the output.
+    let degraded: Vec<String> = [("fts", bundle.legs.fts), ("vector", bundle.legs.vector)]
+        .into_iter()
+        .filter(|(_, st)| matches!(st, LegStatus::Timeout | LegStatus::Error))
+        .map(|(name, st)| format!("{name}={}", st.as_str()))
+        .collect();
+    if !degraded.is_empty() {
+        eprintln!("recall --bundle: degraded leg(s): {}", degraded.join(", "));
+    }
     if json {
         println!("{}", serde_json::to_string(&bundle)?);
     } else {

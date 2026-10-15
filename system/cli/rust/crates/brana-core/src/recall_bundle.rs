@@ -138,6 +138,8 @@ impl RelItem {
 /// (the top level wins); `relations` items may list their fields in any order, indented
 /// or not, or as an inline map.
 pub fn parse_note(content: &str) -> NoteMeta {
+    // A byte-order mark (some editors and sync tools add one) must not hide the `---`.
+    let content = content.strip_prefix('\u{feff}').unwrap_or(content);
     let mut meta = NoteMeta::default();
     let mut lines = content.lines();
     let mut consumed = 0usize;
@@ -260,8 +262,9 @@ fn superseded_by_targets(body: &str) -> Vec<String> {
 
 /// Whether a file is a memory entry: it has a type (frontmatter or filename prefix) or at
 /// least a frontmatter block. Logs and state files (`sessions.md`, `session-handoff.md`,
-/// `event-log.md`) have neither; the same definition as `memory.rs` uses for "not a memory
-/// entry" (user decision 2026-10-15).
+/// `event-log.md`) have neither. The same idea as `memory.rs` ("no frontmatter at all is not a
+/// memory entry"), applied to every file rather than only to names without a `_` prefix (user
+/// decision 2026-10-15).
 pub fn is_memory_entry(file_type: &str, meta: &NoteMeta) -> bool {
     meta.has_frontmatter || meta.type_.is_some() || !file_type.is_empty()
 }

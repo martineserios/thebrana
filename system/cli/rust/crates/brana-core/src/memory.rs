@@ -1032,7 +1032,7 @@ fn refresh_inner(
 
 /// Full-text search the embedded index, returning up to `limit` hits ranked by
 /// FTS5 relevance. The query is tokenized into alphanumeric terms (joined with
-/// implicit AND) so arbitrary user input — colons, quotes, hyphens — never
+/// `OR`, see `sanitize_fts_query`) so arbitrary user input — colons, quotes, hyphens — never
 /// produces an FTS5 syntax error. An empty/symbol-only query returns no hits.
 pub fn search_fts(db_path: &Path, query: &str, limit: usize) -> Result<Vec<MemoryHit>> {
     search_fts_in(db_path, query, limit, None)
