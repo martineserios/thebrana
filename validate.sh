@@ -3005,11 +3005,17 @@ if [ ! -f "$C77_SCRIPT" ]; then
     fail "Check 77c: $C77_SCRIPT is missing — the mods enforcement harness cannot run (t-3493)"
 else
     C77C_STATIC=""; { $RUN_FAST || $RUN_ASSUMPTIONS_ONLY || $RUN_SEMANTIC_ONLY || $RUN_SCALE_TRIGGERS; } && C77C_STATIC=1
-    if C77C_OUT=$(MODS_INSTALLED_STATIC_ONLY="$C77C_STATIC" bash "$C77_SCRIPT" --installed "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" 2>&1); then
+    C77C_RC=0; C77C_OUT=$(MODS_INSTALLED_STATIC_ONLY="$C77C_STATIC" bash "$C77_SCRIPT" --installed "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" 2>&1) || C77C_RC=$?
+    if [ "$C77C_RC" -eq 0 ]; then
+        while IFS= read -r C77C_W; do warn "Check 77c: ${C77C_W#WARN: }"; done < <(printf '%s\n' "$C77C_OUT" | grep '^WARN:' | grep -v '^WARN:   ' || true)
         pass "Check 77c: $(printf '%s\n' "$C77C_OUT" | tail -1)"
-    else
+    elif [ "$C77C_RC" -eq 1 ]; then
         printf '%s\n' "$C77C_OUT" | sed 's/^/  /'
-        fail "Check 77c: an installed mod matches a Law 3 rule (\$.model/\$.http/bracket/Reflect/destructure/fetch), is refused by the engine at load, or the registry is unreadable — uninstall the mod: claude plugin uninstall <name> (t-3493)"
+        fail "Check 77c: an installed mod matches a Law 3 rule (\$.model/\$.http/bracket/Reflect/destructure/fetch) or is refused by the engine at load — uninstall the mod: claude plugin uninstall <name>; a plugin that cannot be uninstalled (managed settings) is acknowledged in system/config/mods-acknowledged.txt (t-3493, t-3505)"
+    else
+        # every code but 0/1 — 2 is the checker's own could-not-scan, 124/126/127/137 a crash or timeout: none is a verdict on a mod
+        printf '%s\n' "$C77C_OUT" | sed 's/^/  /'
+        fail "Check 77c: the installed-mods scan could not scan (exit $C77C_RC: python3 missing, plugins/installed_plugins.json unreadable or mis-shaped, an unreadable module or a failed engine report) — fix the scanner or the registry file; this is NOT a finding about any mod (t-3505)"
     fi
 fi
 echo ""

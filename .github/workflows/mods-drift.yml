@@ -50,6 +50,13 @@ jobs:
             exit 1
           fi
 
+      - name: No-exec canary — the latest engine's plugin validate must still never execute module code
+        run: |
+          if ! bash system/scripts/mods-check.sh --noexec-canary; then
+            echo "::error::plugin validate no longer behaves as compile-and-analyse only (or could not be probed) — the installed-mods scan runs it on untrusted third-party code at every bootstrap/validate (t-3505); re-decide before bumping the pin"
+            exit 1
+          fi
+
       - name: Bump signal — latest passes but is not in SUPPORTED
         run: |
           installed="$(claude --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"

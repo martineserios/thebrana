@@ -9,6 +9,10 @@
 # `claude plugin validate`, no engine, ~100 ms), so a mod installed after the last bootstrap
 # is reported by the next session.
 #
+# Silent by design on exit 0: an acknowledged plugin and a skipped engine half (this hook only ever runs the STATIC half —
+# it is blind to engine-refused mods and to anything only the engine's calls: listing sees) are said by validate and bootstrap,
+# not repeated at every session start (t-3505).
+#
 # Advisory by design (ADR-096 Law 4 — safety stays in shell hooks that PREVENT; this one only
 # reports, a gauge not a valve): one additionalContext warning line, exit 0 always, never a
 # block. The remedy stays the registry's [77c]: uninstall, then re-run validate.
@@ -28,7 +32,6 @@
 #         harness audit 2026-10-07); the session is expected to relay the line to the human.
 #         Nothing here is shown to the human directly.
 # Env:    CLAUDE_CONFIG_DIR (the engine's config dir; default ~/.claude)
-#         BRANA_MODS_CHECK  (path to mods-check.sh — tests; default: resolved below)
 #         (opt-out: touch $CLAUDE_CONFIG_DIR/mods-installed-check.skip — a file, never an env var)
 # Tests:  system/hooks/tests/test-mods-installed-check.sh (must-fire with the t-3493 billing mod)
 #
@@ -36,7 +39,11 @@
 # stdin is deliberately never read: nothing here depends on the payload.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+# The registry is rooted at the hook's OWN location when it sits in a config dir (deployed: ~/.claude/hooks → ~/.claude), not at
+# an env var: a project's settings env block reaches hook processes and could point CLAUDE_CONFIG_DIR at an empty directory to
+# silence the scan (t-3505). From a checkout (system/hooks) there is no sibling plugins/, so the env/default applies.
+if [ -f "$SCRIPT_DIR/../plugins/installed_plugins.json" ]; then CLAUDE_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+else CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; fi
 
 # Nothing installed: nothing to scan, nothing to say. A USER-owned file
 # `$CLAUDE_DIR/mods-installed-check.skip` silences this gauge (challenger: a flagged-but-accepted
@@ -64,12 +71,10 @@ emit() {   # one line -> one additionalContext JSON line (never a block, never a
 # Resolve the checker from DEPLOYED locations only: the copy of this hook lives in
 # ~/.claude/hooks, whose sibling ~/.claude/scripts/ holds the flat scripts bootstrap deploys;
 # then the plugin root. No repo tier (see the trust boundary above).
-CHECK="${BRANA_MODS_CHECK:-}"
-if [ -z "$CHECK" ]; then
-    for d in "$SCRIPT_DIR/../scripts" "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/scripts"; do
-        [ -f "$d/mods-check.sh" ] && { CHECK="$d/mods-check.sh"; break; }
-    done
-fi
+CHECK=""
+for d in "$SCRIPT_DIR/../scripts" "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/scripts"; do
+    [ -f "$d/mods-check.sh" ] && { CHECK="$d/mods-check.sh"; break; }
+done
 if [ ! -f "$CHECK" ]; then
     emit "⚠ installed-mods Law 3 scan did not run: mods-check.sh not found (next to this hook or under CLAUDE_PLUGIN_ROOT — re-run ./bootstrap.sh) — $REMEDY"
     exit 0
@@ -96,16 +101,22 @@ OUT=$(cat "$TMP" 2>/dev/null); rm -f "$TMP"
 
 case "$RC" in
     124|137) emit "⚠ installed-mods Law 3 scan did not run: timed out after 8 s — $REMEDY"; exit 0 ;;
-    1) ;;   # the checker's own verdict — handled below
+    1) ;;   # the checker's own verdict (a Law 3 finding) — handled below
+    2) ;;   # the checker could not scan (missing interpreter, unreadable registry) — relayed as such below (t-3505)
     *) emit "⚠ installed-mods Law 3 scan did not run: mods-check --installed exit $RC — $REMEDY"; exit 0 ;;
 esac
 
-# Exit 1: either violations in scanned mods, or the checker failing CLOSED before scanning
-# (unreadable or mis-shaped registry, python3 missing) — its summary then says "0 mod(s) scanned".
+# Exit 1 = violations in scanned mods. Exit 2 = the checker could not scan (unreadable or mis-shaped
+# registry, python3 missing): always "could not run", never a verdict on a mod, whatever its summary says (t-3505).
 SUMMARY=$(printf '%s\n' "$OUT" | grep -E '^mods-check --installed:' | tail -n 1)
-FIRST=$(printf '%s\n' "$OUT" | grep -m1 -E '^  [^ ]' | sed -E 's/^  //')
+FIRST=$(printf '%s\n' "$OUT" | grep -m1 -E '^  [^ !]' | sed -E 's/^  //')        # a FINDING line (fault lines carry a "  ! " marker and are skipped)
+FIRST_ANY=$(printf '%s\n' "$OUT" | grep -m1 -E '^  [^ ]' | sed -E 's/^  (! )?//')   # any line, for the could-not-run relay
 # (anchored on ": 0 mod(s)" — a bare "0 mod(s) scanned" substring also matched 10/20/100 mods
 # and relayed a real violation as "could not run" with no remedy: verifier N1)
+if [ "$RC" -eq 2 ]; then
+    emit "⚠ installed-mods Law 3 scan could not run: $(safe_text "${FIRST_ANY##* — }" 120) ($(safe_text "$SUMMARY" 160)) — $REMEDY"
+    exit 0
+fi
 case "$SUMMARY" in
     *": 0 mod(s) scanned"*)
         emit "⚠ installed-mods Law 3 scan could not run: $(safe_text "${FIRST##* — }" 120) ($(safe_text "$SUMMARY" 160)) — $REMEDY"

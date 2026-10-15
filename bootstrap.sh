@@ -500,6 +500,15 @@ if [ -d "$SYSTEM_DIR/scripts/lib" ]; then
     sync_dir "$SYSTEM_DIR/scripts/lib" "$TARGET_DIR/scripts/lib" "scripts/lib/"
 fi
 
+# config/ (t-3505): the tracked ADR-096 acknowledgement list. mods-check.sh reads
+# <script dir>/../config/mods-acknowledged.txt — system/config/ in a checkout, ~/.claude/config/ once deployed.
+# Without this the DEPLOYED checker (the session-start hook, /brana:plugin add step 8b) would not see an
+# acknowledgement the repo grants, and would be stricter than validate/bootstrap.
+if [ -f "$SYSTEM_DIR/config/mods-acknowledged.txt" ]; then
+    mkdir -p "$TARGET_DIR/config"
+    sync_file "$SYSTEM_DIR/config/mods-acknowledged.txt" "$TARGET_DIR/config/mods-acknowledged.txt" "config/mods-acknowledged.txt"
+fi
+
 # --- Step 3b: Hooks ---
 # hooks.json invokes scripts at $HOME/.claude/hooks/ — the plugin does NOT
 # serve the script files (same failure class as rules, t-1946). Ongoing syncs
@@ -1220,13 +1229,25 @@ mods_installed_guard() {
     MODS_GUARD_HIT=""
     local chk="$SCRIPT_DIR/system/scripts/mods-check.sh" out
     [ -f "$chk" ] && [ -f "$TARGET_DIR/plugins/installed_plugins.json" ] || return 0
-    if out="$(bash "$chk" --installed "$TARGET_DIR" 2>&1)"; then return 0; fi
+    # MODS_INSTALLED_STATIC_ONLY is pinned empty: a project env block must not turn the engine half off here
+    local rc=0; out="$(MODS_INSTALLED_STATIC_ONLY= bash "$chk" --installed "$TARGET_DIR" 2>&1)" || rc=$?
+    if [ "$rc" -eq 0 ]; then
+        # exit 0 is not silent (t-3505): an acknowledged plugin and a skipped engine half are said, never a pass in the dark
+        local warns; warns="$(printf '%s\n' "$out" | grep '^WARN:' || true)"
+        if [ -n "$warns" ]; then echo "Installed mods guard:"; printf '%s\n' "$warns" | sed 's/^/  ~ /'; fi
+        return 0
+    fi
     # any non-zero exit is a hit — a checker that died (rc 2, python3 missing, unreadable registry)
     # must never pass the guard silently (challenger F2, t-3493)
     MODS_GUARD_HIT="$(printf '%s\n' "$out" | tail -1)"; [ -n "$MODS_GUARD_HIT" ] || MODS_GUARD_HIT="mods-check --installed exited non-zero with no output"
     echo "Installed mods guard:"
     printf '%s\n' "$out" | grep -E '^  ' | sed 's/^  /  ! /'   || true   # grep returns 1 on no indented line; under set -e + pipefail that aborted bootstrap before the exit-3 summary
-    echo "  ! an installed mod calls \$.model/\$.http or is refused by the engine at load (ADR-096 Law 3, t-3493) — uninstall it (claude plugin uninstall <name>); the mods step is refused until then"
+    if [ "$rc" -eq 1 ]; then
+        echo "  ! an installed mod calls \$.model/\$.http or is refused by the engine at load (ADR-096 Law 3, t-3493) — uninstall it (claude plugin uninstall <name>); a plugin that cannot be uninstalled is acknowledged in system/config/mods-acknowledged.txt; the mods step is refused until then"
+    else
+        # exit 2 (or anything else): the scan did not run — never a verdict on a mod, never "uninstall" (t-3505)
+        echo "  ! the installed mods could not be scanned (mods-check exit $rc: python3 missing, or plugins/installed_plugins.json unreadable) — fix python3 / the registry file; this is not a finding about any mod; the mods step is refused until it scans"
+    fi
     return 0
 }
 
