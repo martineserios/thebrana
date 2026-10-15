@@ -1673,6 +1673,14 @@ mod encoder_tests {
     }
 
     #[test]
+    fn encode_project_dir_keeps_dots() {
+        // Claude Code keeps `.` in folder names (on disk: `-tmp-.tmpVDgLSm`); only `/`
+        // and `_` are folded. A wrong fold here silently narrows recall scope.
+        assert_eq!(encode_project_dir(Path::new("/tmp/.tmpVDgLSm")), "-tmp-.tmpVDgLSm");
+        assert_eq!(encode_project_dir(Path::new("/home/u/my.repo")), "-home-u-my.repo");
+    }
+
+    #[test]
     fn encode_project_dir_legacy_keeps_underscores() {
         assert_eq!(encode_project_dir_legacy(Path::new("/home/u/my_proj")), "-home-u-my_proj");
     }

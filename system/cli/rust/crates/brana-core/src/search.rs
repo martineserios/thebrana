@@ -224,6 +224,10 @@ impl RufloProvider {
 
 impl SearchProvider for RufloProvider {
     fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit> {
+        self.try_query(q, top_k).unwrap_or_default()
+    }
+
+    fn try_query(&self, q: &str, top_k: usize) -> anyhow::Result<Vec<SearchHit>> {
         let Some(raw) = crate::ruflo::ruflo_memory_search_raw(
             q,
             &self.namespace,
@@ -231,9 +235,9 @@ impl SearchProvider for RufloProvider {
             self.threshold,
             true, // json: true — required for full key names
         ) else {
-            return Vec::new();
+            anyhow::bail!("ruflo search failed (absent, timed out or exited non-zero)");
         };
-        parse_ruflo_json(&raw, &self.namespace)
+        parse_ruflo_hits(&raw, &self.namespace)
     }
 }
 
@@ -246,13 +250,18 @@ impl SearchProvider for RufloProvider {
 ///
 /// Expected element shape: `{"key": "...", "value": "...", "score": 0.0}`
 fn parse_ruflo_json(raw: &str, namespace: &str) -> Vec<SearchHit> {
+    parse_ruflo_hits(raw, namespace).unwrap_or_default()
+}
+
+/// [`parse_ruflo_json`] that keeps "no JSON array" and "malformed JSON" apart from
+/// an empty result (t-3535): output without a parsable array is an error.
+fn parse_ruflo_hits(raw: &str, namespace: &str) -> anyhow::Result<Vec<SearchHit>> {
     let Some(start) = find_json_array_start(raw) else {
-        return Vec::new();
+        anyhow::bail!("ruflo output has no JSON array");
     };
-    let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&raw[start..]) else {
-        return Vec::new();
-    };
-    arr.into_iter()
+    let arr = serde_json::from_str::<Vec<serde_json::Value>>(&raw[start..])
+        .map_err(|e| anyhow::anyhow!("ruflo output is not a JSON array: {e}"))?;
+    Ok(arr.into_iter()
         .filter_map(|e| {
             let key = e["key"].as_str()?.to_string();
             let snippet = e["value"].as_str().unwrap_or("").to_string();
@@ -265,7 +274,7 @@ fn parse_ruflo_json(raw: &str, namespace: &str) -> Vec<SearchHit> {
                 rrf_score: 0.0,
             })
         })
-        .collect()
+        .collect())
 }
 
 /// Scan for the byte offset of the first `[` that opens a JSON array,
@@ -853,11 +862,13 @@ mod tests {
 
     #[test]
     fn hybrid_status_reports_ok_timeout_empty_and_error_per_leg() {
+        // Margins are wide so a loaded machine cannot flip a status: instant legs
+        // get a full second, the late leg sleeps ten times past its deadline.
         let hybrid = HybridProvider::with_deadlines(
             FixedProvider::fixed(vec![h("a")]),
-            FixedProvider::delayed(vec![h("late")], Duration::from_millis(400)),
-            Duration::from_millis(100),
-            Duration::from_millis(150),
+            FixedProvider::delayed(vec![h("late")], Duration::from_secs(10)),
+            Duration::from_secs(2),
+            Duration::from_secs(1),
         )
         .with_extra(FixedProvider::fixed(vec![]))
         .with_extra(Arc::new(FailingProvider));
@@ -878,10 +889,10 @@ mod tests {
     #[test]
     fn hybrid_status_keyword_timeout_and_semantic_error() {
         let hybrid = HybridProvider::with_deadlines(
-            FixedProvider::delayed(vec![h("slow")], Duration::from_millis(300)),
+            FixedProvider::delayed(vec![h("slow")], Duration::from_secs(10)),
             Arc::new(FailingProvider),
-            Duration::from_millis(50),
-            Duration::from_millis(200),
+            Duration::from_millis(300),
+            Duration::from_secs(2),
         );
 
         let (hits, status) = hybrid.query_with_status("q", 10);
@@ -988,5 +999,39 @@ mod tests {
 
         assert_ne!(keys(&unscoped), vec!["mine"], "fixture must rank other-project notes first");
         assert_eq!(keys(&scoped), vec!["mine"]);
+    }
+
+    #[test]
+    fn hybrid_status_reports_ok_and_timeout_for_extra_legs() {
+        let hybrid = HybridProvider::with_deadlines(
+            FixedProvider::fixed(vec![]),
+            FixedProvider::fixed(vec![h("k")]),
+            Duration::from_secs(2),
+            Duration::from_secs(1),
+        )
+        .with_extra(FixedProvider::fixed(vec![h("x")]))
+        .with_extra(FixedProvider::delayed(vec![h("late")], Duration::from_secs(10)));
+
+        let (hits, status) = hybrid.query_with_status("q", 10);
+
+        assert_eq!(
+            status,
+            HybridStatus {
+                keyword: LegStatus::Empty,
+                semantic: LegStatus::Ok,
+                extras: vec![LegStatus::Ok, LegStatus::Timeout],
+            }
+        );
+        let mut got = keys(&hits);
+        got.sort();
+        assert_eq!(got, vec!["k", "x"]);
+    }
+
+    #[test]
+    fn ruflo_output_without_a_json_array_is_an_error_not_empty() {
+        assert!(parse_ruflo_hits("[INFO] embedding model failed to load", "knowledge").is_err());
+        assert!(parse_ruflo_hits("[{\"key\": \"broken\"", "knowledge").is_err());
+        assert!(parse_ruflo_hits("[INFO] ok\n[]", "knowledge").unwrap().is_empty());
+        assert_eq!(parse_ruflo_hits("[{\"key\":\"k\",\"value\":\"v\"}]", "knowledge").unwrap().len(), 1);
     }
 }

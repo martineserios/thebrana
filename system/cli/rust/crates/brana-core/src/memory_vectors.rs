@@ -816,4 +816,93 @@ mod tests {
             vec!["mine-scraping"]
         );
     }
+
+    fn insert_undecodable_row(db: &std::path::Path, key: &str) {
+        // `vec` stored as TEXT: the row exists but cannot be read as a vector row.
+        rusqlite::Connection::open(db)
+            .unwrap()
+            .execute(
+                "INSERT INTO knowledge (key, content, tags, source, created_at, vec)
+                 VALUES (?1, 'bad row', NULL, 'memory-file', 1, 'not-a-blob')",
+                [key],
+            )
+            .unwrap();
+    }
+
+    #[test]
+    fn vector_one_undecodable_row_is_skipped_not_a_leg_failure() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+        insert_undecodable_row(&f.db, &format!("memory-file:{}", f.mem.join("pattern_bad.md").display()));
+
+        let leg = VectorProvider::new(f.db.clone(), Arc::new(Fake::new())).with_memory_scope(MemoryScope::Only);
+
+        assert_eq!(leg.try_query("scraping", 5).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn vector_a_store_whose_rows_are_all_unreadable_is_an_error() {
+        let f = fixture();
+        KnowledgeStore::open(&f.db).unwrap();
+        insert_undecodable_row(&f.db, "memory-file:/x/pattern_bad.md");
+
+        let leg = VectorProvider::new(f.db.clone(), Arc::new(Fake::new())).with_memory_scope(MemoryScope::Only);
+
+        assert!(leg.try_query("scraping", 5).is_err());
+    }
+
+    #[test]
+    fn recall_provider_status_through_the_real_legs() {
+        use crate::search::{HybridStatus, LegStatus, RecallScope};
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        reindex_fts_dirs(&dirs(&f), &f.fts).unwrap();
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+        store.upsert("knowledge:url:scraping", "scraping guide", None, None, 1, &unit(0)).unwrap();
+        let run = |embedder: Arc<dyn Embedder>, fts: &std::path::Path, q: &str| {
+            crate::vector::recall_provider(fts, &f.db, embedder, RecallScope::All).query_with_status(q, 5).1
+        };
+
+        assert_eq!(
+            run(Arc::new(Fake::new()), &f.fts, "scraping"),
+            HybridStatus { keyword: LegStatus::Ok, semantic: LegStatus::Ok, extras: vec![LegStatus::Ok] }
+        );
+        assert_eq!(
+            run(Arc::new(Fake::new()), &f.fts, "pricing"),
+            HybridStatus { keyword: LegStatus::Empty, semantic: LegStatus::Empty, extras: vec![LegStatus::Empty] }
+        );
+        assert_eq!(
+            run(Arc::new(NoEmbedder), &f.mem.join("no-index.db"), "scraping"),
+            HybridStatus { keyword: LegStatus::Error, semantic: LegStatus::Error, extras: vec![LegStatus::Error] }
+        );
+    }
+
+    #[test]
+    fn current_project_scope_end_to_end_from_the_indexed_folders() {
+        // The scope is derived from the project root exactly as the bundle will derive
+        // it, and the folders are the ones `memory_dirs_in` hands the indexer.
+        let tmp = tempdir().unwrap();
+        let home = tmp.path();
+        let mine = home.join(".claude/projects/-w-my-repo/memory");
+        let other = home.join(".claude/projects/-w-client/memory");
+        let global = home.join(".claude/memory");
+        for (dir, name) in [(&mine, "pattern_mine"), (&other, "pattern_client"), (&global, "pattern_shared")] {
+            fs::create_dir_all(dir).unwrap();
+            fs::write(dir.join(format!("{name}-scraping.md")), "scraping notes").unwrap();
+        }
+        let d = crate::memory::memory_dirs_in(home).unwrap();
+        let fts = home.join("index.db");
+        let db = home.join("knowledge.db");
+        reindex_fts_dirs(&d, &fts).unwrap();
+        let store = KnowledgeStore::open(&db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&d), &Fake::new(), false).unwrap();
+
+        let scope = crate::search::RecallScope::project_in(home, Some(std::path::Path::new("/w/my_repo")));
+        let hits = crate::vector::recall_provider(&fts, &db, Arc::new(Fake::new()), scope).query("scraping", 10);
+
+        assert_eq!(slugs(&hits), vec!["mine-scraping", "shared-scraping"]);
+    }
 }
