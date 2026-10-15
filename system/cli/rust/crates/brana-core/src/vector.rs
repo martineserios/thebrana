@@ -17,7 +17,7 @@ use anyhow::{Context, Result, bail};
 use rusqlite::{Connection, OpenFlags, params};
 
 use crate::ruflo::argv_safe_text;
-use crate::search::{DocRef, SearchHit, SearchProvider};
+use crate::search::{DocRef, RecallScope, SearchHit, SearchProvider};
 
 /// Embedding dimensionality (all-MiniLM-L6-v2).
 pub const EMBED_DIM: usize = 384;
@@ -576,6 +576,8 @@ pub struct VectorProvider {
     threshold: f32,
     /// Which rows participate relative to embedded memory files (t-3510).
     memory_scope: MemoryScope,
+    /// Which projects' memory-file rows may surface (t-3535).
+    recall_scope: RecallScope,
 }
 
 /// How a [`VectorProvider`] treats embedded memory-file rows (t-3510).
@@ -630,6 +632,7 @@ impl VectorProvider {
             embedder,
             threshold: 0.0,
             memory_scope: MemoryScope::Exclude,
+            recall_scope: RecallScope::All,
         }
     }
 
@@ -644,29 +647,41 @@ impl VectorProvider {
         self.memory_scope = scope;
         self
     }
+
+    /// Limit memory-file rows to notes in scope, checked before scoring so an
+    /// out-of-scope row never takes a top-k slot (t-3535). Knowledge rows are kept.
+    pub fn with_recall_scope(mut self, scope: RecallScope) -> Self {
+        self.recall_scope = scope;
+        self
+    }
 }
 
 impl SearchProvider for VectorProvider {
     fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit> {
-        if q.trim().is_empty() || top_k == 0 || !self.db_path.exists() {
-            return Vec::new();
+        self.try_query(q, top_k).unwrap_or_default()
+    }
+
+    fn try_query(&self, q: &str, top_k: usize) -> Result<Vec<SearchHit>> {
+        if q.trim().is_empty() || top_k == 0 {
+            return Ok(Vec::new());
+        }
+        if !self.db_path.exists() {
+            bail!("vector store missing: {}", self.db_path.display());
         }
         let Some(qvec) = self.embedder.embed(q) else {
-            return Vec::new();
+            bail!("no query embedding (embedder unavailable or text not embeddable)");
         };
         if qvec.len() != EMBED_DIM {
-            return Vec::new();
+            bail!("query embedding has {} dims, expected {EMBED_DIM}", qvec.len());
         }
-        let Ok(conn) = Connection::open_with_flags(
+        let conn = Connection::open_with_flags(
             &self.db_path,
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-        ) else {
-            return Vec::new();
-        };
-        let Ok(mut stmt) = conn.prepare("SELECT key, content, vec, tags, source FROM knowledge")
-        else {
-            return Vec::new();
-        };
+        )
+        .with_context(|| format!("opening vector store {}", self.db_path.display()))?;
+        let mut stmt = conn
+            .prepare("SELECT key, content, vec, tags, source FROM knowledge")
+            .context("reading vector store")?;
         let rows = stmt.query_map([], |r| {
             Ok((
                 r.get::<_, String>(0)?,
@@ -676,16 +691,26 @@ impl SearchProvider for VectorProvider {
                 r.get::<_, Option<String>>(4)?,
             ))
         });
-        let Ok(rows) = rows else { return Vec::new() };
+        // A row that fails to read is a store error, not a non-match.
+        let rows = rows
+            .context("reading vector store")?
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .context("reading vector store row")?;
 
         let mut scored: Vec<(f32, String, String, Option<String>, Option<String>)> = rows
-            .filter_map(|row| {
-                let (key, content, blob, tags, source) = row.ok()?;
+            .into_iter()
+            .filter_map(|(key, content, blob, tags, source)| {
                 let is_memory = source.as_deref() == Some(crate::memory_vectors::MEMORY_SOURCE);
                 match self.memory_scope {
                     MemoryScope::Exclude if is_memory => return None,
                     MemoryScope::Only if !is_memory => return None,
                     _ => {}
+                }
+                if is_memory
+                    && !crate::memory_vectors::memory_row_path(&key)
+                        .is_some_and(|p| self.recall_scope.allows(&p))
+                {
+                    return None;
                 }
                 let v = blob_to_vec(&blob)?;
                 let score = cosine(&qvec, &v);
@@ -704,7 +729,7 @@ impl SearchProvider for VectorProvider {
         scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
         scored.truncate(top_k);
 
-        scored
+        Ok(scored
             .into_iter()
             .map(|(score, key, content, tags, source)| {
                 // Embedded memory files surface as `MemoryFile` with the FTS
@@ -732,7 +757,7 @@ impl SearchProvider for VectorProvider {
                     rrf_score: score as f64,
                 }
             })
-            .collect()
+            .collect())
     }
 }
 
@@ -744,10 +769,15 @@ pub const RECALL_VECTOR_THRESHOLD: f32 = 0.25;
 /// rows, and a third list of semantically matched memory files ranked on their own so
 /// they never compete with thousands of knowledge rows for the candidate pool (t-3510).
 /// Both semantic legs share one query embedding.
+///
+/// `scope` limits memory-file hits on both memory legs (keyword and memory vectors);
+/// plain recall passes [`RecallScope::All`], the recall bundle the current project
+/// (t-3535, ADR-099 §2).
 pub fn recall_provider(
     fts_db: impl Into<PathBuf>,
     knowledge_db: impl Into<PathBuf>,
     embedder: Arc<dyn Embedder>,
+    scope: RecallScope,
 ) -> crate::search::HybridProvider {
     use crate::search::{FTS5Provider, HybridProvider};
     let knowledge_db = knowledge_db.into();
@@ -756,9 +786,13 @@ pub fn recall_provider(
         .with_threshold(RECALL_VECTOR_THRESHOLD);
     let memory = VectorProvider::new(knowledge_db, shared)
         .with_threshold(RECALL_VECTOR_THRESHOLD)
-        .with_memory_scope(MemoryScope::Only);
-    HybridProvider::new(Arc::new(FTS5Provider::new(fts_db.into())), Arc::new(knowledge))
-        .with_extra(Arc::new(memory))
+        .with_memory_scope(MemoryScope::Only)
+        .with_recall_scope(scope.clone());
+    HybridProvider::new(
+        Arc::new(FTS5Provider::new(fts_db.into()).with_scope(scope)),
+        Arc::new(knowledge),
+    )
+    .with_extra(Arc::new(memory))
 }
 
 /// Truncate at a char boundary, appending `…` when shortened.

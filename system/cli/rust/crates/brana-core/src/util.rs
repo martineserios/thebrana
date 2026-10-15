@@ -402,6 +402,20 @@ pub fn session_store_root() -> PathBuf {
     }
 }
 
+/// Encode a project root into its Claude Code project folder name: `/` and `_`
+/// both become `-` (e.g. `/home/u/my_proj` → `-home-u-my-proj`). The one copy
+/// shared by session lanes, handoff, `brana time` and recall scope (t-3535).
+pub fn encode_project_dir(root: &Path) -> String {
+    root.to_string_lossy().replace(['/', '_'], "-")
+}
+
+/// Legacy encoding (`/` only, underscores kept). Older Claude Code versions wrote
+/// project folders this way and both still exist on disk, so readers that look a
+/// project up try both (t-3535).
+pub fn encode_project_dir_legacy(root: &Path) -> String {
+    root.to_string_lossy().replace('/', "-")
+}
+
 /// Find the project root that **keys the session/memory store** under
 /// `~/.claude/projects/<encoded-root>/memory/`.
 ///

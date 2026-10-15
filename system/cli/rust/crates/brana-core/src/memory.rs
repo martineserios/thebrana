@@ -648,23 +648,59 @@ pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<us
 /// implicit AND) so arbitrary user input — colons, quotes, hyphens — never
 /// produces an FTS5 syntax error. An empty/symbol-only query returns no hits.
 pub fn search_fts(db_path: &Path, query: &str, limit: usize) -> Result<Vec<MemoryHit>> {
+    search_fts_in(db_path, query, limit, None)
+}
+
+/// [`search_fts`] limited to notes directly inside `dirs` (sub-folders such as
+/// `archive/` are out); `None` searches everything. The limit is applied in SQL
+/// before `LIMIT`, so out-of-scope notes cannot use up the result slots (t-3535).
+///
+/// A missing index is an error, and the index file is not created.
+pub fn search_fts_in(
+    db_path: &Path,
+    query: &str,
+    limit: usize,
+    dirs: Option<&[PathBuf]>,
+) -> Result<Vec<MemoryHit>> {
     let match_query = sanitize_fts_query(query);
-    if match_query.is_empty() {
+    if match_query.is_empty() || dirs.is_some_and(|d| d.is_empty()) {
         return Ok(Vec::new());
+    }
+    if !db_path.exists() {
+        bail!("FTS index missing: {} (run `brana memory reindex`)", db_path.display());
     }
     let conn = Connection::open(db_path)
         .with_context(|| format!("opening FTS index db: {}", db_path.display()))?;
 
-    let mut stmt = conn.prepare(
+    // Each dir is bound as `<dir>/`: the path must start with it and hold no
+    // further `/` after it.
+    let prefixes: Vec<String> = dirs
+        .unwrap_or(&[])
+        .iter()
+        .map(|d| format!("{}/", d.to_string_lossy().trim_end_matches('/')))
+        .collect();
+    let mut sql = String::from(
         "SELECT slug, mtype, scope, path,
                 snippet(memory_fts, 4, '[', ']', ' … ', 12) AS snip
          FROM memory_fts
-         WHERE memory_fts MATCH ?1
-         ORDER BY rank
-         LIMIT ?2",
-    )?;
+         WHERE memory_fts MATCH ?1",
+    );
+    if !prefixes.is_empty() {
+        let clauses: Vec<String> = (3..3 + prefixes.len())
+            .map(|n| {
+                format!("(substr(path, 1, length(?{n})) = ?{n} AND instr(substr(path, length(?{n}) + 1), '/') = 0)")
+            })
+            .collect();
+        sql.push_str(&format!(" AND ({})", clauses.join(" OR ")));
+    }
+    sql.push_str(" ORDER BY rank LIMIT ?2");
 
-    let rows = stmt.query_map(rusqlite::params![match_query, limit as i64], |row| {
+    let mut params: Vec<rusqlite::types::Value> =
+        vec![match_query.into(), (limit as i64).into()];
+    params.extend(prefixes.into_iter().map(rusqlite::types::Value::from));
+
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map(rusqlite::params_from_iter(params), |row| {
         Ok(MemoryHit {
             slug: row.get(0)?,
             mtype: row.get(1)?,

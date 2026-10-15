@@ -17,17 +17,12 @@ use crate::util;
 /// Older CC versions preserved underscores, so `resolve_handoff_path`
 /// tries both encodings as a fallback.
 fn encode_path(project_root: &std::path::Path) -> String {
-    project_root
-        .to_string_lossy()
-        .replace('/', "-")
-        .replace('_', "-")
+    util::encode_project_dir(project_root)
 }
 
 /// Encode with only `/` → `-` (legacy CC encoding that preserves underscores).
 fn encode_path_legacy(project_root: &std::path::Path) -> String {
-    project_root
-        .to_string_lossy()
-        .replace('/', "-")
+    util::encode_project_dir_legacy(project_root)
 }
 
 /// Resolve the CC project memory dir for a given project root.

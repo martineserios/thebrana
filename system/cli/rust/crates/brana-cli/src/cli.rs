@@ -312,7 +312,18 @@ pub enum Commands {
         /// FTS5 index DB path (default: ~/.claude/memory/index.db)
         #[arg(long)]
         db: Option<String>,
+        /// Which memory notes to search: every project's (all) or only this
+        /// project's plus global memory (project). Knowledge entries are unaffected.
+        #[arg(long, value_enum, default_value_t = RecallScopeArg::All)]
+        scope: RecallScopeArg,
     },
+}
+
+/// `brana recall --scope` (t-3535).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum RecallScopeArg {
+    All,
+    Project,
 }
 
 #[derive(Subcommand)]

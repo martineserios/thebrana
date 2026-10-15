@@ -344,8 +344,8 @@ fn main() {
                 run_or_exit(commands::time::cmd_close(&task_id, partial))
             }
         }
-        Commands::Recall { query, top, json, db } => {
-            run_or_exit(commands::recall::cmd_recall(&query, top, json, db))
+        Commands::Recall { query, top, json, db, scope } => {
+            run_or_exit(commands::recall::cmd_recall(&query, top, json, db, scope))
         }
     }
 }

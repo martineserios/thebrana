@@ -30,6 +30,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     db_path,
                     brana_core::vector::knowledge_db_path(),
                     Arc::new(RufloEmbedder),
+                    brana_core::search::RecallScope::All,
                 );
                 provider.query(&input.query, input.top_k)
             })

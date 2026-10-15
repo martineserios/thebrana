@@ -73,12 +73,9 @@ struct OpenBracketLock {
     transcript_path: Option<String>,
 }
 
-/// Mirrors `brana_core::session::encode_path` (private to that module, and this is a
-/// new, independent transcript-resolution path per the spec's "session-transcript
-/// parsing is new code" decision — not worth exposing a cross-module dependency for
-/// one line of logic): `/` and `_` both become `-`.
+/// `/` and `_` both become `-` — the shared encoder in `brana_core::util` (t-3535).
 fn encode_project_path(root: &Path) -> String {
-    root.to_string_lossy().replace('/', "-").replace('_', "-")
+    brana_core::util::encode_project_dir(root)
 }
 
 /// Legacy CC encoding (`/` only, underscores preserved) — `commands/handoff.rs`'s
@@ -87,7 +84,7 @@ fn encode_project_path(root: &Path) -> String {
 /// `_` resolves to a different directory under each scheme, and this feature has no
 /// other way to discover which one a given install actually has on disk.
 fn encode_project_path_legacy(root: &Path) -> String {
-    root.to_string_lossy().replace('/', "-")
+    brana_core::util::encode_project_dir_legacy(root)
 }
 
 /// Best-effort: the newest-mtime `.jsonl` in this project's CC transcript directory.

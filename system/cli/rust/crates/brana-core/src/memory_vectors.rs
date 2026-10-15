@@ -742,7 +742,9 @@ mod tests {
         let no_embedder = VectorProvider::new(f.db.clone(), Arc::new(NoEmbedder)).with_memory_scope(MemoryScope::Only);
         assert!(no_embedder.try_query("scraping", 5).is_err(), "no query vector is an error");
 
-        let ok = VectorProvider::new(f.db.clone(), Arc::new(Fake::new())).with_memory_scope(MemoryScope::Only);
+        let ok = VectorProvider::new(f.db.clone(), Arc::new(Fake::new()))
+            .with_memory_scope(MemoryScope::Only)
+            .with_threshold(crate::vector::RECALL_VECTOR_THRESHOLD);
         assert_eq!(ok.try_query("scraping", 5).unwrap().len(), 1);
         assert!(ok.try_query("pricing", 5).unwrap().is_empty(), "no row above threshold is ok-empty");
     }
