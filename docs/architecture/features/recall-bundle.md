@@ -465,6 +465,47 @@ t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshne
   bounds what recall waits). Only the refresh shortens its wait, to the remaining budget, because
   the default would overrun it.
 
+## Bundle assembly — design (t-3537, 2026-10-15)
+
+Decisions (user, 2026-10-15): the v1 query is **task subject + tags only** (the Design diagram and
+Behavior step 2 above say "+ AC keywords"; this section wins, because gates-v1 pre-registered the
+measured query and the 0.261 baseline used it; AC keywords may come back as a separate scored arm).
+`--shadow` ships with the usage log in t-3517, because it appends the offered row; this slice ships
+`brana recall --bundle <task-id> [--json]`.
+
+- **Module:** `brana-core/src/recall_bundle.rs`. Stages are pure functions over candidates;
+  `compute_bundle(task, env)` runs freshness, the legs, the stages. The CLI only loads the task,
+  builds `env` and prints.
+- **Legs:** a dedicated provider, `vector::bundle_provider`: the scoped keyword leg and the scoped
+  memory-vector leg, built from the same leg constructors as `recall_provider`. The knowledge-entry
+  leg is not run, because knowledge-store rows are excluded in v1. Status keys are `fts` and
+  `vector`. Candidate pool: 40 per leg.
+- **Order:** (1) refresh the index for the scope's folders (budget 400 ms, t-3536); (2) query both
+  legs under the production deadlines (500 ms / 2 s); (3) read each candidate note once; (4) stages.
+- **Stages, in order:**
+  1. *scope* — `RecallScope::allows(path)` again on every candidate (the legs already filter; this
+     is the stage the must-fire test targets, and `archive*/` is outside by construction).
+  2. *type* — `metadata.type`, then top-level `type`, then the filename prefix, then `note`.
+  3. *supersession* — dropped: `status: superseded` (any case), and any note that is the `to:`
+     target of a `supersedes` relation in a candidate (matched by file stem or slug, `.md`, `[[ ]]`
+     and directories stripped). Down-weighted ×0.5 and flagged, never dropped: an older dated twin
+     (same type and slug, a later `YYYY-MM-DDTHH-MM-SS` stamp exists in the scope's folders, even if
+     the twin was not retrieved) with flag `derived-superseded:<newer stem>`, and prose
+     `superseded by [[x]]` in the body with flag `derived-superseded:x`. One ×0.5 per note.
+  4. *order* — by `rrf_score × weight`, ties by stem.
+  5. *quota and cut* — walk the order; take a note if its type has fewer than 3 and fewer than 8
+     are taken; a note over its type's quota is skipped (not retried), so other types fill the 8.
+  6. *gist* — `description` with whitespace collapsed; 160 characters at most (159 + `…`); `null`
+     when missing or empty.
+- **Unreadable candidates** (cannot be read as text) are skipped and counted in
+  `skipped_unreadable`; a failed read is never treated as an empty note.
+- **Output (`--json`):** the shape in §Bundle output plus `skipped_unreadable`, `elapsed_ms` and a
+  `freshness` block (`index_age_s`, `stale_notes`, `deleted_notes`, `unreadable`,
+  `refreshed_notes`, `outcome`, `unembedded`) which t-3517 copies into the offered row. `ref` is the
+  note's file stem. No note body is ever printed.
+- **Fail-open:** a missing task, tasks file or index gives an empty bundle with the reason in the
+  legs and on stderr, exit 0. The command's exit is non-zero only for argument errors.
+
 ## Challenger findings
 
 **Shaping review (idea doc, 2026-10-14):** three lenses, H1–H4 and C1–C8, all incorporated before
