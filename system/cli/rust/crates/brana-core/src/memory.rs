@@ -555,6 +555,12 @@ pub fn list_memory_listing(dirs: &[(String, PathBuf)]) -> MemoryListing {
         }
         paths.retain(|p| p.extension().map(|e| e == "md").unwrap_or(false));
         paths.retain(|p| p.file_name().map(|n| n != "MEMORY.md").unwrap_or(true));
+        // Only files are notes (a symlink counts if it points at one). A folder
+        // named `x.md` is not an unreadable note: counting it as one made the strict
+        // rebuild abort and kept freshness from ever dropping the old row (t-3536).
+        // A path whose type cannot be checked stays in, so the failure surfaces as
+        // an unreadable note instead of the note silently vanishing.
+        paths.retain(|p| fs::metadata(p).map(|m| m.is_file()).unwrap_or(true));
         paths.sort();
         for path in paths {
             let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
