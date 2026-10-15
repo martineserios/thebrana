@@ -565,6 +565,53 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
     scope, a directory-level symlink or a hard link is not covered, and there is a window between
     the check and the open. Tracked in the follow-up task for scope-proof hardening.
 
+## Usage log — design (t-3517, 2026-10-15)
+
+Shipped: `brana-core/src/usage_log.rs` (the only writer), `brana recall --bundle [--shadow]`,
+`brana memory usage` (outcome, `--check`, `--report`), the silent shadow call in build LOAD.
+
+- **Rows** are built from the bundle's fields, never from the query: the offered row maps each
+  pointer to `{ref, type, rank, flags}` (the gist is dropped; a `type` that is not a short
+  lowercase word is logged as `note`) and copies the `freshness` block (counts and a state
+  word). The task must look like a task id (`t-123`); a free-text argument is refused, so it
+  cannot reach the file. The session is stored as the transcript file's stem, reduced to
+  `[A-Za-z0-9_-]` on write and again on read.
+- **No row for an unknown task:** a task that is not in the backlog gets an empty bundle on
+  stdout but no row (a shown row for it would wait for an outcome nobody can give).
+- **Append:** the sidecar lock (5 s wait, so a stuck holder cannot hang a build), then one
+  `write_all` of the whole line. The file is made 0600 and the folder 0700 even when they already
+  existed wider; a symlinked log path is refused. A file that does not end in a newline (a torn
+  earlier write) gets a fresh line, so the next row is not swallowed.
+- **Reading:** line by line with bounded memory (a line over 256 KiB counts as malformed). A bad
+  byte spoils its own line only; an unreadable file counts as malformed and is named on stderr,
+  never read as "no rows". Rows keep file order, not clock order (a clock that steps back or two
+  rows in the same second cannot reorder them). An offered row needs an `id`, an outcome needs
+  `offered`, and an outcome only resolves an offered row of the same task.
+- **Both encodings:** writers use the current encoding; readers read both (the legacy file
+  first, its rows are older) and a repeated path is read once.
+- **Outcome binding:** the task's latest **shown** offered row, the same row `--check` watches. A
+  bundle that was not shown is never asked about, and a repeat call after the answer fails
+  ("already has an outcome"). Refs must be among that row's pointers; a ref both used and
+  ignored is rejected. Read, bind and append happen under one lock, so two racing calls leave
+  exactly one outcome.
+- **`--check`** looks only at the latest shown offered row; older unresolved shown rows are
+  orphans, reported on stderr and never answered by later calls. Exit 2 is also what clap uses for
+  a usage error; both mean "stop and look", which is the safe direction for an exit step.
+- **`--bundle` always logs.** A shown call leaves a `shown: true` row that the canary's exit step
+  (t-3521) expects an outcome for. Running `--bundle` by hand on a task during shadow week adds
+  a shown row to the shadow data and, in the canary, one that blocks `--check`; use `--shadow` for
+  a silent look. Until t-3521 nothing runs `--check`.
+- **Shadow call cost:** LOAD runs it as `timeout 15 brana recall --bundle '<id>' --shadow`. It is
+  silent and fail-open. An installed `brana` without `--shadow` (deploy `dev` first) writes
+  nothing and `--report` says "no rows yet".
+- **Backup:** `backup.sh` copies only `<project>/memory/*.md`; `brana-knowledge`'s
+  `tests/test-backup-exclude.sh` has a must-fire test that a `brana/recall-usage.jsonl` is not
+  exported and never reaches a commit.
+- **Known limit:** `encode_project_dir` folds `/` and `_` to `-`, so `/home/u/my_proj` and
+  `/home/u/my-proj` share one project folder and one log; rows carry no project field.
+- **Not built here:** the outcome ask at CLOSE/ANSWER/REPORT and the canary arms (t-3521); the
+  scorer that reads the offered rows (t-3518).
+
 ## Challenger findings
 
 **Shaping review (idea doc, 2026-10-14):** three lenses, H1–H4 and C1–C8, all incorporated before

@@ -156,6 +156,16 @@ fn main() {
             Some(HandoffCmd::Path) => run_or_exit(commands::handoff::cmd_handoff_path()),
         },
         Commands::Memory { cmd } => match cmd {
+            MemoryCmd::Usage { task, used, ignored, no_answer, check, report, json } => {
+                match commands::memory::cmd_memory_usage(task.as_deref(), used, ignored, no_answer, check, report, json) {
+                    Ok(0) => {}
+                    Ok(code) => std::process::exit(code),
+                    Err(e) => {
+                        eprintln!("{e:#}");
+                        std::process::exit(1);
+                    }
+                }
+            }
             MemoryCmd::Write { memory_type, scope, slug, content } => {
                 run_or_exit(commands::memory::cmd_memory_write(&memory_type, &scope, &slug, &content))
             }
@@ -344,9 +354,9 @@ fn main() {
                 run_or_exit(commands::time::cmd_close(&task_id, partial))
             }
         }
-        Commands::Recall { query, bundle, top, json, db, scope } => {
+        Commands::Recall { query, bundle, shadow, top, json, db, scope } => {
             run_or_exit(match (bundle, query) {
-                (Some(task), _) => commands::recall::cmd_recall_bundle(&task, json, db),
+                (Some(task), _) => commands::recall::cmd_recall_bundle(&task, json, db, shadow),
                 (None, query) => commands::recall::cmd_recall(&query.unwrap_or_default(), top, json, db, scope),
             })
         }

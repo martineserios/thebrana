@@ -309,6 +309,10 @@ pub enum Commands {
         /// with superseded notes dropped. The query is the task's subject and tags.
         #[arg(long, value_name = "TASK_ID", conflicts_with_all = ["top", "scope"])]
         bundle: Option<String>,
+        /// With --bundle: compute the bundle and append its offered row to the usage log
+        /// (shown: false), printing nothing. Used by build LOAD to measure without showing.
+        #[arg(long, requires = "bundle")]
+        shadow: bool,
         /// Maximum results to return
         #[arg(long, default_value = "10")]
         top: usize,
@@ -1733,6 +1737,31 @@ pub enum MemoryCmd {
         /// Index DB path (default: ~/.claude/memory/index.db)
         #[arg(long)]
         db: Option<String>,
+    },
+    /// Recall usage log (ADR-099): record which offered notes a task used or ignored,
+    /// check that a shown bundle was answered, or report on the log
+    Usage {
+        /// Task id (not needed with --report)
+        #[arg(required_unless_present = "report")]
+        task: Option<String>,
+        /// Notes from the offered bundle that the work used (comma-separated; "" = none)
+        #[arg(long, value_delimiter = ',', num_args = 1, conflicts_with_all = ["no_answer", "check", "report"])]
+        used: Option<Vec<String>>,
+        /// Notes from the offered bundle that the work looked at and did not use
+        #[arg(long, value_delimiter = ',', num_args = 1, conflicts_with_all = ["no_answer", "check", "report"])]
+        ignored: Option<Vec<String>>,
+        /// Record that no answer was given
+        #[arg(long, conflicts_with_all = ["check", "report"])]
+        no_answer: bool,
+        /// Exit 2 if the latest shown bundle for the task has no outcome yet, else 0
+        #[arg(long, conflicts_with = "report")]
+        check: bool,
+        /// Counts over the whole project log (offered rows, sizes, degraded legs)
+        #[arg(long)]
+        report: bool,
+        /// Emit --report as JSON
+        #[arg(long, requires = "report")]
+        json: bool,
     },
     /// Full-text search the embedded recall index
     Search {

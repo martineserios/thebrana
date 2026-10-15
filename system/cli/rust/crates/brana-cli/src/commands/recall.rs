@@ -64,11 +64,15 @@ const BUNDLE_UNEMBEDDED_WAIT: std::time::Duration = std::time::Duration::from_mi
 
 /// `brana recall --bundle <task-id>` (t-3537, ADR-099). Fails open: a missing task, tasks
 /// file or index gives an empty bundle and exit 0; the reason is on stderr and in the legs.
-pub fn cmd_recall_bundle(task_id: &str, json: bool, db: Option<String>) -> Result<()> {
+pub fn cmd_recall_bundle(task_id: &str, json: bool, db: Option<String>, shadow: bool) -> Result<()> {
     use brana_core::recall_bundle::{BundleEnv, BundleTask, compute_bundle, format_human};
 
+    // A task that cannot be found is no bundle worth logging: its row would be noise, and a
+    // shown one would wait for an outcome nobody can give.
+    let mut task_known = true;
     let task = load_bundle_task(task_id).unwrap_or_else(|why| {
         eprintln!("recall --bundle: {why}; returning an empty bundle");
+        task_known = false;
         BundleTask { id: task_id.to_string(), subject: String::new(), tags: Vec::new() }
     });
 
@@ -96,7 +100,11 @@ pub fn cmd_recall_bundle(task_id: &str, json: bool, db: Option<String>) -> Resul
         unembedded_wait: BUNDLE_UNEMBEDDED_WAIT,
     };
 
-    let bundle = compute_bundle(&task, &env);
+    let mut bundle = compute_bundle(&task, &env);
+    bundle.shown = !shadow;
+    if task_known {
+        log_offered(&bundle, session_root.as_deref());
+    }
     // Say which legs degraded (a healthy bundle is silent); the legs are also in the output.
     let degraded: Vec<String> = [("fts", bundle.legs.fts), ("vector", bundle.legs.vector)]
         .into_iter()
@@ -106,12 +114,49 @@ pub fn cmd_recall_bundle(task_id: &str, json: bool, db: Option<String>) -> Resul
     if !degraded.is_empty() {
         eprintln!("recall --bundle: degraded leg(s): {}", degraded.join(", "));
     }
+    if shadow {
+        return Ok(());
+    }
     if json {
         println!("{}", serde_json::to_string(&bundle)?);
     } else {
         print!("{}", format_human(&bundle));
     }
     Ok(())
+}
+
+/// Append the bundle's offered row to the project's usage log (ADR-099 §5). Fail-open: a log
+/// that cannot be written is said on stderr and never fails the build.
+fn log_offered(bundle: &brana_core::recall_bundle::Bundle, session_root: Option<&std::path::Path>) {
+    use brana_core::usage_log;
+    let Some(root) = session_root else {
+        eprintln!("recall --bundle: no project root; the offered row was not logged");
+        return;
+    };
+    let session = super::time::resolve_newest_transcript()
+        .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()));
+    let freshness = serde_json::to_value(&bundle.freshness).unwrap_or(serde_json::Value::Null);
+    let row = usage_log::offered_row(
+        &usage_log::Offered {
+            task: &bundle.task,
+            shown: bundle.shown,
+            fts: bundle.legs.fts.as_str(),
+            vector: bundle.legs.vector.as_str(),
+            elapsed_ms: bundle.elapsed_ms,
+            pointers: &bundle.pointers,
+            freshness,
+            session: session.as_deref(),
+        },
+        chrono::Utc::now(),
+    );
+    let Some(row) = row else {
+        eprintln!("recall --bundle: {:?} is not a task id; the offered row was not logged", bundle.task);
+        return;
+    };
+    let [path, _] = usage_log::log_paths(&brana_core::util::session_store_root(), root);
+    if let Err(e) = usage_log::append(&path, &row) {
+        eprintln!("recall --bundle: could not log the offered row: {e}");
+    }
 }
 
 /// The task's subject and tags from tasks.json (description, context and notes are never
