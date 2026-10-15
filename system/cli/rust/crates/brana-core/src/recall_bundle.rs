@@ -617,7 +617,7 @@ pub fn assemble(cands: Vec<Candidate>, scope: &RecallScope, newest: &NewestStamp
     // superseding note is itself a twin of that slug (a new version superseding its
     // older ones) the newest dated twin is the live one and stays. A slug-only target
     // from an unrelated note replaces every note of that slug, dated or not (assumption,
-    // needs confirmation).
+    // decision confirmed 2026-10-15).
     struct Edge {
         by_stem: String,
         by_type: String,
@@ -1381,7 +1381,7 @@ mod tests {
 
     #[test]
     fn a_slug_target_from_an_unrelated_note_removes_the_dated_note_too() {
-        // Assumption (needs confirmation): `supersedes: x` from a note that is not a twin of x
+        // Decision (confirmed 2026-10-15): `supersedes: x` from a note that is not a twin of x
         // means "x is replaced by me", so the newest dated x goes as well.
         let new = "pattern_x_2026-08-24T12-00-00";
         let mut twins: NewestStamps = HashMap::new();
