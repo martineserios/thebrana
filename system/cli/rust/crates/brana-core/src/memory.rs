@@ -1816,8 +1816,10 @@ mod freshness_tests {
     #[test]
     fn a_write_error_rolls_the_whole_refresh_back() {
         let f = fx();
+        // The failing note sorts last, so an earlier note is already written when
+        // the error hits: only a whole-transaction rollback leaves nothing behind.
         write_note(&f.dir.join("pattern_fine.md"), "zebra crossing");
-        write_note(&f.dir.join("pattern_boom.md"), "zebra boom");
+        write_note(&f.dir.join("pattern_zboom.md"), "zebra boom");
         let c = Connection::open(&f.db).unwrap();
         c.execute_batch(
             "CREATE TRIGGER boom BEFORE INSERT ON memory_files WHEN NEW.path LIKE '%boom%'
@@ -1918,5 +1920,66 @@ mod freshness_tests {
         assert_eq!((r.unreadable, r.outcome), (1, FreshnessOutcome::Refreshed));
         assert_eq!(found(&f.db, "alpha"), vec!["old"], "old row kept");
         assert_eq!(found(&f.db, "zebra"), vec!["new"]);
+    }
+
+    #[test]
+    fn a_note_that_is_not_text_never_takes_the_write_lock() {
+        // Root-independent twin of the permission case: invalid UTF-8 opens fine but
+        // fails to read; it must be found before the lock, or every call would lock
+        // the index, scan it and roll back.
+        let f = fx();
+        let bad = f.dir.join("pattern_cp1252.md");
+        fs::write(&bad, [0x63_u8, 0x61, 0x66, 0xe9]).unwrap();
+        set_mtime(&bad, -60);
+        let other = Connection::open(&f.db).unwrap();
+        other.execute_batch("BEGIN IMMEDIATE").unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_millis(200));
+        other.execute_batch("ROLLBACK").unwrap();
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Unreadable));
+        assert_eq!(r.unreadable, 1);
+    }
+
+    #[test]
+    fn a_future_dated_note_settles_instead_of_being_rewritten_forever() {
+        // Clock skew, `touch -d`, a restore: a later rewrite cannot share a future
+        // tick, so it is recorded as is and the next check is fresh.
+        let f = fx();
+        let p = f.dir.join("pattern_future.md");
+        fs::write(&p, "from the future").unwrap();
+        set_mtime(&p, 3600);
+
+        refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+        let again = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(again.outcome, FreshnessOutcome::Fresh);
+    }
+
+    #[test]
+    fn the_rebuild_records_a_just_written_note_as_suspect() {
+        // Must-fire for the rebuild side of racily clean: a note written moments
+        // before the rebuild is re-read on the next check.
+        let f = fx();
+        let p = f.dir.join("pattern_quick.md");
+        fs::write(&p, "first word").unwrap();
+        let tick = fs::metadata(&p).unwrap().modified().unwrap();
+        reindex_fts_dirs(&f.dirs, &f.db).unwrap();
+
+        fs::write(&p, "other word").unwrap(); // same size, same tick
+        fs::File::options().write(true).open(&p).unwrap().set_modified(tick).unwrap();
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(found(&f.db, "other"), vec!["quick"], "{r:?}");
+    }
+
+    #[test]
+    fn a_dangling_symlink_is_reported_unreadable_not_ignored() {
+        let f = fx();
+        std::os::unix::fs::symlink(f.dir.join("gone-target.md"), f.dir.join("pattern_link.md")).unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.unreadable, 1, "{r:?}");
     }
 }
