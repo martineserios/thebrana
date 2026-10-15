@@ -49,7 +49,10 @@ impl Fx {
         note(&mine, "feedback_scraping-rules.md", "project scraping rules", "scraping rules");
         note(&client, "pattern_acme-scraping.md", "ACME CONFIDENTIAL", "scraping scraping scraping");
         // A log, not a note: no frontmatter, no type prefix.
-        std::fs::write(global.join("sessions.md"), "scraping scraping scraping scraping scraping").unwrap();
+        let log = global.join("sessions.md");
+        std::fs::write(&log, "scraping scraping scraping scraping scraping").unwrap();
+        let t = std::time::SystemTime::now() - std::time::Duration::from_secs(60);
+        std::fs::File::options().write(true).open(&log).unwrap().set_modified(t).unwrap();
         let tasks = project.child("tasks.json");
         tasks
             .write_str(r#"{"project":"fx","tasks":[{"id":"t-1","subject":"improve scraping","tags":["scraping"],"status":"pending"}]}"#)

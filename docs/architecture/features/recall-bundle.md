@@ -499,7 +499,13 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
      when missing or empty.
 - **Unreadable candidates** (cannot be read as text) are skipped and counted in
   `skipped_unreadable`; a failed read is never treated as an empty note.
-- **Output (`--json`):** the shape in §Bundle output plus `skipped_unreadable`, `elapsed_ms` and a
+- **Non-entries (user decision 2026-10-15):** a candidate with no frontmatter block *and* no type
+  prefix is a log or state file (`sessions.md`, `session-handoff.md`, `event-log*.md`,
+  `patterns.md`, `portfolio.md`: 12 of 404 in-scope files on 2026-10-15), not a memory entry
+  (the definition `memory.rs` already uses), and is skipped, counted in `skipped_non_entries`.
+  The type fallback `note` therefore applies to notes that have frontmatter but no type.
+- **Output (`--json`):** the shape in §Bundle output plus `skipped_unreadable`,
+  `skipped_non_entries`, `elapsed_ms` and a
   `freshness` block (`index_age_s`, `stale_notes`, `deleted_notes`, `unreadable`,
   `refreshed_notes`, `outcome`, `unembedded`) which t-3517 copies into the offered row. `ref` is the
   note's file stem. No note body is ever printed.

@@ -57,6 +57,8 @@ pub fn build_query(task: &BundleTask) -> String {
 /// The few frontmatter fields (and one body signal) the bundle reads from a note.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct NoteMeta {
+    /// The note opens with a `---` frontmatter block.
+    pub has_frontmatter: bool,
     /// `metadata.type`, else the top-level `type`.
     pub type_: Option<String>,
     pub description: Option<String>,
@@ -84,6 +86,7 @@ pub fn parse_note(content: &str) -> NoteMeta {
     let mut lines = content.lines().peekable();
     let mut body_start = 0usize;
     if lines.peek().map(|l| l.trim()) == Some("---") {
+        meta.has_frontmatter = true;
         lines.next();
         let mut consumed = 1usize;
         let mut top_type: Option<String> = None;
@@ -195,6 +198,14 @@ fn superseded_by_targets(body: &str) -> Vec<String> {
         }
     }
     out
+}
+
+/// Whether a file is a memory entry: it has a type (frontmatter or filename prefix) or at
+/// least a frontmatter block. Logs and state files (`sessions.md`, `session-handoff.md`,
+/// `event-log.md`) have neither; the same definition as `memory.rs` uses for "not a memory
+/// entry" (user decision 2026-10-15).
+pub fn is_memory_entry(file_type: &str, meta: &NoteMeta) -> bool {
+    meta.has_frontmatter || meta.type_.is_some() || !file_type.is_empty()
 }
 
 /// One line, whitespace collapsed, at most [`GIST_MAX_CHARS`] characters (159 + `…`).
@@ -382,6 +393,8 @@ pub struct Bundle {
     pub pointers: Vec<Pointer>,
     /// Candidates that could not be read as text and were left out.
     pub skipped_unreadable: usize,
+    /// Candidates that are logs or state files, not memory entries, and were left out.
+    pub skipped_non_entries: usize,
     pub elapsed_ms: u64,
     pub freshness: BundleFreshness,
 }
@@ -399,7 +412,7 @@ pub fn compute_bundle(task: &BundleTask, env: &BundleEnv) -> Bundle {
     let listing = list_memory_listing(&env.dirs);
     let newest = newest_stamps(&listing.files);
 
-    let (cands, skipped_unreadable) = read_candidates(hits);
+    let (cands, skipped_unreadable, skipped_non_entries) = read_candidates(hits);
     let pointers = assemble(cands, &env.scope, &newest);
 
     let unembedded =
@@ -412,6 +425,7 @@ pub fn compute_bundle(task: &BundleTask, env: &BundleEnv) -> Bundle {
         legs: BundleLegs { fts: status.keyword, vector: status.semantic },
         pointers,
         skipped_unreadable,
+        skipped_non_entries,
         elapsed_ms: started.elapsed().as_millis() as u64,
         freshness: BundleFreshness { report, unembedded },
     }
@@ -419,10 +433,10 @@ pub fn compute_bundle(task: &BundleTask, env: &BundleEnv) -> Bundle {
 
 /// Memory-file hits only (knowledge-store rows are out in v1), each read once. A note
 /// that cannot be read as text is counted, never treated as empty.
-fn read_candidates(hits: Vec<SearchHit>) -> (Vec<Candidate>, usize) {
+fn read_candidates(hits: Vec<SearchHit>) -> (Vec<Candidate>, usize, usize) {
     let mut seen: HashSet<PathBuf> = HashSet::new();
     let mut out = Vec::new();
-    let mut skipped = 0usize;
+    let (mut skipped, mut non_entries) = (0usize, 0usize);
     for h in hits {
         let DocRef::MemoryFile { path, .. } = h.doc else { continue };
         if !seen.insert(path.clone()) {
@@ -434,9 +448,14 @@ fn read_candidates(hits: Vec<SearchHit>) -> (Vec<Candidate>, usize) {
             continue;
         };
         let (file_type, slug) = memory_file_identity(&stem);
-        out.push(Candidate { meta: parse_note(&content), path, stem, slug, file_type, rrf: h.rrf_score });
+        let meta = parse_note(&content);
+        if !is_memory_entry(&file_type, &meta) {
+            non_entries += 1;
+            continue;
+        }
+        out.push(Candidate { meta, path, stem, slug, file_type, rrf: h.rrf_score });
     }
-    (out, skipped)
+    (out, skipped, non_entries)
 }
 
 /// The human format: one line per pointer, grouped by type, flagged notes marked.
