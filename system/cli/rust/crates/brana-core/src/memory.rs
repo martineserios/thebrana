@@ -706,6 +706,9 @@ pub struct FreshnessReport {
     pub deleted_notes: usize,
     /// Stale notes that could not be read: skipped, their previous row kept.
     pub unreadable: usize,
+    /// Stale notes this call re-indexed. Less than `stale_notes` when the budget
+    /// ran out first: the rest wait for the next call.
+    pub refreshed_notes: usize,
     pub outcome: FreshnessOutcome,
 }
 
@@ -756,6 +759,7 @@ pub fn refresh_fts_dirs(
         stale_notes: 0,
         deleted_notes: 0,
         unreadable: 0,
+        refreshed_notes: 0,
         outcome: FreshnessOutcome::Fresh,
     };
     report.outcome = match refresh_inner(dirs, db_path, budget, &mut report) {
@@ -1621,5 +1625,38 @@ mod freshness_tests {
         assert_eq!((first.stale_notes, first.outcome.clone()), (1, FreshnessOutcome::Refreshed));
         assert_eq!(second.outcome, FreshnessOutcome::Fresh);
         assert_eq!(found(&f.db, "alpha"), vec!["old"], "re-indexed once, not duplicated");
+    }
+
+    #[test]
+    fn a_backlog_larger_than_the_budget_converges_over_calls() {
+        // Must-fire: an all-or-nothing refresh that times out never catches up
+        // (measured 2026-10-15: a 402-note first refresh took 1.6 s).
+        let f = fx();
+        for i in 0..60 {
+            fs::write(f.dir.join(format!("pattern_bulk-{i}.md")), format!("bulk note {i}")).unwrap();
+        }
+        let tiny = Duration::from_nanos(1);
+
+        let first = refresh_fts_dirs(&f.dirs, &f.db, tiny);
+        assert_eq!(first.outcome, FreshnessOutcome::Stale(StaleReason::Timeout));
+        assert!(first.refreshed_notes >= 1, "every non-zero budget makes progress");
+
+        let mut calls = 1;
+        while refresh_fts_dirs(&f.dirs, &f.db, tiny).outcome != FreshnessOutcome::Fresh {
+            calls += 1;
+            assert!(calls <= 61, "did not converge");
+        }
+        assert_eq!(search_fts(&f.db, "bulk", 100).unwrap().len(), 60);
+    }
+
+    #[test]
+    fn a_completed_refresh_reports_how_many_notes_it_wrote() {
+        let f = fx();
+        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+        fs::remove_file(f.dir.join("pattern_old.md")).unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!((r.refreshed_notes, r.deleted_notes, r.outcome), (1, 1, FreshnessOutcome::Refreshed));
     }
 }
