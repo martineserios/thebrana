@@ -735,6 +735,13 @@ mod tests {
     }
 
     #[test]
+    fn a_byte_order_mark_does_not_hide_the_frontmatter() {
+        let m = parse_note("\u{feff}---\ntype: pattern\ndescription: with bom\n---\nbody");
+        assert!(m.has_frontmatter);
+        assert_eq!((m.type_.as_deref(), m.description.as_deref()), (Some("pattern"), Some("with bom")));
+    }
+
+    #[test]
     fn has_frontmatter_tells_notes_from_logs() {
         assert!(parse_note("---\nname: x\n---\nbody").has_frontmatter);
         assert!(!parse_note("# a log\nplain text").has_frontmatter);

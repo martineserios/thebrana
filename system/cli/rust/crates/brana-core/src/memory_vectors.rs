@@ -995,4 +995,17 @@ mod tests {
             "no store: nothing is embedded"
         );
     }
+
+    #[test]
+    fn recall_provider_keeps_keyword_knowledge_and_memory_legs_and_bundle_provider_two() {
+        // Pins the composition after the shared-leg refactor (t-3537): plain recall, MCP
+        // recall and the session-start hook all go through recall_provider.
+        use crate::search::RecallScope;
+        let f = fixture();
+        let plain = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(Fake::new()), RecallScope::All);
+        let bundle = crate::vector::bundle_provider(&f.fts, &f.db, Arc::new(Fake::new()), RecallScope::All);
+
+        assert_eq!(plain.query_with_status("scraping", 5).1.extras.len(), 1, "memory-vector extra leg");
+        assert_eq!(bundle.query_with_status("scraping", 5).1.extras.len(), 0, "no knowledge-entry leg");
+    }
 }

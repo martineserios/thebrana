@@ -140,6 +140,17 @@ fn bundle_without_an_index_is_empty_and_exits_zero() {
 }
 
 #[test]
+fn a_degraded_leg_is_named_on_stderr() {
+    let fx = Fx::new();
+    fx.reindex();
+    let out = fx.cmd().args(["recall", "--bundle", "t-1", "--json"]).output().unwrap();
+    assert!(out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("vector") && err.contains("error"), "stderr: {err}");
+    assert!(!err.contains("fts="), "a healthy leg is not reported: {err}");
+}
+
+#[test]
 fn human_format_groups_by_type() {
     let fx = Fx::new();
     fx.reindex();
