@@ -263,6 +263,14 @@ fn slug_from_rest(rest: &str) -> &str {
     rest
 }
 
+/// The `YYYY-MM-DDTHH-MM-SS` stamp of a dated memory file stem
+/// (`feedback_x_2026-08-24T12-37-56`), or `None` for an undated one (t-3537).
+pub fn memory_file_stamp(stem: &str) -> Option<&str> {
+    let (_, rest) = stem.split_once('_')?;
+    let pos = rest.rfind('_')?;
+    is_timestamp(&rest[pos + 1..]).then(|| &rest[pos + 1..])
+}
+
 /// Does the rest part contain a timestamp suffix?
 fn is_dated_filename(rest: &str) -> bool {
     if let Some(pos) = rest.rfind('_') {
@@ -1024,7 +1032,7 @@ fn refresh_inner(
 
 /// Full-text search the embedded index, returning up to `limit` hits ranked by
 /// FTS5 relevance. The query is tokenized into alphanumeric terms (joined with
-/// implicit AND) so arbitrary user input — colons, quotes, hyphens — never
+/// `OR`, see `sanitize_fts_query`) so arbitrary user input — colons, quotes, hyphens — never
 /// produces an FTS5 syntax error. An empty/symbol-only query returns no hits.
 pub fn search_fts(db_path: &Path, query: &str, limit: usize) -> Result<Vec<MemoryHit>> {
     search_fts_in(db_path, query, limit, None)

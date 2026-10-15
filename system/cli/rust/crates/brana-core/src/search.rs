@@ -75,6 +75,18 @@ pub enum LegStatus {
     Error,
 }
 
+impl LegStatus {
+    /// The lowercase spelling used in JSON and human output.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Ok => "ok",
+            Self::Empty => "empty",
+            Self::Timeout => "timeout",
+            Self::Error => "error",
+        }
+    }
+}
+
 /// Per-leg outcome of a [`HybridProvider`] query, in dispatch order.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HybridStatus {
@@ -125,11 +137,22 @@ impl RecallScope {
         Self::Dirs(dirs)
     }
 
-    /// Whether a memory note at `path` is in scope.
+    /// Whether a memory note at `path` is in scope: it sits directly in a scope folder and,
+    /// if it is a symlink, resolves to a file directly in a scope folder too. Without the
+    /// second half a link planted in global memory could surface another project's note
+    /// (t-3537 gate). A link that cannot be resolved is not shown to be in scope.
     pub fn allows(&self, path: &Path) -> bool {
         match self {
             Self::All => true,
-            Self::Dirs(dirs) => path.parent().is_some_and(|p| dirs.iter().any(|d| d == p)),
+            Self::Dirs(dirs) => {
+                if !path.parent().is_some_and(|p| dirs.iter().any(|d| d == p)) {
+                    return false;
+                }
+                match std::fs::symlink_metadata(path) {
+                    Ok(m) if m.file_type().is_symlink() => resolves_into(path, dirs),
+                    _ => true,
+                }
+            }
         }
     }
 
@@ -140,6 +163,17 @@ impl RecallScope {
             Self::Dirs(dirs) => Some(dirs),
         }
     }
+}
+
+/// Whether the symlink at `path` ends at a file directly inside one of `dirs`
+/// (compared after resolving the folders too, so a scope reached through a link works).
+fn resolves_into(path: &Path, dirs: &[PathBuf]) -> bool {
+    let Ok(real) = std::fs::canonicalize(path) else { return false };
+    if !real.is_file() {
+        return false;
+    }
+    let Some(parent) = real.parent() else { return false };
+    dirs.iter().any(|d| std::fs::canonicalize(d).is_ok_and(|cd| cd == parent))
 }
 
 // ── FTS5Provider ──────────────────────────────────────────────────────────────
@@ -179,6 +213,8 @@ impl SearchProvider for FTS5Provider {
             // The index is rebuilt weekly; a note deleted since then must not
             // surface with a dangling path (t-3510 gate, F2).
             .filter(|h| std::path::Path::new(&h.path).exists())
+            // The SQL prefix is lexical; a symlink in scope must also resolve into scope.
+            .filter(|h| self.scope.allows(std::path::Path::new(&h.path)))
             .take(top_k)
             .map(|h| SearchHit {
                 doc: DocRef::MemoryFile {
@@ -1038,5 +1074,59 @@ mod tests {
         assert!(parse_ruflo_hits("[{\"key\": \"broken\"", "knowledge").is_err());
         assert!(parse_ruflo_hits("[INFO] ok\n[]", "knowledge").unwrap().is_empty());
         assert_eq!(parse_ruflo_hits("[{\"key\":\"k\",\"value\":\"v\"}]", "knowledge").unwrap().len(), 1);
+    }
+
+    // ── symlinks cannot smuggle an out-of-scope note into scope (t-3537 gate) ───
+
+    #[test]
+    fn allows_rejects_a_symlink_into_another_projects_memory() {
+        let tmp = tempdir().unwrap();
+        let mine = tmp.path().join("mine");
+        let client = tmp.path().join("client");
+        fs::create_dir_all(&mine).unwrap();
+        fs::create_dir_all(&client).unwrap();
+        fs::write(client.join("pattern_secret.md"), "client secret").unwrap();
+        fs::write(mine.join("pattern_real.md"), "mine").unwrap();
+        std::os::unix::fs::symlink(client.join("pattern_secret.md"), mine.join("pattern_link.md")).unwrap();
+        std::os::unix::fs::symlink(mine.join("pattern_real.md"), mine.join("pattern_alias.md")).unwrap();
+        std::os::unix::fs::symlink(mine.join("gone.md"), mine.join("pattern_dangling.md")).unwrap();
+        let scope = RecallScope::Dirs(vec![mine.clone()]);
+
+        assert!(scope.allows(&mine.join("pattern_real.md")));
+        assert!(!scope.allows(&mine.join("pattern_link.md")), "resolves into another project");
+        assert!(scope.allows(&mine.join("pattern_alias.md")), "resolves to an in-scope note");
+        assert!(!scope.allows(&mine.join("pattern_dangling.md")), "cannot be shown to be in scope");
+    }
+
+    #[test]
+    fn allows_follows_a_scope_folder_that_is_itself_reached_through_a_symlink() {
+        let tmp = tempdir().unwrap();
+        let real = tmp.path().join("real-mem");
+        fs::create_dir_all(&real).unwrap();
+        fs::write(real.join("pattern_a.md"), "a").unwrap();
+        let via = tmp.path().join("via");
+        std::os::unix::fs::symlink(&real, &via).unwrap();
+        fs::write(real.join("pattern_target.md"), "t").unwrap();
+        std::os::unix::fs::symlink(real.join("pattern_target.md"), real.join("pattern_l.md")).unwrap();
+        let scope = RecallScope::Dirs(vec![via.clone()]);
+
+        assert!(scope.allows(&via.join("pattern_l.md")), "link resolves into the same real folder");
+    }
+
+    #[test]
+    fn fts5_scope_excludes_a_symlink_that_resolves_out_of_scope() {
+        let tmp = tempdir().unwrap();
+        let mine = tmp.path().join("mine");
+        let client = tmp.path().join("client");
+        write_mem(&client, "pattern_secret.md", "jwt jwt jwt client secret");
+        write_mem(&mine, "pattern_real.md", "jwt once");
+        std::os::unix::fs::symlink(client.join("pattern_secret.md"), mine.join("pattern_link.md")).unwrap();
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("project".into(), mine.clone())], &db).unwrap();
+
+        let hits = FTS5Provider::new(db).with_scope(RecallScope::Dirs(vec![mine])).query("jwt", 10);
+
+        let slugs: Vec<_> = hits.iter().map(|h| match &h.doc { DocRef::MemoryFile { slug, .. } => slug.clone(), _ => String::new() }).collect();
+        assert_eq!(slugs, vec!["real"], "the symlink's target text must not surface: {slugs:?}");
     }
 }

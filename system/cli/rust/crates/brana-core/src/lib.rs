@@ -15,6 +15,7 @@ pub mod notify;
 pub mod project_vectors;
 pub mod search;
 pub mod queue;
+pub mod recall_bundle;
 pub mod receipt;
 pub mod remind;
 pub mod scheduler;

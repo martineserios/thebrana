@@ -652,6 +652,7 @@ it never contends with the drain cron's whole-invocation `lock_pipeline()`.
 
 ```
 brana recall <query> [--top N] [--json] [--db PATH] [--scope all|project]
+brana recall --bundle <task-id> [--json] [--db PATH]
 ```
 
 Hybrid recall (ADR-058): keyword search over the curated memory notes, semantic
@@ -667,6 +668,31 @@ provider (`brana_core::vector::recall_provider`).
   is searched. Knowledge-store entries are not filtered. The filter runs inside
   each search, before the top-N cut (t-3535).
 - MCP `recall` always uses `all`.
+
+### `--bundle <task-id>` (t-3537, ADR-099)
+
+Computes the **recall bundle** for a task: at most 8 typed pointers (a note's file stem plus its
+`description` line, never the body), scoped to this project plus global memory.
+
+- **Query:** the task's subject and tags only (the pre-registered gate's query; description,
+  context and notes are not read).
+- **Legs:** keyword search and semantic search over embedded memory notes; knowledge-store rows
+  (links, feeds) are left out in v1. `legs` reports each as `ok`, `empty`, `timeout` or `error`.
+- **Freshness:** before querying it refreshes the keyword index for the scope's folders (budget
+  400 ms): new, edited and deleted notes are picked up. The `freshness` block reports what it
+  found and did, plus `unembedded` (notes without a current vector until `embed-memory` runs).
+  Plain `brana recall` and MCP `recall` never write to the index.
+- **Stages:** scope; type (`metadata.type`, top-level `type`, filename prefix, else `note`);
+  supersession (`status: superseded` and `supersedes` targets are dropped; an older dated twin or
+  a prose "superseded by [[x]]" is down-weighted and flagged `derived-superseded:…`); at most 3
+  per type; at most 8 in all. Logs and state files without frontmatter or a type prefix
+  (`sessions.md`, `session-handoff.md`, `event-log.md`) are not memory entries and are skipped,
+  counted in `skipped_non_entries`.
+- **Output:** a typed list grouped by type, or with `--json` the object in
+  `docs/architecture/features/recall-bundle.md` §Bundle assembly.
+- **Fail-open:** a missing task, tasks file, index or embedder gives an empty or partial bundle and
+  exit 0 (the reason is on stderr and in `legs`). `--shadow` and the usage log arrive in t-3517.
+- `--bundle` cannot be combined with a query.
 
 ---
 

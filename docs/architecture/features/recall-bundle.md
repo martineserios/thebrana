@@ -465,6 +465,106 @@ t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshne
   bounds what recall waits). Only the refresh shortens its wait, to the remaining budget, because
   the default would overrun it.
 
+## Bundle assembly — design (t-3537, 2026-10-15)
+
+Decisions (user, 2026-10-15): the v1 query is **task subject + tags only** (the Design diagram and
+Behavior step 2 above say "+ AC keywords"; this section wins, because gates-v1 pre-registered the
+measured query and the 0.261 baseline used it; AC keywords may come back as a separate scored arm).
+`--shadow` ships with the usage log in t-3517, because it appends the offered row; this slice ships
+`brana recall --bundle <task-id> [--json]`.
+
+- **Module:** `brana-core/src/recall_bundle.rs`. Stages are pure functions over candidates;
+  `compute_bundle(task, env)` runs freshness, the legs, the stages. The CLI only loads the task,
+  builds `env` and prints.
+- **Legs:** a dedicated provider, `vector::bundle_provider`: the scoped keyword leg and the scoped
+  memory-vector leg, built from the same leg constructors as `recall_provider`. The knowledge-entry
+  leg is not run, because knowledge-store rows are excluded in v1. Status keys are `fts` and
+  `vector`. Candidate pool: 40 per leg.
+- **Order:** (1) refresh the index for the scope's folders (budget 400 ms, t-3536); (2) query both
+  legs under the production deadlines (500 ms / 2 s); (3) read each candidate note once; (4) stages.
+- **Stages, in order:**
+  1. *scope* — `RecallScope::allows(path)` again on every candidate (the legs already filter; this
+     is the stage the must-fire test targets, and `archive*/` is outside by construction).
+  2. *type* — `metadata.type`, then top-level `type`, then the filename prefix, then `note`.
+  3. *supersession* — dropped: `status: superseded` (any case), and any note that is the `to:`
+     target of a `supersedes` relation in a candidate (matched by file stem or slug, `.md`, `[[ ]]`
+     and directories stripped). Down-weighted ×0.5 and flagged, never dropped: an older dated twin
+     (same type and slug, a later `YYYY-MM-DDTHH-MM-SS` stamp exists in the scope's folders, even if
+     the twin was not retrieved) with flag `derived-superseded:<newer stem>`, and prose
+     `superseded by [[x]]` in the body with flag `derived-superseded:x`. One ×0.5 per note.
+  4. *order* — by `rrf_score × weight`, ties by stem.
+  5. *quota and cut* — walk the order; take a note if its type has fewer than 3 and fewer than 8
+     are taken; a note over its type's quota is skipped (not retried), so other types fill the 8.
+  6. *gist* — `description` with whitespace collapsed; 160 characters at most (159 + `…`); `null`
+     when missing or empty.
+- **Unreadable candidates** (cannot be read as text) are skipped and counted in
+  `skipped_unreadable`; a failed read is never treated as an empty note.
+- **Non-entries (user decision 2026-10-15):** a candidate with no frontmatter block *and* no type
+  prefix is a log or state file (`sessions.md`, `session-handoff.md`, `event-log*.md`,
+  `patterns.md`, `portfolio.md`: 12 of 404 in-scope files on 2026-10-15), not a memory entry
+  (the definition `memory.rs` already uses), and is skipped, counted in `skipped_non_entries`.
+  The type fallback `note` therefore applies to notes that have frontmatter but no type.
+- **Output (`--json`):** the shape in §Bundle output plus `skipped_unreadable`,
+  `skipped_non_entries`, `elapsed_ms` and a
+  `freshness` block (`index_age_s`, `stale_notes`, `deleted_notes`, `unreadable`,
+  `refreshed_notes`, `outcome`, `unembedded`) which t-3517 copies into the offered row. `ref` is the
+  note's file stem. No note body is ever printed.
+- **Fail-open:** a missing task, tasks file or index gives an empty bundle with the reason in the
+  legs and on stderr, exit 0. The command's exit is non-zero only for argument errors.
+
+### Privacy and untrusted text (t-3537 gate)
+
+- **Scope is proven on the real file.** `RecallScope::allows` requires the path to sit directly in
+  a scope folder and, when it is a symlink, to resolve to a file directly in a scope folder
+  (folders compared after resolving them; a dangling link is not shown to be in scope). Before
+  this a link planted in global memory that pointed into a client's memory passed the lexical
+  check, was indexed and read, and its description was printed. The rule lives in `allows`, so
+  the bundle, `brana recall --scope project` and the vector leg all inherit it; the keyword leg
+  post-checks it after its SQL prefix filter; the bundle checks scope before it opens a candidate.
+- **Everything printed from a note is cleaned.** Gists, refs, flags and the task id lose control
+  characters, escape sequences and bidirectional overrides (line breaks become spaces in a gist
+  and are dropped elsewhere). A `superseded by [[x]]` target is accepted only if it looks like a
+  note name (letters, digits, `_`, `-`, `.`; 80 characters at most), so a note body cannot put
+  prose, a forged pointer line or a long string into a flag. JSON output is escaped by the
+  serialiser.
+- **Reads are capped** at 64 KiB per note (frontmatter is at the top). A cut inside a multi-byte
+  character is not an error; invalid UTF-8 inside the cap is (counted in `skipped_unreadable`).
+- **Supersession targets:** a full stem removes exactly that note. A slug-only target removes
+  notes of the superseding note's own type and that slug, except the newest dated twin.
+  Relations may list `type` and `to` in either order, with or without indentation of the list
+  dash, or as an inline `{type: …, to: …}` map; `to:` may be a list (every entry is a target).
+  `status`, `description` and `type` are read from the top level and from the `metadata:` block:
+  the top level wins for `status` and `description`, `metadata.type` wins for `type`. A status
+  that says superseded in any shape (`[superseded]`, a tagged value) counts.
+- **Decision (confirmed 2026-10-15):** a slug-only supersedes target (`to: x`) from a note that
+  is not itself a twin of `x` replaces every note of that type and slug, including the only or
+  newest dated one. When the superseding note is itself a twin of the slug (a new version
+  superseding its older ones), the newest dated twin stays.
+- **Frontmatter is read as YAML first.** The block goes to `serde_yaml`; when it is not valid
+  YAML (an unquoted colon in a description is common), is over 16 KiB, or holds an anchor or alias
+  (`&x`, `*x`, with libyaml's name characters; nested aliases expand a few hundred bytes into
+  gigabytes), the tolerant line reader takes over. The line reader ignores blank lines and
+  comments, reads only the first indent level of `metadata:` and an item's own fields, and
+  understands quoted keys and a one-line `relations: [{…}, {…}]` list. An unclosed `---` block is
+  not frontmatter. A byte-order mark is ignored.
+- **Invisible text:** besides control characters and bidi overrides, output drops zero-width
+  characters, the soft hyphen, line and paragraph separators and the Unicode tag block
+  (U+E0000–E007F, a known channel for hiding text in a model's context).
+- **Known limits, kept on purpose:**
+  - The assistant's project-folder naming folds `/` and `_` to `-`, so two projects whose paths
+    differ only by `_` versus `-` share one memory folder and therefore one scope. That comes from
+    the host's naming, not from this code.
+  - A pointer's `ref` is the bare file stem; the same stem in global and project memory is
+    ambiguous (rare; the pointer still names a real note in scope).
+  - An undated note is never flagged against a dated twin ("older dated twin" needs a date).
+  - Folder comparison is exact and case-sensitive; on a case-insensitive filesystem a differently
+    cased path fails closed (notes dropped), never open.
+  - The scope proof is per reader (keyword leg, vector leg, bundle), each calling
+    `RecallScope::allows`; the indexers follow symlinks, so out-of-scope text can sit in the
+    index even though no scoped reader returns it. `allows` treats an unreadable lstat as in
+    scope, a directory-level symlink or a hard link is not covered, and there is a window between
+    the check and the open. Tracked in the follow-up task for scope-proof hardening.
+
 ## Challenger findings
 
 **Shaping review (idea doc, 2026-10-14):** three lenses, H1–H4 and C1–C8, all incorporated before
