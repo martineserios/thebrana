@@ -84,8 +84,10 @@ pub fn unembedded_count(
         let (key, content, tags) = row?;
         rows_by_key.insert(key, (content, tags));
     }
+    let mut seen: HashSet<&Path> = HashSet::new();
     Ok(files
         .iter()
+        .filter(|f| seen.insert(f.path.as_path())) // a folder listed twice counts once
         .filter(|f| match rows_by_key.get(&memory_row_key(&f.path)) {
             Some((stored, tags)) => std::fs::read_to_string(&f.path)
                 .map_or(true, |content| !row_is_current(stored, tags.as_deref(), &content)),

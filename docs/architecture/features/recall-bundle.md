@@ -427,18 +427,25 @@ t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshne
   `unreadable`, `refreshed_notes`, `outcome` (`fresh | refreshed | stale`
   plus a reason: `timeout | busy | unreadable | error`). `unembedded` comes from
   `memory_vectors::unembedded_count` (below).
-- **Deleted** means the full rebuild's rule: an indexed note directly inside a folder that
-  listed completely whose path is no longer a listed note (gone, renamed, or taken over by
-  something that is not a note). Only files are notes; a folder named `x.md` is not one.
-- **Racily clean:** a note modified within 2 s of the moment its state is recorded is recorded
-  as suspect and re-read once on the next check, so a same-size rewrite inside one filesystem
-  clock tick is not missed (git's approach).
-- **Lock waits are re-armed from the remaining budget before every statement**; the commit alone
-  gets a fixed 200 ms grace so written notes are not thrown away while a reader finishes. That
-  grace is the most a refresh can overrun its budget.
-- **Unreadable notes are found before the write lock**, so a note that stays unreadable never
-  makes a refresh lock the index for nothing; the progress guarantee counts the first *readable*
-  note.
+- **Deleted** means the full rebuild's rule, confirmed: an indexed note directly inside a folder
+  that listed completely whose path is no longer a listed note *and* is gone or no longer a file.
+  A path a racing directory read missed, or one that cannot be checked, is kept. Only files are
+  notes; a folder named `x.md` is not one (this also changes `embed-memory`, which shares the
+  listing: it now prunes the vector row of a note replaced by a folder). A listed path that
+  cannot be checked (a dangling symlink) is counted in `unreadable`.
+- **Racily clean:** a note whose mtime is within 2 s either side of the moment its state is
+  recorded is recorded as suspect and re-read once on the next check, so a same-size rewrite
+  inside one filesystem clock tick is not missed (git's approach). A future mtime further out is
+  recorded as is, so a clock-skewed note settles instead of being rewritten every call.
+- **What the budget bounds:** every lock wait (re-armed from the remaining budget before each
+  check statement and before `BEGIN`), note reading, and note writing. Not bounded: the stats of
+  the check phase, the first readable note (always read and written, for progress), the in-index
+  row scan inside the transaction, and the commit, which gets a fixed 200 ms lock grace so written
+  notes are not thrown away while a reader finishes. Measured on the live copy: a fresh check
+  ~8 ms, a 402-note first refresh ~250 ms.
+- **Notes are read before the write lock**, and the text is carried into the transaction, so the
+  transaction does no file I/O and a note that stays unreadable (permissions, not UTF-8) never
+  makes a refresh lock the index for nothing.
 - **`index_age_s`** is the time since the last write to the index by any scope (a refresh for
   another project, or a partial commit, resets it). `stale_notes` is the signal for "this scope
   was out of date".

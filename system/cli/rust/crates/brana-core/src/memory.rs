@@ -697,7 +697,9 @@ fn now_ns() -> i64 {
 /// note is recorded with mtime 0, which never matches a real stat, so the next
 /// check re-reads it once; by then its mtime is old enough to record as is.
 fn recorded_state((mtime_ns, size): (i64, i64), taken_ns: i64) -> (i64, i64) {
-    if mtime_ns > taken_ns - RACY_WINDOW_NS {
+    // Two-sided: a future mtime (clock skew, `touch -d`, a restore) cannot be shared
+    // by a later rewrite, so it is recorded as is rather than re-read forever.
+    if (mtime_ns - taken_ns).abs() < RACY_WINDOW_NS {
         (0, size)
     } else {
         (mtime_ns, size)
@@ -877,8 +879,14 @@ fn refresh_inner(
         if !listed.insert(path.clone()) {
             continue;
         }
-        // A file that vanished between listing and stat is left to the next check.
-        let Ok(state) = file_state(&f.path) else { continue };
+        let Ok(state) = file_state(&f.path) else {
+            // Vanished since the listing: left to the next check. Still there but
+            // impossible to stat (a dangling symlink): reported, never ignored.
+            if fs::symlink_metadata(&f.path).is_ok() {
+                report.unreadable += 1;
+            }
+            continue;
+        };
         if known.get(&path) != Some(&state) {
             stale.push((f, recorded_state(state, taken_ns)));
         }
@@ -903,7 +911,13 @@ fn refresh_inner(
             .map_err(|e| stale_reason(&e))?;
         for row in rows {
             let path = row.map_err(|e| stale_reason(&e))?;
-            if !listed.contains(&path) && !deleted.contains(&path) {
+            // Not listed AND confirmed: gone, or no longer a file. A path a racing
+            // directory read missed, or one that cannot be checked, is kept.
+            let not_a_note = match fs::metadata(&path) {
+                Ok(m) => !m.is_file(),
+                Err(e) => e.kind() == std::io::ErrorKind::NotFound,
+            };
+            if !listed.contains(&path) && not_a_note && !deleted.contains(&path) {
                 deleted.push(path);
             }
         }
@@ -918,22 +932,28 @@ fn refresh_inner(
         return Err(StaleReason::Timeout); // a zero budget checks and writes nothing
     }
 
-    // Unreadable notes are found before the write lock, so a note that stays
-    // unreadable never makes a refresh lock the index for nothing. It is skipped
-    // and keeps its previous row (decision 2026-10-15): a failed read is never
-    // indexed as empty text and never drops the note.
-    let readable: Vec<(MemoryFileRef, (i64, i64))> = stale
-        .into_iter()
-        .filter(|(f, _)| {
-            let ok = fs::File::open(&f.path).is_ok();
-            if !ok {
-                report.unreadable += 1;
-            }
-            ok
-        })
-        .collect();
-    if readable.is_empty() && deleted.is_empty() {
-        return Err(StaleReason::Unreadable);
+    // Read the stale notes before the write lock, so the transaction does no
+    // file I/O and a note that stays unreadable (permissions, not UTF-8) never
+    // makes a refresh lock the index for nothing. It is skipped and keeps its
+    // previous row (decision 2026-10-15): a failed read is never indexed as empty
+    // text and never drops the note. Reading stops at the budget, except that the
+    // first readable note is always read: every call makes progress, so a backlog
+    // larger than one budget (an old index's first refresh, a bulk import)
+    // converges over calls instead of rolling back forever.
+    let mut timed_out = false;
+    let mut docs: Vec<(MemoryFileRef, (i64, i64), String)> = Vec::with_capacity(stale.len());
+    for (f, state) in stale {
+        if !docs.is_empty() && started.elapsed() >= budget {
+            timed_out = true;
+            break;
+        }
+        match fs::read_to_string(&f.path) {
+            Ok(content) => docs.push((f, state, content)),
+            Err(_) => report.unreadable += 1,
+        }
+    }
+    if docs.is_empty() && deleted.is_empty() {
+        return Err(if timed_out { StaleReason::Timeout } else { StaleReason::Unreadable });
     }
 
     // ── Write phase: one IMMEDIATE transaction ──
@@ -941,7 +961,7 @@ fn refresh_inner(
     let tx = conn
         .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
         .map_err(|e| stale_reason(&e))?;
-    let (mut written, mut unread_late, mut timed_out) = (0usize, 0usize, false);
+    let mut written = 0usize;
     let mut write = |tx: &rusqlite::Transaction| -> rusqlite::Result<()> {
         tx.execute_batch(FILE_STATE_SCHEMA)?;
         // `path` is UNINDEXED in FTS5, so `DELETE … WHERE path = ?` scans the whole
@@ -969,20 +989,13 @@ fn refresh_inner(
             }
             drop_state.execute([path])?;
         }
-        // Note by note while the budget lasts. The first readable note always goes
-        // through, so every call makes progress and a backlog larger than one
-        // budget (an old index's first refresh, a bulk import) converges over calls
-        // instead of rolling back forever. Each note is written whole, so partial
-        // progress leaves a consistent index.
-        for (f, (mtime_ns, size)) in &readable {
+        // Note by note while the budget lasts, the first always. Each note is
+        // written whole, so partial progress leaves a consistent index.
+        for (f, (mtime_ns, size), content) in &docs {
             if written > 0 && started.elapsed() >= budget {
                 timed_out = true;
                 break;
             }
-            let Ok(content) = fs::read_to_string(&f.path) else {
-                unread_late += 1;
-                continue;
-            };
             let path = f.path.to_string_lossy().into_owned();
             for rowid in rowids.remove(&path).into_iter().flatten() {
                 drop_row.execute([rowid])?;
@@ -998,13 +1011,8 @@ fn refresh_inner(
         )?;
         Ok(())
     };
-    // An error drops `tx`: the whole refresh rolls back, counts included.
+    // An error drops `tx`: the whole refresh rolls back.
     write(&tx).map_err(|e| stale_reason(&e))?;
-    report.unreadable += unread_late;
-    if written == 0 && deleted.is_empty() {
-        // Nothing but unreadable notes: leave the index as it was.
-        return Err(StaleReason::Unreadable);
-    }
     tx.busy_timeout(remaining().max(COMMIT_GRACE)).map_err(|e| stale_reason(&e))?;
     tx.commit().map_err(|e| stale_reason(&e))?;
     report.refreshed_notes = written;
