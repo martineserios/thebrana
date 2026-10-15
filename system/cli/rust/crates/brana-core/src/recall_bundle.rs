@@ -1141,6 +1141,31 @@ mod tests {
     }
 
     #[test]
+    fn invisible_and_line_separator_characters_are_dropped_from_output() {
+        // Zero-width characters, soft hyphen, the tag block (a known invisible-text channel
+        // into a model's context) and U+2028/2029 never reach the worker.
+        let g = make_gist(Some("a\u{200b}b\u{e0041}\u{e0042}c\u{2028}d\u{00ad}e\u{feff}f")).unwrap();
+        assert_eq!(g, "abc def");
+        assert_eq!(clean("x\u{2028}y\u{e0041}z\u{200b}w\u{2029}"), "xyzw");
+    }
+
+    #[test]
+    fn a_nested_folded_description_is_never_the_literal_indicator() {
+        // `foo: *Bad*` is not valid YAML, so the line reader runs.
+        let m = parse_note("---\nfoo: *Bad*\nmetadata:\n  description: >\n    folded text\n  type: pattern\n---\n");
+        assert_ne!(m.description.as_deref(), Some(">"));
+        assert_eq!(m.type_.as_deref(), Some("pattern"));
+    }
+
+    #[test]
+    fn a_superseded_by_target_may_carry_a_path_but_not_spaces() {
+        let m = parse_note("---\nname: n\n---\nsuperseded by [[dir/pattern_new]]");
+        assert_eq!(m.superseded_by, vec!["pattern_new"]);
+        let spaced = parse_note("---\nname: n\n---\nsuperseded by [[a b]]");
+        assert!(spaced.superseded_by.is_empty());
+    }
+
+    #[test]
     fn gist_is_the_description_capped_at_160() {
         assert_eq!(make_gist(None), None);
         assert_eq!(make_gist(Some("   ")), None);
@@ -1229,18 +1254,26 @@ mod tests {
     }
 
     #[test]
-    fn a_slug_target_spares_the_newest_dated_twin() {
+    fn a_new_twin_that_supersedes_its_slug_removes_the_older_twin_and_keeps_itself() {
         let old = "pattern_x_2026-08-23T10-00-00";
         let new = "pattern_x_2026-08-24T12-00-00";
         let mut twins: NewestStamps = HashMap::new();
         twins.insert(("pattern".into(), "x".into()), ("2026-08-24T12-00-00".into(), new.into()));
+        let by_new = NoteMeta { supersedes: vec!["[[x]]".into()], ..meta() };
+        let out = assemble(vec![cand(old, 0.5, meta()), cand(new, 0.4, by_new)], &scope(), &twins);
+        assert_eq!(refs(&out), vec![new]);
+    }
+
+    #[test]
+    fn a_slug_target_from_an_unrelated_note_removes_the_dated_note_too() {
+        // Assumption (needs confirmation): `supersedes: x` from a note that is not a twin of x
+        // means "x is replaced by me", so the newest dated x goes as well.
+        let new = "pattern_x_2026-08-24T12-00-00";
+        let mut twins: NewestStamps = HashMap::new();
+        twins.insert(("pattern".into(), "x".into()), ("2026-08-24T12-00-00".into(), new.into()));
         let by = NoteMeta { supersedes: vec!["[[x]]".into()], ..meta() };
-        let out = assemble(
-            vec![cand(old, 0.5, meta()), cand(new, 0.4, meta()), cand("pattern_by", 0.1, by)],
-            &scope(),
-            &twins,
-        );
-        assert_eq!(refs(&out), vec![new, "pattern_by"], "the live twin stays, the old one goes");
+        let out = assemble(vec![cand(new, 0.4, meta()), cand("pattern_by", 0.1, by)], &scope(), &twins);
+        assert_eq!(refs(&out), vec!["pattern_by"]);
     }
 
     #[test]
