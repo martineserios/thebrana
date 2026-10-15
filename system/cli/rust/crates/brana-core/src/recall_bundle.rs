@@ -74,14 +74,106 @@ pub struct NoteMeta {
     pub superseded_by: Vec<String>,
 }
 
-fn unquote(v: &str) -> &str {
+/// A frontmatter value as plain text: a quoted value ends at its closing quote (anything
+/// after it is a comment); a plain value ends at ` #`.
+fn plain(v: &str) -> &str {
     let v = v.trim();
     for q in ['"', '\''] {
-        if v.len() >= 2 && v.starts_with(q) && v.ends_with(q) {
-            return &v[1..v.len() - 1];
+        if let Some(rest) = v.strip_prefix(q)
+            && let Some(end) = rest.find(q)
+        {
+            return &rest[..end];
         }
     }
-    v
+    match v.find(" #") {
+        Some(i) => v[..i].trim_end(),
+        None => v,
+    }
+}
+
+/// The frontmatter fields the bundle reads, whichever reader produced them.
+#[derive(Default)]
+struct Front {
+    type_: Option<String>,
+    status: Option<String>,
+    description: Option<String>,
+    supersedes: Vec<String>,
+}
+
+/// Frontmatter larger than this goes to the line reader, not the YAML parser.
+const FRONT_YAML_MAX_BYTES: usize = 16 * 1024;
+
+/// Whether `text` holds a YAML anchor (`&x`) or alias (`*x`) at a token start. Nested
+/// aliases can expand a few hundred bytes into gigabytes (the "billion laughs" document),
+/// and notes are untrusted text, so such frontmatter never reaches the YAML parser. `*` and
+/// `&` in ordinary prose (`**bold**`, `AT&T`) are not at a token start and do not count.
+pub(crate) fn has_yaml_alias(text: &str) -> bool {
+    let mut prev: Option<char> = None;
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if (c == '&' || c == '*')
+            && chars.peek().is_some_and(|n| n.is_alphanumeric() || *n == '_')
+            && prev.is_none_or(|p| p.is_whitespace() || matches!(p, ':' | '[' | '{' | ',' | '-'))
+        {
+            return true;
+        }
+        prev = Some(c);
+    }
+    false
+}
+
+fn yaml_scalar(v: Option<&serde_yaml::Value>) -> Option<String> {
+    use serde_yaml::Value;
+    let s = match v? {
+        Value::String(s) => s.clone(),
+        Value::Number(n) => n.to_string(),
+        Value::Bool(b) => b.to_string(),
+        _ => return None,
+    };
+    let s = s.trim();
+    (!s.is_empty()).then(|| s.to_string())
+}
+
+/// Like [`yaml_scalar`], but `to: [[x]]` is a nested YAML list: take its first scalar.
+fn yaml_link(v: Option<&serde_yaml::Value>) -> Option<String> {
+    match v? {
+        serde_yaml::Value::Sequence(items) => yaml_link(items.first()),
+        other => yaml_scalar(Some(other)),
+    }
+}
+
+/// The frontmatter read as real YAML. `None` when the block is not valid YAML (an unquoted
+/// colon in a description is common), is too big, or holds anchors or aliases; the caller
+/// then uses the tolerant line reader.
+fn front_from_yaml(text: &str) -> Option<Front> {
+    use serde_yaml::Value;
+    if text.len() > FRONT_YAML_MAX_BYTES || has_yaml_alias(text) {
+        return None;
+    }
+    let v: Value = serde_yaml::from_str(text).ok()?;
+    if v.is_null() {
+        return Some(Front::default());
+    }
+    let top = v.as_mapping()?;
+    let meta = top.get("metadata").and_then(Value::as_mapping);
+    let in_meta = |k: &str| meta.and_then(|m| yaml_scalar(m.get(k)));
+    let mut supersedes = Vec::new();
+    if let Some(Value::Sequence(items)) = top.get("relations") {
+        for it in items {
+            let Some(m) = it.as_mapping() else { continue };
+            let supersedes_edge =
+                yaml_scalar(m.get("type")).is_some_and(|k| k.eq_ignore_ascii_case("supersedes"));
+            if supersedes_edge && let Some(to) = yaml_link(m.get("to")) {
+                supersedes.push(to);
+            }
+        }
+    }
+    Some(Front {
+        type_: in_meta("type").or_else(|| yaml_scalar(top.get("type"))),
+        status: yaml_scalar(top.get("status")).or_else(|| in_meta("status")),
+        description: yaml_scalar(top.get("description")).or_else(|| in_meta("description")),
+        supersedes,
+    })
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -111,8 +203,8 @@ impl RelItem {
 
     fn set(&mut self, key: &str, value: &str) {
         match key {
-            "type" => self.kind = Some(unquote(value).to_string()),
-            "to" => self.to = Some(unquote(value).to_string()),
+            "type" => self.kind = Some(plain(value).to_string()),
+            "to" => self.to = Some(plain(value).to_string()),
             _ => {}
         }
     }
@@ -132,105 +224,145 @@ impl RelItem {
     }
 }
 
-/// Parse a note's frontmatter and body. A note that does not open with a `---` line has
-/// no frontmatter, so no field is read from it; the body signal is still read. `type`,
-/// `status` and `description` are read from the top level and from the `metadata:` block
-/// (the top level wins); `relations` items may list their fields in any order, indented
-/// or not, or as an inline map.
+/// The tolerant fallback reader for frontmatter that is not valid YAML. Blank lines and
+/// comments never end a section; only the first indent level of `metadata:` and the item's
+/// own fields are read, so nested maps and lists are not mistaken for them.
+fn front_from_lines(lines: &[&str]) -> Front {
+    let mut front = Front::default();
+    let (mut top_type, mut meta_type) = (None::<String>, None::<String>);
+    let (mut top_status, mut meta_status) = (None::<String>, None::<String>);
+    let (mut top_desc, mut meta_desc) = (None::<String>, None::<String>);
+    let mut section = Section::None;
+    let mut item = RelItem::default();
+    let (mut item_dash, mut item_key) = (None::<usize>, None::<usize>);
+    let mut meta_indent: Option<usize> = None;
+    let mut fold: Option<String> = None; // description: > / |
+    for line in lines {
+        let indent = line.len() - line.trim_start_matches([' ', '\t']).len();
+        let t = line.trim();
+        if let Some(buf) = fold.as_mut() {
+            if indent > 0 || t.is_empty() {
+                if !t.is_empty() {
+                    if !buf.is_empty() {
+                        buf.push(' ');
+                    }
+                    buf.push_str(t);
+                }
+                continue;
+            }
+            if !buf.is_empty() {
+                top_desc = Some(std::mem::take(buf));
+            }
+            fold = None;
+        }
+        if t.is_empty() || t.starts_with('#') {
+            continue;
+        }
+        let is_dash = t == "-" || (t.starts_with('-') && t[1..].starts_with(char::is_whitespace));
+        if section == Section::Relations && is_dash {
+            if item_dash.is_some_and(|d| indent > d) {
+                continue; // a list inside the current item
+            }
+            item.flush(&mut front.supersedes);
+            let rest = &t[1..];
+            let payload = rest.trim_start();
+            item_dash = Some(indent);
+            item_key = Some(indent + 1 + (rest.len() - payload.len()));
+            item.apply(payload);
+            continue;
+        }
+        if indent > 0 {
+            match section {
+                Section::Metadata => {
+                    let first = *meta_indent.get_or_insert(indent);
+                    if indent == first
+                        && let Some((k, v)) = t.split_once(':')
+                    {
+                        let v = plain(v);
+                        if !v.is_empty() {
+                            match k.trim() {
+                                "type" => meta_type = Some(v.to_string()),
+                                "status" => meta_status = Some(v.to_string()),
+                                "description" => meta_desc = Some(v.to_string()),
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                Section::Relations => {
+                    // The item's own fields line up with its first key; deeper lines belong
+                    // to a nested value.
+                    if indent > item_dash.unwrap_or(0) && item_key.is_some_and(|k| indent <= k) {
+                        item.apply(t);
+                    }
+                }
+                Section::None => {}
+            }
+            continue;
+        }
+        item.flush(&mut front.supersedes);
+        (section, item_dash, item_key, meta_indent) = (Section::None, None, None, None);
+        let Some((k, v)) = t.split_once(':') else { continue };
+        let vp = plain(v);
+        match k.trim() {
+            "type" if !vp.is_empty() => top_type = Some(vp.to_string()),
+            "status" if !vp.is_empty() => top_status = Some(vp.to_string()),
+            "description" if vp.starts_with('>') || vp.starts_with('|') => fold = Some(String::new()),
+            "description" if !vp.is_empty() => top_desc = Some(vp.to_string()),
+            "metadata" => section = Section::Metadata,
+            "relations" => section = Section::Relations,
+            _ => {}
+        }
+    }
+    item.flush(&mut front.supersedes);
+    if let Some(buf) = fold.take()
+        && !buf.is_empty()
+    {
+        top_desc = Some(buf);
+    }
+    front.type_ = meta_type.or(top_type);
+    front.status = top_status.or(meta_status);
+    front.description = top_desc.or(meta_desc);
+    front
+}
+
+/// Parse a note's frontmatter and body. A note that does not open with a closed `---` block
+/// has no frontmatter, so no field is read from it; the body signal is still read. `type`,
+/// `status` and `description` come from the top level and from the `metadata:` block (the
+/// top level wins, except `type`, where `metadata.type` wins); `relations` items may list
+/// their fields in any order. The block is read as YAML; when it is not valid YAML (or holds
+/// anchors or aliases) the tolerant line reader takes over.
 pub fn parse_note(content: &str) -> NoteMeta {
     // A byte-order mark (some editors and sync tools add one) must not hide the `---`.
     let content = content.strip_prefix('\u{feff}').unwrap_or(content);
     let mut meta = NoteMeta::default();
+    let mut body_from = 0usize;
     let mut lines = content.lines();
-    let mut consumed = 0usize;
-    let mut closed = false;
-    if content.lines().next().map(str::trim) == Some("---") {
-        meta.has_frontmatter = true;
-        lines.next();
-        consumed = 1;
-        let (mut top_type, mut meta_type) = (None::<String>, None::<String>);
-        let (mut top_status, mut meta_status) = (None::<String>, None::<String>);
-        let (mut top_desc, mut meta_desc) = (None::<String>, None::<String>);
-        let mut section = Section::None;
-        let mut item = RelItem::default();
-        let mut fold: Option<String> = None; // description: > / |
-        for line in lines.by_ref() {
+    if lines.next().map(str::trim) == Some("---") {
+        let mut block: Vec<&str> = Vec::new();
+        let mut closed = false;
+        let mut consumed = 1usize;
+        for line in lines {
             consumed += 1;
             if line.trim() == "---" {
                 closed = true;
                 break;
             }
-            let indented = line.starts_with(' ') || line.starts_with('\t');
-            let t = line.trim();
-            if let Some(buf) = fold.as_mut() {
-                if indented || t.is_empty() {
-                    if !t.is_empty() {
-                        if !buf.is_empty() {
-                            buf.push(' ');
-                        }
-                        buf.push_str(t);
-                    }
-                    continue;
-                }
-                top_desc = Some(std::mem::take(buf));
-                fold = None;
-            }
-            if section == Section::Relations && (t == "-" || t.starts_with("- ")) {
-                item.flush(&mut meta.supersedes);
-                item.apply(t.trim_start_matches('-'));
-                continue;
-            }
-            if indented {
-                match section {
-                    Section::Metadata => {
-                        if let Some((k, v)) = t.split_once(':') {
-                            let v = unquote(v);
-                            if !v.is_empty() {
-                                match k.trim() {
-                                    "type" => meta_type = Some(v.to_string()),
-                                    "status" => meta_status = Some(v.to_string()),
-                                    "description" => meta_desc = Some(v.to_string()),
-                                    _ => {}
-                                }
-                            }
-                        }
-                    }
-                    Section::Relations => item.apply(t),
-                    Section::None => {}
-                }
-                continue;
-            }
-            item.flush(&mut meta.supersedes);
-            section = Section::None;
-            let Some((k, v)) = t.split_once(':') else { continue };
-            let v = v.trim();
-            match k.trim() {
-                "type" if !v.is_empty() => top_type = Some(unquote(v).to_string()),
-                "status" if !v.is_empty() => top_status = Some(unquote(v).to_string()),
-                "description" if matches!(v, ">" | "|" | ">-" | "|-") => fold = Some(String::new()),
-                "description" if !v.is_empty() => top_desc = Some(unquote(v).to_string()),
-                "metadata" => section = Section::Metadata,
-                "relations" => section = Section::Relations,
-                _ => {}
-            }
+            block.push(line);
         }
-        item.flush(&mut meta.supersedes);
-        if let Some(buf) = fold.take()
-            && !buf.is_empty()
-        {
-            top_desc = Some(buf);
-        }
+        // An unclosed block is not frontmatter: the whole text is body.
         if closed {
-            meta.type_ = meta_type.or(top_type);
+            let front = front_from_yaml(&block.join("\n")).unwrap_or_else(|| front_from_lines(&block));
+            meta.has_frontmatter = true;
+            meta.type_ = front.type_;
+            meta.status = front.status;
+            meta.description = front.description;
+            meta.supersedes = front.supersedes;
+            body_from = consumed;
         }
-        meta.status = top_status.or(meta_status);
-        meta.description = top_desc.or(meta_desc);
     }
-    // An unclosed frontmatter block has no body to speak of.
-    if closed || !meta.has_frontmatter {
-        let body: String = content.lines().skip(consumed).collect::<Vec<_>>().join("\n");
-        meta.superseded_by = superseded_by_targets(&body);
-    }
+    let body: String = content.lines().skip(body_from).collect::<Vec<_>>().join("\n");
+    meta.superseded_by = superseded_by_targets(&body);
     meta
 }
 
@@ -243,11 +375,16 @@ fn superseded_by_targets(body: &str) -> Vec<String> {
     let mut from = 0usize;
     while let Some(i) = lower[from..].find(NEEDLE) {
         let after = from + i + NEEDLE.len();
-        let rest = body.get(after..).unwrap_or("").trim_start();
+        // Skip markdown decoration between the phrase and the link (`**`, `_`, backticks,
+        // a colon); the link target is the part before any `|alias` or `#section`.
+        let rest = body
+            .get(after..)
+            .unwrap_or("")
+            .trim_start_matches(|c: char| c.is_whitespace() || matches!(c, '*' | '_' | '`' | ':'));
         if let Some(inner) = rest.strip_prefix("[[")
             && let Some(end) = inner.find("]]")
         {
-            let t = inner[..end].trim().to_string();
+            let t = inner[..end].split(['|', '#']).next().unwrap_or("").trim().to_string();
             if is_plain_ref(&t) && !out.contains(&t) {
                 out.push(t);
             }
