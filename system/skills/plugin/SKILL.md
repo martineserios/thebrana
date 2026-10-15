@@ -172,7 +172,12 @@ Install a plugin from a known marketplace.
    deployed copy exists — a "No such file" is a missing bootstrap, not a verdict.) Exit 1 with
    a `violations: N` summary names the mod and the rule: remove it (`claude plugin uninstall
    <name>@<marketplace>`, then step 5 of `remove` below) before the next session activates it.
-   Any other non-zero exit, or "0 mod(s) scanned", means the scan could not run. The
+   Any other non-zero exit — exit 2 is the checker's own "could not scan" (python3 missing, an unreadable
+   registry or module, a failed engine report) — is NOT a finding about the plugin: fix the scanner, do not
+   uninstall anything. A plugin that cannot be uninstalled (company-managed settings) is acknowledged in the
+   repo's tracked `system/config/mods-acknowledged.txt` (bootstrap deploys it; the failing run prints the
+   `name@marketplace sha256:…` line to add) and then runs as a logged `WARN: acknowledged …` — never for an
+   engine finding. A `WARN: engine half skipped` line on exit 0 means `claude plugin validate` did not run. The
    SessionStart hook `system/hooks/mods-installed-check.sh` re-runs the static half at every
    session start and warns (one line, never blocks — Law 4), so a plugin installed any other
    way is still reported by the next session; this step is the earlier, install-time check.
