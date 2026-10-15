@@ -565,6 +565,34 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
     scope, a directory-level symlink or a hard link is not covered, and there is a window between
     the check and the open. Tracked in the follow-up task for scope-proof hardening.
 
+## Usage log — design (t-3517, 2026-10-15)
+
+Shipped: `brana-core/src/usage_log.rs` (the only writer), `brana recall --bundle [--shadow]`,
+`brana memory usage` (outcome, `--check`, `--report`), the silent shadow call in build LOAD.
+
+- **Rows** are built from the bundle's fields, never from the query: the offered row maps each
+  pointer to `{ref, type, rank, flags}` (the gist is dropped) and copies the `freshness` block
+  (counts and a state word). The session is stored as the transcript file's stem, reduced to
+  `[A-Za-z0-9_-]`, so a stored value cannot name another path.
+- **Append:** lock sidecar, then one `write_all` of the whole line; file 0600 in a 0700 folder.
+  Sixteen threads appending 30-pointer rows each leave one parseable line.
+- **Both encodings:** writers use the current encoding; readers read both and drop a repeated
+  path (the two coincide for a root without `_`), so a project root with `_` does not double its
+  rows.
+- **Outcome binding:** the latest offered row without an outcome, shown or not (so a control-arm
+  build that asks for no outcome never writes one by accident; the exit step only asks for shown
+  bundles). Refs must be among that row's pointers; a ref both used and ignored is rejected.
+- **`--check`** looks only at the latest shown offered row; older unresolved shown rows are
+  orphans, reported on stderr.
+- **`--bundle` always logs.** A shown call leaves a `shown: true` row that the canary's exit step
+  (t-3521) expects an outcome for. Running `--bundle` by hand on a task in a canary build leaves
+  such a row; `--shadow` does not. Until t-3521 nothing runs `--check`, so this has no effect yet.
+- **Backup:** `backup.sh` copies only `<project>/memory/*.md`; `brana-knowledge`'s
+  `tests/test-backup-exclude.sh` has a must-fire test that a `brana/recall-usage.jsonl` is not
+  exported and never reaches a commit.
+- **Not built here:** the outcome ask at CLOSE/ANSWER/REPORT and the canary arms (t-3521); the
+  scorer that reads the offered rows (t-3518).
+
 ## Challenger findings
 
 **Shaping review (idea doc, 2026-10-14):** three lenses, H1–H4 and C1–C8, all incorporated before

@@ -652,7 +652,7 @@ it never contends with the drain cron's whole-invocation `lock_pipeline()`.
 
 ```
 brana recall <query> [--top N] [--json] [--db PATH] [--scope all|project]
-brana recall --bundle <task-id> [--json] [--db PATH]
+brana recall --bundle <task-id> [--shadow] [--json] [--db PATH]
 ```
 
 Hybrid recall (ADR-058): keyword search over the curated memory notes, semantic
@@ -691,8 +691,40 @@ Computes the **recall bundle** for a task: at most 8 typed pointers (a note's fi
 - **Output:** a typed list grouped by type, or with `--json` the object in
   `docs/architecture/features/recall-bundle.md` §Bundle assembly.
 - **Fail-open:** a missing task, tasks file, index or embedder gives an empty or partial bundle and
-  exit 0 (the reason is on stderr and in `legs`). `--shadow` and the usage log arrive in t-3517.
+  exit 0 (the reason is on stderr and in `legs`).
+- **Usage log (t-3517):** every `--bundle` call appends one ids-only `offered` row to the project's
+  recall-usage log (below), including empty and degraded bundles. A failed append is a stderr
+  line, never an error.
+- **`--shadow`:** compute and log the bundle (`shown: false`) and print nothing. `/brana:build`
+  LOAD runs it silently so the bundle can be measured before any worker sees it. Without
+  `--shadow` the row is `shown: true`, which a later exit step expects an outcome for.
 - `--bundle` cannot be combined with a query.
+
+## brana memory usage
+
+```
+brana memory usage <task-id> --used <refs> [--ignored <refs>]   # record an outcome
+brana memory usage <task-id> --no-answer
+brana memory usage <task-id> --check
+brana memory usage --report [--json]
+```
+
+The recall usage log (ADR-099 §5-6): `~/.claude/projects/<main-checkout>/brana/recall-usage.jsonl`,
+one file per project, mode 0600, appended through a single writer (`brana_core::usage_log`).
+Rows hold ids only (note names, types, ranks, flags, leg states, counts): no query text, no
+gists, no note bodies. The file sits in a `brana/` subfolder so transcript scanners do not see it,
+and it is never backed up or synced.
+
+- **Outcome** (`--used`, `--ignored`, `--no-answer`): binds to the latest unresolved offered row of
+  the task. Refs are comma-separated note names and must be among that row's pointers (anything
+  else is rejected and nothing is written). `--used ""` records "used none". `opened` is derived
+  from the session transcript captured at LOAD, or `unavailable`; it is advisory only.
+- **`--check`:** exit 2 if the latest *shown* offered row of the task has no outcome, else 0. The
+  message names the command to run. Older unresolved shown rows are listed as orphans and never
+  block. Shadow rows never block.
+- **`--report`:** counts over the project log: offered rows (shown/shadow), outcomes, bundle size,
+  empty bundles, legs that were not `ok`.
+- Both project-folder name encodings are read (a root containing `_` can exist under either).
 
 ---
 

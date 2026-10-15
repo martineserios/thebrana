@@ -100,6 +100,13 @@ Best-effort and never blocks the build — a non-zero exit (e.g. a bracket alrea
    Use `smart: false` (default). `smart: true` is **not recommended for precision recall** — t-1699 spike (2026-05-28): smart:false 56-95ms / top-sim 0.57-0.64 on-topic; smart:true 275-879ms / top-sim 0.47 off-topic (MMR over-diversifies; Feynman physics surfaced as #1 for "hook enforcement"). MMR runs before limit slice (`afterMmrCount` fixed), so `limit:1` mitigation also fails. MMR diversity param not exposed in ruflo schema (confirmed). ControllerRegistry ESM crash fixed in v3.10.36/Node 22 (2026-06-03) — smart:true is now operational but still degrades precision. Use it only when topic diversity is the explicit goal. Re-evaluate if ruflo exposes `mmr_lambda` or equivalent.
    Merge results, rank by similarity. Results span: knowledge (dimension docs, ADRs, feature briefs, reflections — all indexed here), pattern (past session learnings).
 
+   **Shadow bundle** (task_id known only; ADR-099, t-3517): in the same message, also run
+   `Bash("brana recall --bundle {task_id} --shadow 2>/dev/null || true")`. It computes the typed
+   bundle, appends one ids-only `offered` row (`shown: false`) to the project's recall-usage log
+   and prints **nothing**. Do not read, show or act on it, and ask no outcome at CLOSE: shadow
+   rows exist so `brana memory usage --report` and the offline scorer can measure the bundle
+   before any worker sees it. Fail-open: it never blocks LOAD. Skip for freeform builds.
+
    **brana recall** (ADR-058): HybridProvider = FTS5 (`~/.claude/memory/*.md`) + ruflo `knowledge` namespace in parallel with RRF k=20 merge. Adds FTS5 hits (auto-memory not in ruflo) and knowledge results. **Does NOT cover the `pattern` namespace** — the pattern MCP call above remains essential for session learnings and cannot be dropped. Parse the JSON array: `.[] | .snippet` (truncate to 200 chars per entry to stay within token budget).
 2b. **Graph edge traversal** (after ruflo search, if `docs/spec-graph.json` exists):
    Collect doc paths from knowledge results. Map ruflo key → file path:
