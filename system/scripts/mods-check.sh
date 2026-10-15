@@ -113,7 +113,7 @@ ENTRY_BUF=(); ENTRY_RULE=0; ENTRY_HARD=0; ENTRY_FAULT=0; FAULT=0
 clean() { printf '%s' "$1" | LC_ALL=C tr -d '\000-\010\013-\037\177' | LC_ALL=C cut -c1-400; }
 erule()  { ENTRY_RULE=$((ENTRY_RULE + 1));   ENTRY_BUF+=("  $(clean "$1")"); }
 ehard()  { ENTRY_HARD=$((ENTRY_HARD + 1));   ENTRY_BUF+=("  $(clean "$1")"); }
-efault() { ENTRY_FAULT=$((ENTRY_FAULT + 1)); ENTRY_BUF+=("  $(clean "$1")"); }
+efault() { ENTRY_FAULT=$((ENTRY_FAULT + 1)); ENTRY_BUF+=("  ! $(clean "$1")"); }   # "  ! " marks a scanner fault: a consumer relaying a finding skips it
 # Acknowledgement list (a plugin that cannot be uninstalled — managed settings): lines of
 # `name@marketplace sha256:<whole-install hash>  # reason`. Read ONLY from <script dir>/../config/
 # — the repo's tracked system/config/ in a checkout, ~/.claude/config/ once bootstrap deploys it. Never
@@ -129,7 +129,7 @@ ack_reason() {   # $1 name@marketplace  $2 sha256:... -> prints the reason, exit
 ack_listed_hash() { [ -f "$ACK_FILE" ] && awk -v n="$1" '{ sub(/\r$/, "") } $1 == n { print $2; exit }' "$ACK_FILE"; }
 tree_hash() {   # $1 install root -> sha256:<hex> over every file (path + bytes) and symlink (target) in the tree
     python3 -I - "$1" <<'PYH' 2>/dev/null || echo "sha256:unknown"
-import hashlib, os, sys
+import hashlib, os, stat, sys
 top = sys.argv[1]; h = hashlib.sha256()
 for d, dirs, files in os.walk(top, followlinks=False):
     dirs.sort()
@@ -137,8 +137,16 @@ for d, dirs, files in os.walk(top, followlinks=False):
         p = os.path.join(d, n); rel = os.path.relpath(p, top).encode()
         h.update(rel + b"\0")
         if os.path.islink(p): h.update(b"->" + os.readlink(p).encode())
+        elif not stat.S_ISREG(os.lstat(p).st_mode): h.update(b"<special>")   # a FIFO/device/socket is never opened: it would block
         else:
-            try: h.update(open(p, "rb").read())
+            try:
+                left = 64 * 1024 * 1024   # per-file cap; the size is hashed too, so growth past the cap still changes the hash
+                h.update(str(os.lstat(p).st_size).encode() + b":")
+                with open(p, "rb") as fh:
+                    while left > 0:
+                        c = fh.read(min(1 << 20, left))
+                        if not c: break
+                        h.update(c); left -= len(c)
             except Exception: h.update(b"<unreadable>")
         h.update(b"\0")
 print("sha256:" + h.hexdigest())
@@ -312,7 +320,7 @@ PYV
                         END)       seen_end=1 ;;
                         PARSEFAIL*) parse_ok=0; efault "$name: the engine report could not be parsed (${line#PARSEFAIL }) — fail closed" ;;
                         REFUSED*)  ehard "$name: refused by the engine at load (plugin validate failed, ${line#REFUSED }) — yet listed in $REG, and a headless init record's plugins[] would list it as loaded";;
-                        LAW3*)     ehard "$name: ${line#LAW3 } — Law 3: no API-billed calls, no network";;
+                        LAW3*)     erule "$name: ${line#LAW3 } — Law 3: no API-billed calls, no network";;   # same rule as the grep hit, found structurally: ackable (the whole-install hash ends the ack on any edit)
                         NOCALLS)   efault "$name: validate output has no calls: listing — the structural half cannot verify this mod (engine wording changed?) (fail closed)";;
                     esac
                 done <<< "$report"
@@ -469,41 +477,48 @@ if [ "$MODE" = "--engine" ]; then
 import json, re, sys
 path, rc, allowed = sys.argv[1], int(sys.argv[2]), set(sys.argv[3:])
 try:
-    d = json.load(open(path))
-except Exception as e:
-    print(f"ERR validate output is not JSON (rc={rc}): {e}"); sys.exit(0)
-errs = []
-for sec in [d.get("manifest") or {}] + list(d.get("contents") or []):
-    for e in sec.get("errors") or []:
-        errs.append(f"{e.get('path','?')}: {e.get('message','')}")
-if not d.get("success") or rc != 0:
-    print("ERR validate failed (rc=%d): %s" % (rc, "; ".join(errs) or "no error text"))
-# Law 4, structural: the engine own scan of what the module hooks. Catches registrations the
-# 77a greps cannot (backtick event names, a renamed `on`) — panel finding.
-DENY_HOOKS = {"tool.call", "tool.check", "plugin.register", "prompt.compose", "*"}
-for line in [n for sec in (d.get("contents") or []) for n in (sec.get("notes") or []) if " hooks: " in n]:
-    body = line.split(" hooks: ", 1)[1].strip()
-    if body.startswith("nothing"):
-        continue
-    for raw in re.split(r",\s*(?![^{]*\})", body):
-        ev = re.sub(r"\{.*\}", "", raw).strip()
-        if ev in DENY_HOOKS or ev.startswith("classic."):
-            print(f"ERR hooks event {ev} — mods render, never enforce or rewrite (ADR-096 Law 4)")
-calls_lines = [n for sec in (d.get("contents") or []) for n in (sec.get("notes") or []) if " calls: " in n]
-if not calls_lines:
-    print("ERR no calls: line in plugin validate output — the structural proof is missing (is hooks/hooks.json naming a module?)")
-for line in calls_lines:
-    body = line.split(" calls: ", 1)[1].strip()
-    if body.startswith("nothing"):
-        continue
-    for raw in body.split(","):
-        c = re.sub(r"\s*\(via [^)]*\)", "", raw).strip()
-        c = c[2:] if c.startswith("$.") else c
-        if c and c not in allowed:
-            print(f"ERR call {c} is outside the allowed set ({', '.join(sorted(allowed))})")
-print("OK calls: " + " | ".join(calls_lines) if calls_lines else "OK")
+    try:
+        d = json.load(open(path))
+    except Exception as e:
+        print(f"ERR validate output is not JSON (rc={rc}): {e}"); print("END"); sys.exit(0)
+    errs = []
+    for sec in [d.get("manifest") or {}] + list(d.get("contents") or []):
+        for e in sec.get("errors") or []:
+            errs.append(f"{e.get('path','?')}: {e.get('message','')}")
+    if not d.get("success") or rc != 0:
+        print("ERR validate failed (rc=%d): %s" % (rc, "; ".join(errs) or "no error text"))
+    # Law 4, structural: the engine own scan of what the module hooks. Catches registrations the
+    # 77a greps cannot (backtick event names, a renamed `on`) — panel finding.
+    DENY_HOOKS = {"tool.call", "tool.check", "plugin.register", "prompt.compose", "*"}
+    for line in [n for sec in (d.get("contents") or []) for n in (sec.get("notes") or []) if " hooks: " in n]:
+        body = line.split(" hooks: ", 1)[1].strip()
+        if body.startswith("nothing"):
+            continue
+        for raw in re.split(r",\s*(?![^{]*\})", body):
+            ev = re.sub(r"\{.*\}", "", raw).strip()
+            if ev in DENY_HOOKS or ev.startswith("classic."):
+                print(f"ERR hooks event {ev} — mods render, never enforce or rewrite (ADR-096 Law 4)")
+    calls_lines = [n for sec in (d.get("contents") or []) for n in (sec.get("notes") or []) if " calls: " in n]
+    if not calls_lines:
+        print("ERR no calls: line in plugin validate output — the structural proof is missing (is hooks/hooks.json naming a module?)")
+    for line in calls_lines:
+        body = line.split(" calls: ", 1)[1].strip()
+        if body.startswith("nothing"):
+            continue
+        for raw in body.split(","):
+            c = re.sub(r"\s*\(via [^)]*\)", "", raw).strip()
+            c = c[2:] if c.startswith("$.") else c
+            if c and c not in allowed:
+                print(f"ERR call {c} is outside the allowed set ({', '.join(sorted(allowed))})")
+    print("OK calls: " + " | ".join(calls_lines) if calls_lines else "OK")
+except SystemExit:
+    raise
+except Exception as ex:
+    print("ERR the validate report could not be parsed (%s: %s) — fail closed" % (type(ex).__name__, ex))
+print("END")
 PYV
 )"
+        case "$report" in *$'\nEND'|END) ;; *) viol "$label: the validate report parser ended without its end marker — the validate report could not be parsed (fail closed)" ;; esac
         before=$VIOL
         while IFS= read -r line; do
             case "$line" in ERR*) viol "$label: ${line#ERR }";; esac

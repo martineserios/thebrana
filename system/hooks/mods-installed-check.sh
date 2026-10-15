@@ -32,7 +32,6 @@
 #         harness audit 2026-10-07); the session is expected to relay the line to the human.
 #         Nothing here is shown to the human directly.
 # Env:    CLAUDE_CONFIG_DIR (the engine's config dir; default ~/.claude)
-#         BRANA_MODS_CHECK  (path to mods-check.sh — tests; default: resolved below)
 #         (opt-out: touch $CLAUDE_CONFIG_DIR/mods-installed-check.skip — a file, never an env var)
 # Tests:  system/hooks/tests/test-mods-installed-check.sh (must-fire with the t-3493 billing mod)
 #
@@ -72,12 +71,10 @@ emit() {   # one line -> one additionalContext JSON line (never a block, never a
 # Resolve the checker from DEPLOYED locations only: the copy of this hook lives in
 # ~/.claude/hooks, whose sibling ~/.claude/scripts/ holds the flat scripts bootstrap deploys;
 # then the plugin root. No repo tier (see the trust boundary above).
-CHECK="${BRANA_MODS_CHECK:-}"
-if [ -z "$CHECK" ]; then
-    for d in "$SCRIPT_DIR/../scripts" "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/scripts"; do
-        [ -f "$d/mods-check.sh" ] && { CHECK="$d/mods-check.sh"; break; }
-    done
-fi
+CHECK=""
+for d in "$SCRIPT_DIR/../scripts" "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/scripts"; do
+    [ -f "$d/mods-check.sh" ] && { CHECK="$d/mods-check.sh"; break; }
+done
 if [ ! -f "$CHECK" ]; then
     emit "⚠ installed-mods Law 3 scan did not run: mods-check.sh not found (next to this hook or under CLAUDE_PLUGIN_ROOT — re-run ./bootstrap.sh) — $REMEDY"
     exit 0
@@ -112,11 +109,12 @@ esac
 # Exit 1 = violations in scanned mods. Exit 2 = the checker could not scan (unreadable or mis-shaped
 # registry, python3 missing): always "could not run", never a verdict on a mod, whatever its summary says (t-3505).
 SUMMARY=$(printf '%s\n' "$OUT" | grep -E '^mods-check --installed:' | tail -n 1)
-FIRST=$(printf '%s\n' "$OUT" | grep -m1 -E '^  [^ ]' | sed -E 's/^  //')
+FIRST=$(printf '%s\n' "$OUT" | grep -m1 -E '^  [^ !]' | sed -E 's/^  //')        # a FINDING line (fault lines carry a "  ! " marker and are skipped)
+FIRST_ANY=$(printf '%s\n' "$OUT" | grep -m1 -E '^  [^ ]' | sed -E 's/^  (! )?//')   # any line, for the could-not-run relay
 # (anchored on ": 0 mod(s)" — a bare "0 mod(s) scanned" substring also matched 10/20/100 mods
 # and relayed a real violation as "could not run" with no remedy: verifier N1)
 if [ "$RC" -eq 2 ]; then
-    emit "⚠ installed-mods Law 3 scan could not run: $(safe_text "${FIRST##* — }" 120) ($(safe_text "$SUMMARY" 160)) — $REMEDY"
+    emit "⚠ installed-mods Law 3 scan could not run: $(safe_text "${FIRST_ANY##* — }" 120) ($(safe_text "$SUMMARY" 160)) — $REMEDY"
     exit 0
 fi
 case "$SUMMARY" in

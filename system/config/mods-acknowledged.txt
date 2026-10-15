@@ -4,16 +4,20 @@
 #
 # An acknowledged plugin has its Law 3 RULE hits downgraded from a violation to a loud, logged WARN on every
 # run (`mods-check.sh --installed`, validate Check 77c, bootstrap 7i) — never a silent pass, and the findings
-# are still printed. Nothing else is downgraded: an engine refusal, an engine `calls:` hit, a symlink or path
-# escape, an unattestable encoding and every scanner fault stay failures. The hash covers EVERY file in the
+# are still printed. "Rule hit" means a Law 3 pattern in a module (the grep) or the engine's `calls:` listing
+# naming model.* / http.* (the same rule, found structurally). Nothing else is downgraded: an engine refusal,
+# a symlink or path escape, an unattestable encoding and every scanner fault stay failures. The hash covers EVERY file in the
 # plugin's install tree (a helper a module imports, a new symlink, anything), so when the marketplace
 # auto-updates the plugin the acknowledgement stops applying and the violation returns. `sha256:unknown` is
 # never honoured.
 #
-# This file is the ONLY source. The checker reads it from next to itself: system/config/ in the repo, and
-# ~/.claude/config/ after bootstrap deploys it. It is never read from the Claude config dir (a plugin with
-# process.run can write there) and never from the repo of the current session (a hostile clone must not be
-# able to acknowledge itself). Changing it is a repo change: review it like one (ADR-096 amendment, t-3505).
+# This file is the ONLY source — there is no separate user-owned list. The checker reads it from next to
+# itself: system/config/ in the repo (validate, bootstrap), and the deployed copy ~/.claude/config/ (the
+# session-start hook, /brana:plugin add) which every bootstrap overwrites from this file and `bootstrap
+# --check` reports drift on. It is never read from the repo of the current session (a hostile clone must
+# not be able to acknowledge itself). Honest limit: a process running as you that edits the DEPLOYED copy
+# can silence the deployed checker until the next bootstrap; validate and bootstrap read this repo copy.
+# Changing this file is a repo change: review it like one (ADR-096 amendment, t-3505).
 #
 # The hash to put here is printed by the failing run (the `hint:` line). Example (do not uncomment without
 # a real plugin and a real reason):

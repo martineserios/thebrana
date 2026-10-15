@@ -201,9 +201,13 @@ assert "the guard returns (does not abort) and records the checker's last line a
 assert "...and still prints the guard header" yes "$(has 'Installed mods guard:' "$DIED")"
 
 echo "--- t-3505: bootstrap deploys the tracked acknowledgement list; 7i never inherits a static-only switch"
-newhome; rc="$(boot deploy noclaude)"
-assert "a REAL bootstrap deploy into a temp HOME puts the tracked list at <target>/config/mods-acknowledged.txt" yes "$([ -f "$H/.claude/config/mods-acknowledged.txt" ] && echo yes || echo no)"
-assert "...byte-identical to the repo's tracked list" yes "$(cmp -s "$ROOT/system/config/mods-acknowledged.txt" "$H/.claude/config/mods-acknowledged.txt" && echo yes || echo no)"
+# (a real deploy is refused from a feature branch by the from-main guard; a --check run executes the same sync block for real)
+newhome; rc="$(boot --check noclaude)"
+assert "a real bootstrap --check into a temp HOME reports the tracked list as a new file to deploy to <target>/config/" yes "$(has '+ config/mods-acknowledged.txt (new)' "$(out)")"
+newhome; mkdir -p "$H/.claude/config"; cp "$ROOT/system/config/mods-acknowledged.txt" "$H/.claude/config/"; rc="$(boot --check noclaude)"
+assert "...and as unchanged once the deployed copy matches" yes "$(has '= config/mods-acknowledged.txt (unchanged)' "$(out)")"
+printf 'tampered\n' >> "$H/.claude/config/mods-acknowledged.txt"; rc="$(boot --check noclaude)"
+assert "...a tampered deployed copy is reported as changed (drift is visible; the next deploy overwrites it)" yes "$(has '~ config/mods-acknowledged.txt (changed)' "$(out)")"
 assert "7i pins MODS_INSTALLED_STATIC_ONLY empty (a project env block must not turn the engine half off)" yes "$(has 'MODS_INSTALLED_STATIC_ONLY= bash' "$FN2")"
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

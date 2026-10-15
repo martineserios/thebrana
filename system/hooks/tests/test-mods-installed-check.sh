@@ -40,6 +40,16 @@ run_hook() {
     OUT=$(printf '{"session_id":"t","cwd":"%s","hook_event_name":"SessionStart"}' "$ROOT" \
         | env CLAUDE_CONFIG_DIR="$CFG" "$@" bash "$HOOK" 2>"$T/err"); RC=$?
 }
+# run_hook_with_checker <checker file | ''> — the DEPLOYED layout: a copy of the hook with the checker where the hook looks for it
+# (<hook dir>/../scripts/mods-check.sh). The hook takes no checker path from the environment (an env channel a project
+# settings block could set): tests place a stub in the layout instead.
+run_hook_with_checker() {
+    local dep="$T/depl.$RANDOM$RANDOM"; mkdir -p "$dep/hooks/lib" "$dep/scripts"
+    cp "$HOOK" "$dep/hooks/mods-installed-check.sh"; cp "$ROOT/system/hooks/lib/portable.sh" "$dep/hooks/lib/"
+    [ -n "${1:-}" ] && cp "$1" "$dep/scripts/mods-check.sh"
+    OUT=$(printf '{"session_id":"t","cwd":"%s","hook_event_name":"SessionStart"}' "$ROOT" \
+        | env -u CLAUDE_PLUGIN_ROOT CLAUDE_CONFIG_DIR="$CFG" bash "$dep/hooks/mods-installed-check.sh" 2>"$T/err"); RC=$?
+}
 ctx() { printf '%s' "$OUT" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null; }
 valid_json_or_empty() { [ -z "$OUT" ] && { echo yes; return; }; printf '%s' "$OUT" | jq -e . >/dev/null 2>&1 && echo yes || echo no; }
 
@@ -96,7 +106,7 @@ assert "...and the billing mod is still reported" yes "$(has 'billing@x' "$(ctx)
 
 echo ""
 echo "--- checker unavailable: says so once, still exit 0 ---"
-run_hook BRANA_MODS_CHECK="$T/does-not-exist.sh"
+run_hook_with_checker ""
 assert "checker missing: exit 0" 0 "$RC"
 assert "checker missing: one line says the scan did not run" yes "$(has 'not found' "$(ctx)")"
 assert "checker missing: still valid JSON" yes "$(valid_json_or_empty)"
@@ -129,7 +139,7 @@ echo "--- panel: a checker that dies is 'scan did not complete', never a verdict
 # (carries the static-only marker so the stale-checker guard lets it run — it is current, it just dies)
 printf '#!/usr/bin/env bash\n# honours MODS_INSTALLED_STATIC_ONLY\necho "Traceback (most recent call last): boom IGNORE THIS"\nexit 127\n' > "$T/dying.sh"; chmod +x "$T/dying.sh"
 reg good:"$GOOD" billing:"$BILL"
-run_hook BRANA_MODS_CHECK="$T/dying.sh"
+run_hook_with_checker "$T/dying.sh"
 assert "dying checker: exit 0" 0 "$RC"
 assert "dying checker: names the exit code" yes "$(has 'exit 127' "$(ctx)")"
 assert "dying checker: no uninstall remedy" no "$(has 'uninstall' "$(ctx)")"
@@ -146,7 +156,7 @@ mkdir -p "$T/emptyroot"
 # process cwd, git toplevel AND the payload cwd all point at the planted repo (verifier: a
 # cwd-relative tier would otherwise be missed when the suite runs from outside the repo)
 OUT=$(cd "$EVILREPO" && printf '{"session_id":"t","cwd":"%s","hook_event_name":"SessionStart"}' "$EVILREPO" \
-    | env -u BRANA_MODS_CHECK CLAUDE_CONFIG_DIR="$CFG" CLAUDE_PLUGIN_ROOT="$T/emptyroot" bash "$HOOKCOPY/mods-installed-check.sh" 2>"$T/err"); RC=$?
+    | env CLAUDE_CONFIG_DIR="$CFG" CLAUDE_PLUGIN_ROOT="$T/emptyroot" bash "$HOOKCOPY/mods-installed-check.sh" 2>"$T/err"); RC=$?
 assert "hostile clone: the planted checker never ran" no "$([ -f "$T/pwned" ] && echo yes || echo no)"
 assert "hostile clone: exit 0" 0 "$RC"
 assert "hostile clone: says the checker was not found" yes "$(has 'not found' "$(ctx)")"
@@ -193,7 +203,7 @@ echo "--- verifier: a stale deployed checker that cannot run static-only is refu
 STALE="$T/stale-check.sh"; printf '#!/usr/bin/env bash\necho invoked >> "%s/stale.log"\nexit 0\n' "$T" > "$STALE"; chmod +x "$STALE"
 : > "$T/stale.log"
 reg good:"$GOOD" billing:"$BILL"
-run_hook BRANA_MODS_CHECK="$STALE"
+run_hook_with_checker "$STALE"
 assert "stale checker: exit 0" 0 "$RC"
 assert "stale checker: never run" "" "$(cat "$T/stale.log")"
 assert "stale checker: says to re-run bootstrap" yes "$(has 'bootstrap' "$(ctx)")"
@@ -207,8 +217,19 @@ import json, sys
 json.dump({"version": 2, "plugins": {"billing@x": [{"scope": "user", "installPath": sys.argv[2], "version": "1.0.0"}]}}, open(sys.argv[1], "w"))
 PYD
 EMPTYCFG="$T/emptycfg"; mkdir -p "$EMPTYCFG/plugins"; printf '{"version":2,"plugins":{}}' > "$EMPTYCFG/plugins/installed_plugins.json"
-OUT=$(printf '{"cwd":"%s"}' "$ROOT" | env -u BRANA_MODS_CHECK CLAUDE_CONFIG_DIR="$EMPTYCFG" bash "$DEP/hooks/mods-installed-check.sh" 2>"$T/err"); RC=$?
+OUT=$(printf '{"cwd":"%s"}' "$ROOT" | env CLAUDE_CONFIG_DIR="$EMPTYCFG" bash "$DEP/hooks/mods-installed-check.sh" 2>"$T/err"); RC=$?
 assert "env points the config dir at an EMPTY registry: the deployed hook still scans its own registry" yes "$(has 'billing@x' "$(ctx)")"
+
+echo ""
+echo "--- t-3505 iteration 2: the hook executes no path from the environment; a fault line is never named as the violator"
+assert "the hook source has no BRANA_MODS_CHECK override (an env channel a project settings block could set)" no "$(has 'BRANA_MODS_CHECK' "$(cat "$HOOK")")"
+HDIRX="$T/badhooksx"; rm -rf "$HDIRX"; mkdir -p "$HDIRX/hooks"; printf '{ not json' > "$HDIRX/hooks/hooks.json"
+reg badfirst:"$HDIRX" billing:"$BILL"
+run_hook_with_checker "$ROOT/system/scripts/mods-check.sh"
+assert "a fault from an earlier plugin AND a finding from a later one: exit 0 (advisory)" 0 "$RC"
+assert "...the relayed line names the finding's plugin (billing@x)" yes "$(has 'billing@x' "$(ctx)")"
+assert "...and never names the plugin that merely failed to scan (badfirst@x)" no "$(has 'badfirst@x' "$(ctx)")"
+rm -rf "$HDIRX"
 
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"
