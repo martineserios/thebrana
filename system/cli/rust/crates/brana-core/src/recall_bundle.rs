@@ -808,6 +808,139 @@ mod tests {
         assert_eq!(stale.supersedes, vec!["pattern_a"], "an item's type does not carry to the next");
     }
 
+    // ── parser: real YAML first, tolerant line reader as the fallback (t-3537 gate) ──
+
+    #[test]
+    fn a_nested_list_or_map_inside_a_relation_item_does_not_split_it() {
+        let nested_list = parse_note(
+            "---\nrelations:\n  - type: supersedes\n    tags:\n      - a\n    to: pattern_old\n---\n",
+        );
+        assert_eq!(nested_list.supersedes, vec!["pattern_old"]);
+        let nested_map = parse_note(
+            "---\nrelations:\n  - type: supersedes\n    meta:\n      type: other\n    to: pattern_old\n---\n",
+        );
+        assert_eq!(nested_map.supersedes, vec!["pattern_old"]);
+    }
+
+    #[test]
+    fn blank_lines_and_comments_do_not_end_a_section() {
+        let rel = parse_note(
+            "---\nrelations:\n  - type: supersedes\n    to: a\n\n# a comment\n  - type: supersedes\n    to: b\n---\n",
+        );
+        assert_eq!(rel.supersedes, vec!["a", "b"]);
+        let meta = parse_note("---\nmetadata:\n  name: x\n\n  type: pattern\n  status: superseded\n---\n");
+        assert_eq!((meta.type_.as_deref(), meta.status.as_deref()), (Some("pattern"), Some("superseded")));
+    }
+
+    #[test]
+    fn trailing_comments_are_not_part_of_the_value() {
+        let m = parse_note(
+            "---\nstatus: superseded # replaced\nrelations:\n  - type: \"supersedes\" # x\n    to: pattern_old # why\n---\n",
+        );
+        assert_eq!(m.status.as_deref(), Some("superseded"));
+        assert_eq!(m.supersedes, vec!["pattern_old"]);
+    }
+
+    #[test]
+    fn an_empty_description_does_not_hide_the_metadata_one() {
+        let folded = parse_note("---\ndescription: >\nstatus: x\nmetadata:\n  description: fallback\n---\n");
+        assert_eq!(folded.description.as_deref(), Some("fallback"));
+        let quoted = parse_note("---\ndescription: \"\"\nmetadata:\n  description: fallback\n---\n");
+        assert_eq!(quoted.description.as_deref(), Some("fallback"));
+    }
+
+    #[test]
+    fn every_folded_scalar_indicator_reads_the_folded_text() {
+        for ind in [">", ">-", ">+", "|", "|-", "|+", ">2", "|2-"] {
+            let m = parse_note(&format!("---\ndescription: {ind}\n  first\n  second\nname: x\n---\n"));
+            assert_eq!(m.description.as_deref().map(|d| d.split_whitespace().collect::<Vec<_>>().join(" ")), Some("first second".to_string()), "{ind}");
+        }
+    }
+
+    #[test]
+    fn nested_maps_under_metadata_are_not_the_metadata_fields() {
+        let m = parse_note("---\nmetadata:\n  review:\n    status: superseded\n  type: pattern\n---\n");
+        assert_eq!(m.status, None);
+        assert_eq!(m.type_.as_deref(), Some("pattern"));
+    }
+
+    #[test]
+    fn a_wikilink_target_in_yaml_form_is_read() {
+        // `to: [[x]]` is a nested YAML list, not a string.
+        let m = parse_note("---\nrelations:\n  - type: supersedes\n    to: [[pattern_old]]\n---\n");
+        assert_eq!(m.supersedes, vec!["pattern_old"]);
+    }
+
+    #[test]
+    fn an_inline_map_may_hold_a_quoted_comma() {
+        let m = parse_note("---\nrelations:\n  - {to: \"a,b\", type: supersedes}\n---\n");
+        assert_eq!(m.supersedes, vec!["a,b"]);
+    }
+
+    #[test]
+    fn frontmatter_that_is_not_valid_yaml_still_gives_its_fields() {
+        // An unquoted colon in a description is common in hand-written notes.
+        let m = parse_note("---\ntype: pattern\ndescription: plan: do the thing\nstatus: active\n---\nbody");
+        assert_eq!(m.type_.as_deref(), Some("pattern"));
+        assert_eq!(m.description.as_deref(), Some("plan: do the thing"));
+        assert_eq!(m.status.as_deref(), Some("active"));
+    }
+
+    #[test]
+    fn frontmatter_that_is_a_list_is_empty_not_a_panic() {
+        let m = parse_note("---\n- a\n- b\n---\nbody");
+        assert!(m.has_frontmatter);
+        assert_eq!((m.type_, m.description, m.status), (None, None, None));
+    }
+
+    #[test]
+    fn an_unclosed_frontmatter_block_is_not_frontmatter() {
+        let m = parse_note("---\nstatus: superseded\ndescription: never closed\nbody text");
+        assert!(!m.has_frontmatter);
+        assert_eq!((m.status, m.description), (None, None));
+    }
+
+    #[test]
+    fn yaml_aliases_never_reach_the_yaml_parser() {
+        // A billion-laughs document fits in a few hundred bytes. Frontmatter holding an
+        // anchor or alias is read by the line reader instead.
+        assert!(has_yaml_alias("a: &x [1, 2]\nb: [*x, *x]"));
+        assert!(has_yaml_alias("- &anchor v"));
+        assert!(!has_yaml_alias("description: **bold** text and a * star"));
+        assert!(!has_yaml_alias("description: AT&T and R&D"));
+        let mut bomb = String::from("---\nl0: &l0 [x, x, x, x, x, x, x, x, x]\n");
+        for i in 1..10 {
+            let prev = format!("*l{}", i - 1);
+            bomb.push_str(&format!("l{i}: &l{i} [{}]\n", vec![prev; 9].join(", ")));
+        }
+        bomb.push_str("type: pattern\n---\nbody");
+        let m = parse_note(&bomb);
+        assert!(m.has_frontmatter);
+        assert_eq!(m.type_.as_deref(), Some("pattern"), "the line reader still finds the type");
+    }
+
+    #[test]
+    fn a_dash_tab_list_marker_is_read_by_the_line_reader() {
+        // Tabs are not valid YAML indentation, so this reaches the tolerant fallback.
+        let m = parse_note("---\nrelations:\n-\ttype: supersedes\n\tto: pattern_old\n---\n");
+        assert_eq!(m.supersedes, vec!["pattern_old"]);
+    }
+
+    #[test]
+    fn prose_superseded_by_in_common_markdown_spellings() {
+        for body in [
+            "**Superseded by** [[x]]",
+            "Superseded by: [[x]]",
+            "superseded by [[x|alias]]",
+            "superseded by [[x#section]]",
+            "Superseded by `[[x]]`",
+            "_superseded by_ [[x]]",
+        ] {
+            let m = parse_note(&format!("---\nname: n\n---\n{body}"));
+            assert_eq!(m.superseded_by, vec!["x"], "{body}");
+        }
+    }
+
     #[test]
     fn status_and_description_are_read_from_the_metadata_block_too() {
         let m = parse_note(
