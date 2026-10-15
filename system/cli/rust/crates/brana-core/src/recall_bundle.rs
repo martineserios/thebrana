@@ -616,7 +616,7 @@ pub fn assemble(cands: Vec<Candidate>, scope: &RecallScope, newest: &NewestStamp
     // notes of the superseding note's own type and that slug, except that when the
     // superseding note is itself a twin of that slug (a new version superseding its
     // older ones) the newest dated twin is the live one and stays. A slug-only target
-    // from an unrelated note replaces every note of that slug, dated or not (assumption,
+    // from an unrelated note replaces every note of that slug, dated or not (
     // decision confirmed 2026-10-15).
     struct Edge {
         by_stem: String,
