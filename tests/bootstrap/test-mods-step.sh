@@ -201,7 +201,9 @@ assert "the guard returns (does not abort) and records the checker's last line a
 assert "...and still prints the guard header" yes "$(has 'Installed mods guard:' "$DIED")"
 
 echo "--- t-3505: bootstrap deploys the tracked acknowledgement list; 7i never inherits a static-only switch"
-assert "bootstrap.sh deploys system/config/mods-acknowledged.txt to <target>/config/" yes "$(has 'config/mods-acknowledged.txt' "$(cat "$ROOT/bootstrap.sh")")"
+newhome; rc="$(boot deploy noclaude)"
+assert "a REAL bootstrap deploy into a temp HOME puts the tracked list at <target>/config/mods-acknowledged.txt" yes "$([ -f "$H/.claude/config/mods-acknowledged.txt" ] && echo yes || echo no)"
+assert "...byte-identical to the repo's tracked list" yes "$(cmp -s "$ROOT/system/config/mods-acknowledged.txt" "$H/.claude/config/mods-acknowledged.txt" && echo yes || echo no)"
 assert "7i pins MODS_INSTALLED_STATIC_ONLY empty (a project env block must not turn the engine half off)" yes "$(has 'MODS_INSTALLED_STATIC_ONLY= bash' "$FN2")"
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

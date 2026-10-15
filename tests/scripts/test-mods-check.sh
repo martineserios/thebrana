@@ -410,7 +410,10 @@ for sec in d.get("contents") or []:
     sec["notes"] = notes
 json.dump(d, open(p, "w"))
 PYA
-assert "an engine finding (calls: names \$.model) is NEVER downgraded by an acknowledgement" 1 "$(ackcheck_engine)"
+assert "an engine calls: hit on a model.*/http.* call is the SAME Law 3 rule as the grep hit: an acknowledgement downgrades it (else the valve could never apply while the engine half runs)" 0 "$(ackcheck_engine)"
+golden_validate
+cp "$FIX/captures/t-3493-model-billing/v1-bracket/validate.json" "$FAKE/validate.json"; echo 1 > "$FAKE/validate.rc"
+assert "an engine REFUSAL is never downgraded by an acknowledgement" 1 "$(ackcheck_engine)"
 golden_validate
 printf 'billing@x %s  # ok\n' "$ACKH" > "$H2/.claude/mods-acknowledged.txt"; printf '' > "$ACKROOT/config/mods-acknowledged.txt"
 assert "a list in the CONFIG DIR is not read (a plugin with process.run can write there)" 1 "$(ackcheck)"
@@ -468,6 +471,25 @@ BARECWD="$T/barecwd"; mkdir -p "$BARECWD"; printf '#!/bin/sh\ntouch "%s/GITPWNED
 reg good:"$T/mods/good-minimal"
 ( cd "$BARECWD" && PATH=".:$NOCLAUDE_PATH" bash "$CHECK" --installed >"$T/out" 2>&1 )
 assert "the no-argument --installed form never runs git (a hostile cwd cannot shadow it)" no "$([ -f "$T/GITPWNED" ] && echo yes || echo no)"
+
+echo "--- t-3505 iteration 2: --engine report parser fails closed; the tree hash survives a FIFO"
+printf '{"success":true,"contents":"not a list"}' > "$FAKE/validate.json"; echo 0 > "$FAKE/validate.rc"
+assert "--engine: a report of an unexpected SHAPE is a violation, never a pass (the parser must not crash into a pass)" 1 "$(engine)"
+assert "...saying the report could not be parsed" yes "$(has 'could not be parsed' "$(out)")"
+golden_validate; golden_test
+FIFOP="$H2/fifoplug"; rm -rf "$FIFOP"; cp -R "$BILL" "$FIFOP"; mkfifo "$FIFOP/hooks/pipe" 2>/dev/null
+printf '' > "$ACKROOT/config/mods-acknowledged.txt"; reg fifo:"$FIFOP"
+( timeout 30 env PATH="$NOCLAUDE_PATH" bash "$ACKROOT/scripts/mods-check.sh" --installed "$H2/.claude" >"$T/out" 2>&1 ); fr=$?
+assert "a FIFO inside a plugin cannot hang the whole-install hash (finished, exit 1 — not a 124 timeout)" 1 "$fr"
+rm -rf "$FIFOP"
+echo "--- t-3505 iteration 2: a fault line is never taken for a finding"
+HDIR2="$H2/badhooks2"; rm -rf "$HDIR2"; mkdir -p "$HDIR2/hooks"; printf '{ not json' > "$HDIR2/hooks/hooks.json"
+BILLQ="$H2/billing-q"; rm -rf "$BILLQ"; cp -R "$BILL" "$BILLQ"
+reg badfirst:"$HDIR2" billing:"$BILLQ"
+inst >/dev/null
+assert "fault lines are marked so a consumer can skip them: '  ! ' prefix" yes "$(printf '%s\n' "$(out)" | grep -q '^  ! badfirst@x' && echo yes || echo no)"
+assert "the finding lines carry no marker" yes "$(printf '%s\n' "$(out)" | grep -q '^  billing@x:' && echo yes || echo no)"
+rm -rf "$HDIR2" "$BILLQ"
 
 echo "--- t-3505: --refusal-canary counts 'refused' only when the engine answered (JSON parsed, success false, non-zero exit)"
 CANF="$T/canfake"; mkdir -p "$CANF/bin"
