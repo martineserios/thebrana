@@ -11,7 +11,7 @@
 # auto-updates the plugin the acknowledgement stops applying and the violation returns. `sha256:unknown` is
 # never honoured.
 #
-# This file is the ONLY source — there is no separate user-owned list. The checker reads it from next to
+# This file is the ONLY source — there is no second, operator-edited list. The checker reads it from next to
 # itself: system/config/ in the repo (validate, bootstrap), and the deployed copy ~/.claude/config/ (the
 # session-start hook, /brana:plugin add) which every bootstrap overwrites from this file and `bootstrap
 # --check` reports drift on. It is never read from the repo of the current session (a hostile clone must
