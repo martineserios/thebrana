@@ -536,7 +536,7 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
   `status`, `description` and `type` are read from the top level and from the `metadata:` block:
   the top level wins for `status` and `description`, `metadata.type` wins for `type`. A status
   that says superseded in any shape (`[superseded]`, a tagged value) counts.
-- **Assumption (needs confirmation):** a slug-only supersedes target (`to: x`) from a note that
+- **Decision (confirmed 2026-10-15):** a slug-only supersedes target (`to: x`) from a note that
   is not itself a twin of `x` replaces every note of that type and slug, including the only or
   newest dated one. When the superseding note is itself a twin of the slug (a new version
   superseding its older ones), the newest dated twin stays.
