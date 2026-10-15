@@ -34,7 +34,7 @@ exit 0
 EOS
 chmod +x "$SHIM/claude"
 newhome() { H="$(mktemp -d "$T/home.XXXXXX")"; mkdir -p "$H/.claude/plugins"; : > "$H/argv.log"; }
-seed_installed() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"x","version":"%s"}]}}\n' "$1" > "$H/.claude/plugins/installed_plugins.json"; }
+seed_installed() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"/nonexistent/brana-test-plugin","version":"%s"}]}}\n' "$1" > "$H/.claude/plugins/installed_plugins.json"; }
 boot() { # boot --check [withclaude|noclaude] — the full script, dry run
     local mode="$1" cl="${2:-withclaude}" p="$NOCLAUDE_PATH"
     [ "$cl" = withclaude ] && p="$SHIM:$p"
@@ -161,7 +161,7 @@ echo "--- 7i installed-mods guard (t-3493: a mod in the plugin cache that calls 
 FN2="$(awk '/^mods_installed_guard\(\) \{/{f=1} f{print} f&&/^\}/{f=0}' "$ROOT/bootstrap.sh")"
 assert "mods_installed_guard extracts from bootstrap.sh" yes "$(has 'mods_installed_guard()' "$FN2")"
 BILL="$ROOT/tests/fixtures/mods/captures/t-3493-model-billing/mod"
-seed_billing() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"x","version":"0.1.0"}],"probe@other":[{"scope":"user","installPath":"%s","version":"1.0.0"}]}}\n' "$BILL" > "$H/.claude/plugins/installed_plugins.json"; }
+seed_billing() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"/nonexistent/brana-test-plugin","version":"0.1.0"}],"probe@other":[{"scope":"user","installPath":"%s","version":"1.0.0"}]}}\n' "$BILL" > "$H/.claude/plugins/installed_plugins.json"; }
 newhome; seed_billing; rc="$(boot --check noclaude)"
 assert "--check: an installed mod calling \$.model -> exits non-zero" yes "$( [ "$rc" != 0 ] && echo yes || echo no)"
 assert "...naming the mod" yes "$(has 'probe@other' "$(out)")"

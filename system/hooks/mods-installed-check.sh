@@ -9,6 +9,10 @@
 # `claude plugin validate`, no engine, ~100 ms), so a mod installed after the last bootstrap
 # is reported by the next session.
 #
+# Silent by design on exit 0: an acknowledged plugin and a skipped engine half (this hook only ever runs the STATIC half —
+# it is blind to engine-refused mods and to anything only the engine's calls: listing sees) are said by validate and bootstrap,
+# not repeated at every session start (t-3505).
+#
 # Advisory by design (ADR-096 Law 4 — safety stays in shell hooks that PREVENT; this one only
 # reports, a gauge not a valve): one additionalContext warning line, exit 0 always, never a
 # block. The remedy stays the registry's [77c]: uninstall, then re-run validate.
@@ -36,7 +40,11 @@
 # stdin is deliberately never read: nothing here depends on the payload.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+# The registry is rooted at the hook's OWN location when it sits in a config dir (deployed: ~/.claude/hooks → ~/.claude), not at
+# an env var: a project's settings env block reaches hook processes and could point CLAUDE_CONFIG_DIR at an empty directory to
+# silence the scan (t-3505). From a checkout (system/hooks) there is no sibling plugins/, so the env/default applies.
+if [ -f "$SCRIPT_DIR/../plugins/installed_plugins.json" ]; then CLAUDE_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+else CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; fi
 
 # Nothing installed: nothing to scan, nothing to say. A USER-owned file
 # `$CLAUDE_DIR/mods-installed-check.skip` silences this gauge (challenger: a flagged-but-accepted
