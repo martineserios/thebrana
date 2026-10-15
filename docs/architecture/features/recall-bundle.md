@@ -407,13 +407,23 @@ t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshne
   One transaction; nothing is written when nothing is stale.
 - **Unreadable note (decision 2026-10-15):** skipped; its previous row stays as it was and it is
   counted in `unreadable`. Every other change still lands.
-- **Budget and locks:** the refresh checks its budget before each note and waits for a lock no
-  longer than the remaining budget. Over budget, locked, or any write error: roll back, keep the
-  stale index, report the reason. It never returns an error and never blocks the bundle.
+- **Budget and locks:** the stale count is always taken (stats only, no write lock). Then, in one
+  transaction, notes are read and written one by one while the budget lasts; the lock wait is
+  the remaining budget. Over budget: what was written commits and the rest waits for the next
+  call (`outcome: stale/timeout`, `refreshed_notes` < `stale_notes`). The first note always goes
+  through, so a backlog larger than one budget converges over calls instead of rolling back
+  forever; each note is written whole, so partial progress leaves a consistent index. A zero
+  budget checks and writes nothing. Locked longer than the budget, or any write error: roll back,
+  keep the stale index, report the reason. It never returns an error.
+- **Measured 2026-10-15** (copy of the live index, 402 in-scope notes, release build): first
+  refresh of an index from the deployed binary 224 ms (1.33 s before deleting FTS rows by rowid:
+  `path` is UNINDEXED, so a delete by path scans the table); a fresh check ~7 ms;
+  `unembedded_count` ~215 ms.
 - **Who calls it (decision 2026-10-15):** the bundle only (t-3537). Plain recall and MCP stay
   read-only.
-- **Report fields:** `index_age_s` (since `refreshed_at`; absent for an index built before this
-  change), `stale_notes`, `deleted_notes`, `unreadable`, `outcome` (`fresh | refreshed | stale`
+- **Report fields** (as the check found the index, before any refresh): `index_age_s` (since
+  `refreshed_at`; absent for an index built before this change), `stale_notes`, `deleted_notes`,
+  `unreadable`, `refreshed_notes`, `outcome` (`fresh | refreshed | stale`
   plus a reason). `unembedded` comes from `memory_vectors::unembedded_count`: in-scope notes with
   no vector row, a row without the current `EMBED_VERSION` tag, or a row older than the file.
 - **Indexes from older binaries** have no `memory_files`: the first refresh treats every in-scope

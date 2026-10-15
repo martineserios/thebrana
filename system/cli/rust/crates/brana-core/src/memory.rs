@@ -785,10 +785,6 @@ fn refresh_inner(
         rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )
     .map_err(|_| StaleReason::Error)?;
-    let wait = |conn: &Connection| -> std::result::Result<(), StaleReason> {
-        let left = remaining().ok_or(StaleReason::Timeout)?;
-        conn.busy_timeout(left).map_err(|e| stale_reason(&e))
-    };
     // The check itself (a few stats and reads, no write lock) always runs, so
     // staleness is reported even when the budget is already spent; the budget
     // gates note reads, lock waits and the write.
@@ -872,45 +868,68 @@ fn refresh_inner(
     if stale.is_empty() && deleted.is_empty() {
         return Ok(FreshnessOutcome::Fresh);
     }
-
-    // Read the stale notes before taking the write lock. An unreadable note is
-    // skipped and keeps its previous row (decision 2026-10-15): a failed read is
-    // never indexed as empty text and never drops the note.
-    let mut docs: Vec<(MemoryFileRef, (i64, i64), String)> = Vec::with_capacity(stale.len());
-    for (f, state) in stale {
-        remaining().ok_or(StaleReason::Timeout)?;
-        match fs::read_to_string(&f.path) {
-            Ok(content) => docs.push((f, state, content)),
-            Err(_) => report.unreadable += 1,
-        }
-    }
-    if docs.is_empty() && deleted.is_empty() {
-        return Err(StaleReason::Unreadable);
+    if budget.is_zero() {
+        return Err(StaleReason::Timeout); // a zero budget checks and writes nothing
     }
 
-    // ── Write phase: one IMMEDIATE transaction, lock wait bounded by the budget ──
-    wait(&conn)?;
+    // ── Write phase: one IMMEDIATE transaction; the lock wait is whatever budget
+    // is left (none left = take the lock only if it is free right now) ──
+    conn.busy_timeout(remaining().unwrap_or_default()).map_err(|e| stale_reason(&e))?;
     let tx = conn
         .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
         .map_err(|e| stale_reason(&e))?;
-    let write = |tx: &rusqlite::Transaction| -> rusqlite::Result<()> {
+    let mut timed_out = false;
+    let mut written = 0usize;
+    let mut write = |tx: &rusqlite::Transaction| -> rusqlite::Result<()> {
         tx.execute_batch(FILE_STATE_SCHEMA)?;
-        let mut drop_fts = tx.prepare("DELETE FROM memory_fts WHERE path = ?1")?;
+        // `path` is UNINDEXED in FTS5, so `DELETE … WHERE path = ?` scans the whole
+        // table per note; look every rowid up in one scan instead.
+        let mut rowids: HashMap<String, Vec<i64>> = HashMap::new();
+        {
+            let mut stmt = tx.prepare("SELECT rowid, path FROM memory_fts")?;
+            let rows = stmt.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+            for row in rows {
+                let (rowid, path) = row?;
+                rowids.entry(path).or_default().push(rowid);
+            }
+        }
+        let mut drop_row = tx.prepare("DELETE FROM memory_fts WHERE rowid = ?1")?;
         let mut drop_state = tx.prepare("DELETE FROM memory_files WHERE path = ?1")?;
         let mut insert = tx.prepare(
             "INSERT INTO memory_fts (slug, mtype, scope, path, content) VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
         let mut record =
             tx.prepare("INSERT OR REPLACE INTO memory_files (path, mtime_ns, size) VALUES (?1, ?2, ?3)")?;
-        for (f, (mtime_ns, size), content) in &docs {
+
+        for path in &deleted {
+            for rowid in rowids.get(path).into_iter().flatten() {
+                drop_row.execute([rowid])?;
+            }
+            drop_state.execute([path])?;
+        }
+        // Read and write note by note inside the budget. The first note always
+        // goes through: every call makes progress, so a backlog larger than one
+        // budget (an old index's first refresh, a bulk import) converges over
+        // calls instead of rolling back forever. Each written note is complete,
+        // so partial progress leaves a consistent index. An unreadable note is
+        // skipped and keeps its previous row (decision 2026-10-15): a failed read
+        // is never indexed as empty text and never drops the note.
+        for (i, (f, (mtime_ns, size))) in stale.iter().enumerate() {
+            if i > 0 && started.elapsed() >= budget {
+                timed_out = true;
+                break;
+            }
+            let Ok(content) = fs::read_to_string(&f.path) else {
+                report.unreadable += 1;
+                continue;
+            };
             let path = f.path.to_string_lossy();
-            drop_fts.execute([path.as_ref()])?;
+            for rowid in rowids.get(path.as_ref()).into_iter().flatten() {
+                drop_row.execute([rowid])?;
+            }
             insert.execute(rusqlite::params![f.slug, f.mtype, f.scope, path, content])?;
             record.execute(rusqlite::params![path, mtime_ns, size])?;
-        }
-        for path in &deleted {
-            drop_fts.execute([path])?;
-            drop_state.execute([path])?;
+            written += 1;
         }
         tx.execute(
             "INSERT OR REPLACE INTO memory_meta (key, value) VALUES ('refreshed_at', ?1)",
@@ -918,9 +937,16 @@ fn refresh_inner(
         )?;
         Ok(())
     };
-    write(&tx).map_err(|e| stale_reason(&e))?;
-    remaining().ok_or(StaleReason::Timeout)?; // dropping `tx` rolls back
+    write(&tx).map_err(|e| stale_reason(&e))?; // an error drops `tx`: rolled back
+    if written == 0 && deleted.is_empty() {
+        // Nothing but unreadable notes (or no time for any): leave the index as it was.
+        return Err(if timed_out { StaleReason::Timeout } else { StaleReason::Unreadable });
+    }
     tx.commit().map_err(|e| stale_reason(&e))?;
+    report.refreshed_notes = written;
+    if timed_out {
+        return Err(StaleReason::Timeout); // progress committed; the rest next call
+    }
     Ok(FreshnessOutcome::Refreshed)
 }
 
