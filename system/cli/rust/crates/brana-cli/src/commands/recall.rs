@@ -67,8 +67,12 @@ const BUNDLE_UNEMBEDDED_WAIT: std::time::Duration = std::time::Duration::from_mi
 pub fn cmd_recall_bundle(task_id: &str, json: bool, db: Option<String>, shadow: bool) -> Result<()> {
     use brana_core::recall_bundle::{BundleEnv, BundleTask, compute_bundle, format_human};
 
+    // A task that cannot be found is no bundle worth logging: its row would be noise, and a
+    // shown one would wait for an outcome nobody can give.
+    let mut task_known = true;
     let task = load_bundle_task(task_id).unwrap_or_else(|why| {
         eprintln!("recall --bundle: {why}; returning an empty bundle");
+        task_known = false;
         BundleTask { id: task_id.to_string(), subject: String::new(), tags: Vec::new() }
     });
 
@@ -98,7 +102,9 @@ pub fn cmd_recall_bundle(task_id: &str, json: bool, db: Option<String>, shadow: 
 
     let mut bundle = compute_bundle(&task, &env);
     bundle.shown = !shadow;
-    log_offered(&bundle, session_root.as_deref());
+    if task_known {
+        log_offered(&bundle, session_root.as_deref());
+    }
     // Say which legs degraded (a healthy bundle is silent); the legs are also in the output.
     let degraded: Vec<String> = [("fts", bundle.legs.fts), ("vector", bundle.legs.vector)]
         .into_iter()
@@ -143,6 +149,10 @@ fn log_offered(bundle: &brana_core::recall_bundle::Bundle, session_root: Option<
         },
         chrono::Utc::now(),
     );
+    let Some(row) = row else {
+        eprintln!("recall --bundle: {:?} is not a task id; the offered row was not logged", bundle.task);
+        return;
+    };
     let [path, _] = usage_log::log_paths(&brana_core::util::session_store_root(), root);
     if let Err(e) = usage_log::append(&path, &row) {
         eprintln!("recall --bundle: could not log the offered row: {e}");

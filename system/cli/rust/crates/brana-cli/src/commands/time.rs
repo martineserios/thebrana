@@ -326,3 +326,35 @@ pub fn cmd_close(task_id: &str, partial: bool) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod usage_log_tests {
+    use super::*;
+
+    /// The recall usage log sits in `<project>/brana/`, below the transcript folder's top level.
+    /// The real picker must still return the transcript after a log append (t-3517).
+    #[test]
+    fn a_usage_log_append_does_not_change_the_newest_transcript_pick() {
+        let dir = tempfile::tempdir().unwrap();
+        let proj = dir.path().join("-home-u-proj");
+        std::fs::create_dir_all(&proj).unwrap();
+        std::fs::write(proj.join("sess.jsonl"), "{}\n").unwrap();
+        let ptrs = [];
+        let row = brana_core::usage_log::offered_row(
+            &brana_core::usage_log::Offered {
+                task: "t-1",
+                shown: false,
+                fts: "ok",
+                vector: "ok",
+                elapsed_ms: 0,
+                pointers: &ptrs,
+                freshness: serde_json::json!({}),
+                session: None,
+            },
+            chrono::Utc::now(),
+        )
+        .unwrap();
+        brana_core::usage_log::append(&proj.join("brana").join(brana_core::usage_log::LOG_FILE), &row).unwrap();
+        assert_eq!(newest_jsonl_in(&proj), Some(proj.join("sess.jsonl")));
+    }
+}

@@ -715,8 +715,10 @@ Rows hold ids only (note names, types, ranks, flags, leg states, counts): no que
 gists, no note bodies. The file sits in a `brana/` subfolder so transcript scanners do not see it,
 and it is never backed up or synced.
 
-- **Outcome** (`--used`, `--ignored`, `--no-answer`): binds to the latest unresolved offered row of
-  the task. Refs are comma-separated note names and must be among that row's pointers (anything
+- **Task id:** must look like a task id (`t-123`); anything else is refused and never written.
+- **Outcome** (`--used`, `--ignored`, `--no-answer`): binds to the task's latest *shown* offered
+  row (the one `--check` watches); a bundle that was not shown is never answered, and answering
+  twice fails. Refs are comma-separated note names and must be among that row's pointers (anything
   else is rejected and nothing is written). `--used ""` records "used none". `opened` is derived
   from the session transcript captured at LOAD, or `unavailable`; it is advisory only.
 - **`--check`:** exit 2 if the latest *shown* offered row of the task has no outcome, else 0. The

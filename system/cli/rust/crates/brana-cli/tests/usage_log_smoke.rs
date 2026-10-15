@@ -105,7 +105,7 @@ fn shadow_appends_one_offered_row_and_prints_nothing() {
 #[test]
 fn rows_carry_ids_only_never_query_text_or_gists() {
     let fx = Fx::new();
-    assert!(fx.bundle("t-2", true).status.success());
+    assert!(fx.bundle("t-2", false).status.success());
     let text = std::fs::read_to_string(fx.log()).unwrap();
     assert!(!text.contains(SENTINEL), "the task subject (the query) reached the log: {text}");
     assert!(!text.contains("GISTONE") && !text.contains("GISTTWO"), "a gist reached the log: {text}");
@@ -135,13 +135,28 @@ fn a_degraded_bundle_still_logs_its_row_with_the_leg_marked() {
 }
 
 #[test]
-fn an_unknown_task_and_a_missing_index_still_log_an_empty_row_and_exit_zero() {
+fn an_unknown_task_or_free_text_writes_no_row_and_exits_zero() {
     let fx = Fx::new();
-    let out = fx.bundle("t-404", true);
+    assert!(fx.bundle("t-404", true).status.success());
+    let secret = "my secret query about acme invoices";
+    let out = fx.bundle(secret, true);
     assert!(out.status.success());
-    let rows = fx.rows();
-    assert_eq!(rows.len(), 1);
-    assert_eq!(rows[0]["pointers"].as_array().unwrap().len(), 0);
+    assert!(!fx.log().exists(), "no row for a task that is not in the backlog: {:?}", fx.rows());
+    let used = fx.usage(&[secret, "--no-answer"]);
+    assert_eq!(used.status.code(), Some(1));
+    assert!(!fx.log().exists());
+}
+
+#[test]
+fn a_shadow_row_appended_after_a_shown_one_does_not_take_the_answer() {
+    let fx = Fx::new();
+    assert!(fx.bundle("t-1", false).status.success());
+    assert!(fx.bundle("t-1", true).status.success());
+    assert_eq!(fx.usage(&["t-1", "--check"]).status.code(), Some(2));
+    let out = fx.usage(&["t-1", "--used", "pattern_scraping-tips"]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert_eq!(fx.usage(&["t-1", "--check"]).status.code(), Some(0));
+    assert_eq!(fx.usage(&["t-1", "--no-answer"]).status.code(), Some(1), "already answered");
 }
 
 #[test]

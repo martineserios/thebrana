@@ -101,7 +101,7 @@ Best-effort and never blocks the build — a non-zero exit (e.g. a bracket alrea
    Merge results, rank by similarity. Results span: knowledge (dimension docs, ADRs, feature briefs, reflections — all indexed here), pattern (past session learnings).
 
    **Shadow bundle** (task_id known only; ADR-099, t-3517): in the same message, also run
-   `Bash("brana recall --bundle {task_id} --shadow 2>/dev/null || true")`. It computes the typed
+   `Bash("timeout 15 brana recall --bundle '{task_id}' --shadow 2>/dev/null || true")`. It computes the typed
    bundle, appends one ids-only `offered` row (`shown: false`) to the project's recall-usage log
    and prints **nothing**. Do not read, show or act on it, and ask no outcome at CLOSE: shadow
    rows exist so `brana memory usage --report` and the offline scorer can measure the bundle

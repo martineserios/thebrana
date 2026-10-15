@@ -201,6 +201,9 @@ pub fn cmd_memory_usage(
         if json {
             println!("{}", serde_json::to_string(&r)?);
         } else {
+            if r.offered == 0 && r.outcomes == 0 {
+                println!("no rows yet (the log is written by `brana recall --bundle`; an older installed brana has no --shadow)");
+            }
             println!("offered {} (shown {}, shadow {}) over {} task(s)", r.offered, r.shown, r.shadow, r.tasks);
             println!("outcomes {}; shown bundles without one {}", r.outcomes, r.unresolved_shown);
             println!("bundle size mean {:.1}, max {}; empty bundles {}", r.bundle_size_mean, r.bundle_size_max, r.empty_bundles);
@@ -246,13 +249,13 @@ pub fn cmd_memory_usage(
     };
     let projects: Vec<PathBuf> =
         paths.iter().filter_map(|p| p.parent().and_then(|d| d.parent()).map(PathBuf::from)).collect();
-    let row = usage_log::outcome_row(
-        &read.rows,
+    let row = usage_log::record_outcome(
+        &paths,
         task,
         &answer,
         |offered| {
             let refs = usage_log::offered_refs(offered);
-            let stem = offered["session"].as_str().filter(|s| !s.is_empty());
+            let stem = offered["session"].as_str().map(usage_log::safe_stem).filter(|s| !s.is_empty());
             match stem.and_then(|stem| {
                 projects.iter().find_map(|d| usage_log::opened_in_transcript(&d.join(format!("{stem}.jsonl")), &refs))
             }) {
@@ -263,7 +266,6 @@ pub fn cmd_memory_usage(
         chrono::Utc::now(),
     )
     .map_err(|e| anyhow::anyhow!(e))?;
-    usage_log::append(&paths[0], &row).map_err(|e| anyhow::anyhow!(e))?;
     println!("recorded {} for {task}", row["answer"].as_str().unwrap_or("outcome"));
     Ok(0)
 }
