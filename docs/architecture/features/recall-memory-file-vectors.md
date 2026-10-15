@@ -112,7 +112,7 @@ confirmed these defects in the first version; all are fixed with tests:
 Not fixed here, tracked elsewhere: purely numeric text cannot be embedded through
 the ruflo CLI (the t-3522 spike may remove the CLI transport); `memory store --value` text is
 not shielded (t-3532); concurrent `embed-memory` runs (t-3511
-scheduling); per-project scoping of recall results (ADR-099, t-3516).
+scheduling); per-project scoping of recall results (ADR-099; `recall_provider` takes a `RecallScope` since t-3535, `brana recall --scope project`).
 
 ## Out of scope
 

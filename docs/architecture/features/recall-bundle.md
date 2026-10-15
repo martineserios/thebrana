@@ -348,6 +348,24 @@ spec conflict, this section and ADR-099 win.
 - **Encoders:** the copies in `brana time`, `handoff.rs` and `session.rs` are consolidated into
   `brana-core`. The log is written under the current encoding, and `--check` reads both encodings.
 
+## Slice A delivered (t-3535, 2026-10-15)
+
+t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshness), t-3537
+(the bundle). Slice A landed these interfaces for the bundle to use:
+
+- **Per-leg status:** `SearchProvider::try_query` returns `Err` when a leg cannot search
+  (missing index or store, no query embedding, store read error).
+  `HybridProvider::query_with_status` returns the hits plus
+  `HybridStatus { keyword, semantic, extras }` of `LegStatus` (`ok | empty | timeout | error`).
+  A leg whose thread dies is `error` and does not wait out the deadline. `query()` is unchanged.
+- **Scope is a provider parameter:** `recall_provider(fts, knowledge, embedder, RecallScope)`.
+  The bundle passes `RecallScope::current_project()`; plain `brana recall` and MCP pass `All`
+  (decision 2026-10-15: no change to plain recall's default; `brana recall --scope project`
+  opts in). The keyword leg filters in SQL and the memory-vector leg filters before scoring,
+  so out-of-scope notes never take top-k slots. An unresolvable project narrows to global only.
+- **Encoders:** `brana_core::util::encode_project_dir` / `encode_project_dir_legacy` are the
+  only copies; `session.rs`, `handoff.rs` and `brana time` call them.
+
 ## Index freshness (amendment 2026-10-14, ADR-099 §4a)
 
 - **Gap:** `index.db` is rebuilt weekly (scheduler `reindex-patterns`, Sunday) as a full
