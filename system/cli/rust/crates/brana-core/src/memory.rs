@@ -555,6 +555,12 @@ pub fn list_memory_listing(dirs: &[(String, PathBuf)]) -> MemoryListing {
         }
         paths.retain(|p| p.extension().map(|e| e == "md").unwrap_or(false));
         paths.retain(|p| p.file_name().map(|n| n != "MEMORY.md").unwrap_or(true));
+        // Only files are notes (a symlink counts if it points at one). A folder
+        // named `x.md` is not an unreadable note: counting it as one made the strict
+        // rebuild abort and kept freshness from ever dropping the old row (t-3536).
+        // A path whose type cannot be checked stays in, so the failure surfaces as
+        // an unreadable note instead of the note silently vanishing.
+        paths.retain(|p| fs::metadata(p).map(|m| m.is_file()).unwrap_or(true));
         paths.sort();
         for path in paths {
             let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
@@ -600,11 +606,16 @@ pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<us
     }
     // Read every file before touching the index: an unreadable note aborts the
     // rebuild instead of being indexed as empty text (t-3510 gate, iteration 2).
+    // The file's state is taken before its text, so a write in between shows up as
+    // stale on the next freshness refresh rather than being missed (t-3536).
     let mut docs = Vec::with_capacity(listing.files.len());
     for f in listing.files {
+        let state = file_state(&f.path)
+            .map(|st| recorded_state(st, now_ns()))
+            .with_context(|| format!("memory reindex: checking {} (index left unchanged)", f.path.display()))?;
         let content = fs::read_to_string(&f.path)
             .with_context(|| format!("memory reindex: reading {} (index left unchanged)", f.path.display()))?;
-        docs.push((f, content));
+        docs.push((f, state, content));
     }
 
     let mut conn = Connection::open(db_path)
@@ -618,29 +629,397 @@ pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<us
         "DROP TABLE IF EXISTS memory_fts;
          CREATE VIRTUAL TABLE memory_fts USING fts5(
              slug, mtype, scope, path UNINDEXED, content
-         );",
+         );
+         DROP TABLE IF EXISTS memory_files;",
     )
     .context("creating memory_fts table")?;
+    tx.execute_batch(FILE_STATE_SCHEMA).context("creating file-state tables")?;
     {
         let mut insert = tx.prepare(
             "INSERT INTO memory_fts (slug, mtype, scope, path, content)
              VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
+        let mut record = tx.prepare(
+            "INSERT OR REPLACE INTO memory_files (path, mtime_ns, size) VALUES (?1, ?2, ?3)",
+        )?;
 
-        for (f, content) in docs {
+        for (f, (mtime_ns, size), content) in docs {
+            let path = f.path.to_string_lossy();
             // Content read verbatim — bound parameter, no escaping needed.
-            insert.execute(rusqlite::params![
-                f.slug,
-                f.mtype,
-                f.scope,
-                f.path.to_string_lossy(),
-                content,
-            ])?;
+            insert.execute(rusqlite::params![f.slug, f.mtype, f.scope, path, content])?;
+            record.execute(rusqlite::params![path, mtime_ns, size])?;
             count += 1;
         }
     }
+    stamp_refreshed_at(&tx)?;
     tx.commit()?;
     Ok(count)
+}
+
+// ── Index freshness (t-3536, ADR-099 §4a) ─────────────────────────────────────
+
+/// Per-file state recorded alongside `memory_fts`, and the last refresh time.
+const FILE_STATE_SCHEMA: &str = "
+    CREATE TABLE IF NOT EXISTS memory_files (
+        path     TEXT PRIMARY KEY,
+        mtime_ns INTEGER NOT NULL,
+        size     INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS memory_meta (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );";
+
+/// `(mtime in ns since the epoch, size in bytes)` — what freshness compares.
+fn file_state(path: &Path) -> std::io::Result<(i64, i64)> {
+    let meta = fs::metadata(path)?;
+    let mtime_ns = meta
+        .modified()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as i64)
+        .unwrap_or(0);
+    Ok((mtime_ns, meta.len() as i64))
+}
+
+/// Notes modified this close to the moment their state is recorded are recorded
+/// as suspect: a same-size rewrite inside the same filesystem clock tick would
+/// otherwise look unchanged ("racily clean"; git handles it the same way).
+const RACY_WINDOW_NS: i64 = 2_000_000_000;
+
+fn now_ns() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as i64)
+        .unwrap_or(0)
+}
+
+/// The state to record for a note whose `state` was taken at `taken_ns`. A suspect
+/// note is recorded with mtime 0, which never matches a real stat, so the next
+/// check re-reads it once; by then its mtime is old enough to record as is.
+fn recorded_state((mtime_ns, size): (i64, i64), taken_ns: i64) -> (i64, i64) {
+    // Two-sided: a future mtime (clock skew, `touch -d`, a restore) cannot be shared
+    // by a later rewrite, so it is recorded as is rather than re-read forever.
+    if (mtime_ns - taken_ns).abs() < RACY_WINDOW_NS {
+        (0, size)
+    } else {
+        (mtime_ns, size)
+    }
+}
+
+fn unix_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+fn stamp_refreshed_at(conn: &Connection) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO memory_meta (key, value) VALUES ('refreshed_at', ?1)",
+        [unix_now().to_string()],
+    )
+    .context("recording index refresh time")?;
+    Ok(())
+}
+
+/// What a freshness check found and did. Never an error: a refresh that cannot
+/// finish leaves the index as it was and says why (ADR-099 §4a fail-open).
+///
+/// The counts and `index_age_s` describe the index as the check found it, before
+/// any refresh; `outcome` says whether the refresh brought it up to date.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct FreshnessReport {
+    /// Seconds since the index was last built or refreshed; `None` for an index
+    /// built before refresh times were recorded.
+    pub index_age_s: Option<u64>,
+    /// In-scope notes that were new or changed since the index last saw them.
+    pub stale_notes: usize,
+    /// Indexed in-scope notes whose file is gone.
+    pub deleted_notes: usize,
+    /// Stale notes that could not be read: skipped, their previous row kept.
+    pub unreadable: usize,
+    /// Stale notes this call re-indexed. Less than `stale_notes` when the budget
+    /// ran out first: the rest wait for the next call.
+    pub refreshed_notes: usize,
+    pub outcome: FreshnessOutcome,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase", tag = "state", content = "reason")]
+pub enum FreshnessOutcome {
+    /// Nothing was stale; nothing was written.
+    Fresh,
+    /// Changes were written (unreadable notes, if any, kept their old rows).
+    Refreshed,
+    /// The index was left as it was.
+    Stale(StaleReason),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum StaleReason {
+    /// The budget ran out before the refresh could commit.
+    Timeout,
+    /// Another writer held the index longer than the remaining budget.
+    Busy,
+    /// Every stale note was unreadable, so there was nothing to write.
+    Unreadable,
+    /// The index is missing or could not be read or written.
+    Error,
+}
+
+fn stale_reason(e: &rusqlite::Error) -> StaleReason {
+    match e.sqlite_error_code() {
+        Some(rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked) => StaleReason::Busy,
+        _ => StaleReason::Error,
+    }
+}
+
+/// Bring the FTS index up to date for the notes in `dirs` before a bundle query
+/// (t-3536, ADR-099 §4a). Only notes whose recorded mtime or size differ (or that
+/// the index has never seen) are re-read; rows whose file is gone are dropped,
+/// but only under folders that listed completely. One transaction, written only
+/// when something changed. `budget` bounds the whole call, lock waits included;
+/// over budget or locked, it rolls back and reports the index as stale.
+pub fn refresh_fts_dirs(
+    dirs: &[(String, PathBuf)],
+    db_path: &Path,
+    budget: std::time::Duration,
+) -> FreshnessReport {
+    let mut report = FreshnessReport {
+        index_age_s: None,
+        stale_notes: 0,
+        deleted_notes: 0,
+        unreadable: 0,
+        refreshed_notes: 0,
+        outcome: FreshnessOutcome::Fresh,
+    };
+    report.outcome = match refresh_inner(dirs, db_path, budget, &mut report) {
+        Ok(outcome) => outcome,
+        Err(reason) => FreshnessOutcome::Stale(reason),
+    };
+    report
+}
+
+fn refresh_inner(
+    dirs: &[(String, PathBuf)],
+    db_path: &Path,
+    budget: std::time::Duration,
+    report: &mut FreshnessReport,
+) -> std::result::Result<FreshnessOutcome, StaleReason> {
+    /// Lock wait allowed for the commit even when the budget is spent, so written
+    /// notes are not thrown away while a reader finishes. Bounds the overrun.
+    const COMMIT_GRACE: std::time::Duration = std::time::Duration::from_millis(200);
+
+    let started = std::time::Instant::now();
+    let remaining = || budget.saturating_sub(started.elapsed());
+    // `busy_timeout` is per lock wait, not a deadline: re-arm it from the
+    // remaining budget before every statement so the waits add up to the budget.
+    let arm = |conn: &Connection| conn.busy_timeout(remaining()).map_err(|e| stale_reason(&e));
+
+    // No CREATE flag: a refresh never builds an index from nothing (that is
+    // `brana memory reindex`), and never leaves an empty file behind.
+    let mut conn = Connection::open_with_flags(
+        db_path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(|_| StaleReason::Error)?;
+
+    // ── Check phase: stats and reads, no write lock. Always runs, so staleness is
+    // reported even when the budget is already spent. ──
+    let has_table = |conn: &Connection, name: &str| -> std::result::Result<bool, StaleReason> {
+        arm(conn)?;
+        conn.query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
+            [name],
+            |r| r.get::<_, i64>(0),
+        )
+        .map(|n| n > 0)
+        .map_err(|e| stale_reason(&e))
+    };
+    if !has_table(&conn, "memory_fts")? {
+        return Err(StaleReason::Error);
+    }
+    let has_state = has_table(&conn, "memory_files")?;
+    if has_table(&conn, "memory_meta")? {
+        arm(&conn)?;
+        let at: Option<String> = conn
+            .query_row("SELECT value FROM memory_meta WHERE key = 'refreshed_at'", [], |r| r.get(0))
+            .map(Some)
+            .or_else(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => Ok(None),
+                e => Err(stale_reason(&e)),
+            })?;
+        report.index_age_s = at
+            .and_then(|v| v.parse::<i64>().ok())
+            .map(|t| (unix_now() - t).max(0) as u64);
+    }
+    let mut known: HashMap<String, (i64, i64)> = HashMap::new();
+    if has_state {
+        arm(&conn)?;
+        let mut stmt = conn
+            .prepare("SELECT path, mtime_ns, size FROM memory_files")
+            .map_err(|e| stale_reason(&e))?;
+        let rows = stmt
+            .query_map([], |r| Ok((r.get::<_, String>(0)?, (r.get::<_, i64>(1)?, r.get::<_, i64>(2)?))))
+            .map_err(|e| stale_reason(&e))?;
+        for row in rows {
+            let (path, state) = row.map_err(|e| stale_reason(&e))?;
+            known.insert(path, state);
+        }
+    }
+
+    let listing = list_memory_listing(dirs);
+    let taken_ns = now_ns();
+    // Each path once, even when a folder is listed twice.
+    let mut listed: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut stale: Vec<(MemoryFileRef, (i64, i64))> = Vec::new();
+    for f in listing.files {
+        let path = f.path.to_string_lossy().into_owned();
+        if !listed.insert(path.clone()) {
+            continue;
+        }
+        let Ok(state) = file_state(&f.path) else {
+            // Vanished since the listing: left to the next check. Still there but
+            // impossible to stat (a dangling symlink): reported, never ignored.
+            if fs::symlink_metadata(&f.path).is_ok() {
+                report.unreadable += 1;
+            }
+            continue;
+        };
+        if known.get(&path) != Some(&state) {
+            stale.push((f, recorded_state(state, taken_ns)));
+        }
+    }
+
+    // Deleted: an indexed row directly inside a folder that listed completely
+    // whose path is no longer a listed note — the full rebuild's own rule, so a
+    // path taken over by something that is not a note counts too. A missing or
+    // unlistable folder prunes nothing.
+    let mut deleted: Vec<String> = Vec::new();
+    for dir in &listing.complete_dirs {
+        let prefix = format!("{}/", dir.to_string_lossy().trim_end_matches('/'));
+        arm(&conn)?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT path FROM memory_fts
+                 WHERE substr(path, 1, length(?1)) = ?1 AND instr(substr(path, length(?1) + 1), '/') = 0",
+            )
+            .map_err(|e| stale_reason(&e))?;
+        let rows = stmt
+            .query_map([&prefix], |r| r.get::<_, String>(0))
+            .map_err(|e| stale_reason(&e))?;
+        for row in rows {
+            let path = row.map_err(|e| stale_reason(&e))?;
+            // Not listed AND confirmed: gone, or no longer a file. A path a racing
+            // directory read missed, or one that cannot be checked, is kept.
+            let not_a_note = match fs::metadata(&path) {
+                Ok(m) => !m.is_file(),
+                Err(e) => e.kind() == std::io::ErrorKind::NotFound,
+            };
+            if !listed.contains(&path) && not_a_note && !deleted.contains(&path) {
+                deleted.push(path);
+            }
+        }
+    }
+
+    report.stale_notes = stale.len();
+    report.deleted_notes = deleted.len();
+    if stale.is_empty() && deleted.is_empty() {
+        return Ok(FreshnessOutcome::Fresh);
+    }
+    if budget.is_zero() {
+        return Err(StaleReason::Timeout); // a zero budget checks and writes nothing
+    }
+
+    // Read the stale notes before the write lock, so the transaction does no
+    // file I/O and a note that stays unreadable (permissions, not UTF-8) never
+    // makes a refresh lock the index for nothing. It is skipped and keeps its
+    // previous row (decision 2026-10-15): a failed read is never indexed as empty
+    // text and never drops the note. Reading stops at the budget, except that the
+    // first readable note is always read: every call makes progress, so a backlog
+    // larger than one budget (an old index's first refresh, a bulk import)
+    // converges over calls instead of rolling back forever.
+    let mut timed_out = false;
+    let mut docs: Vec<(MemoryFileRef, (i64, i64), String)> = Vec::with_capacity(stale.len());
+    for (f, state) in stale {
+        if !docs.is_empty() && started.elapsed() >= budget {
+            timed_out = true;
+            break;
+        }
+        match fs::read_to_string(&f.path) {
+            Ok(content) => docs.push((f, state, content)),
+            Err(_) => report.unreadable += 1,
+        }
+    }
+    if docs.is_empty() && deleted.is_empty() {
+        return Err(if timed_out { StaleReason::Timeout } else { StaleReason::Unreadable });
+    }
+
+    // ── Write phase: one IMMEDIATE transaction ──
+    arm(&conn)?;
+    let tx = conn
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .map_err(|e| stale_reason(&e))?;
+    let mut written = 0usize;
+    let mut write = |tx: &rusqlite::Transaction| -> rusqlite::Result<()> {
+        tx.execute_batch(FILE_STATE_SCHEMA)?;
+        // `path` is UNINDEXED in FTS5, so `DELETE … WHERE path = ?` scans the whole
+        // table per note; look every rowid up in one scan, inside the lock.
+        let mut rowids: HashMap<String, Vec<i64>> = HashMap::new();
+        {
+            let mut stmt = tx.prepare("SELECT rowid, path FROM memory_fts")?;
+            let rows = stmt.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+            for row in rows {
+                let (rowid, path) = row?;
+                rowids.entry(path).or_default().push(rowid);
+            }
+        }
+        let mut drop_row = tx.prepare("DELETE FROM memory_fts WHERE rowid = ?1")?;
+        let mut drop_state = tx.prepare("DELETE FROM memory_files WHERE path = ?1")?;
+        let mut insert = tx.prepare(
+            "INSERT INTO memory_fts (slug, mtype, scope, path, content) VALUES (?1, ?2, ?3, ?4, ?5)",
+        )?;
+        let mut record =
+            tx.prepare("INSERT OR REPLACE INTO memory_files (path, mtime_ns, size) VALUES (?1, ?2, ?3)")?;
+
+        for path in &deleted {
+            for rowid in rowids.remove(path).into_iter().flatten() {
+                drop_row.execute([rowid])?;
+            }
+            drop_state.execute([path])?;
+        }
+        // Note by note while the budget lasts, the first always. Each note is
+        // written whole, so partial progress leaves a consistent index.
+        for (f, (mtime_ns, size), content) in &docs {
+            if written > 0 && started.elapsed() >= budget {
+                timed_out = true;
+                break;
+            }
+            let path = f.path.to_string_lossy().into_owned();
+            for rowid in rowids.remove(&path).into_iter().flatten() {
+                drop_row.execute([rowid])?;
+            }
+            insert.execute(rusqlite::params![f.slug, f.mtype, f.scope, path, content])?;
+            rowids.insert(path.clone(), vec![tx.last_insert_rowid()]);
+            record.execute(rusqlite::params![path, mtime_ns, size])?;
+            written += 1;
+        }
+        tx.execute(
+            "INSERT OR REPLACE INTO memory_meta (key, value) VALUES ('refreshed_at', ?1)",
+            [unix_now().to_string()],
+        )?;
+        Ok(())
+    };
+    // An error drops `tx`: the whole refresh rolls back.
+    write(&tx).map_err(|e| stale_reason(&e))?;
+    tx.busy_timeout(remaining().max(COMMIT_GRACE)).map_err(|e| stale_reason(&e))?;
+    tx.commit().map_err(|e| stale_reason(&e))?;
+    report.refreshed_notes = written;
+    if timed_out {
+        return Err(StaleReason::Timeout); // progress committed; the rest next call
+    }
+    Ok(FreshnessOutcome::Refreshed)
 }
 
 /// Full-text search the embedded index, returning up to `limit` hits ranked by
@@ -1106,5 +1485,509 @@ mod identity_tests {
 
         assert!(res.is_err(), "a project whose memory dir cannot be checked must not vanish silently");
         assert_eq!(memory_dirs_in(tmp.path()).unwrap().len(), 2, "global + p1; p2 has no memory dir");
+    }
+}
+
+#[cfg(test)]
+mod freshness_tests {
+    //! Index freshness at bundle time (t-3536, ADR-099 §4a).
+    use super::*;
+    use std::fs;
+    use std::time::{Duration, SystemTime};
+    use tempfile::{tempdir, TempDir};
+
+    const BUDGET: Duration = Duration::from_secs(5);
+
+    /// Root ignores mode bits, so permission tests are vacuous as root.
+    fn running_as_root() -> bool {
+        unsafe extern "C" {
+            fn geteuid() -> u32;
+        }
+        unsafe { geteuid() == 0 }
+    }
+
+    fn set_mode(p: &Path, mode: u32) {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(p, fs::Permissions::from_mode(mode)).unwrap();
+    }
+
+    /// Set a file's mtime relative to now (negative = in the past).
+    fn set_mtime(p: &Path, offset_s: i64) {
+        let now = SystemTime::now();
+        let t = if offset_s >= 0 {
+            now + Duration::from_secs(offset_s as u64)
+        } else {
+            now - Duration::from_secs((-offset_s) as u64)
+        };
+        fs::File::options().write(true).open(p).unwrap().set_modified(t).unwrap();
+    }
+
+    struct Fx {
+        _tmp: TempDir,
+        dir: PathBuf,
+        db: PathBuf,
+        dirs: Vec<(String, PathBuf)>,
+    }
+
+    /// One indexed note, `pattern_old.md` ("old alpha"), built by the full rebuild.
+    fn fx() -> Fx {
+        let tmp = tempdir().unwrap();
+        let dir = tmp.path().join("memory");
+        fs::create_dir_all(&dir).unwrap();
+        write_note(&dir.join("pattern_old.md"), "old alpha");
+        let db = tmp.path().join("index.db");
+        let dirs = vec![("global".to_string(), dir.clone())];
+        reindex_fts_dirs(&dirs, &db).unwrap();
+        Fx { _tmp: tmp, dir, db, dirs }
+    }
+
+    /// Write a note dated a minute ago, outside the racily-clean window.
+    fn write_note(p: &Path, body: &str) {
+        fs::write(p, body).unwrap();
+        set_mtime(p, -60);
+    }
+
+    fn found(db: &Path, q: &str) -> Vec<String> {
+        let mut out: Vec<String> = search_fts(db, q, 10).unwrap().into_iter().map(|h| h.slug).collect();
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn a_note_written_after_the_index_build_is_found_after_refresh() {
+        // Must-fire: without the refresh the new note is invisible.
+        let f = fx();
+        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+        assert!(found(&f.db, "zebra").is_empty(), "fixture: not indexed yet");
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.stale_notes, 1);
+        assert_eq!(r.outcome, FreshnessOutcome::Refreshed);
+        assert_eq!(found(&f.db, "zebra"), vec!["new"]);
+        assert_eq!(found(&f.db, "alpha"), vec!["old"], "untouched notes stay");
+    }
+
+    #[test]
+    fn a_new_note_with_an_old_mtime_is_still_picked_up() {
+        let f = fx();
+        let p = f.dir.join("pattern_copied.md");
+        fs::write(&p, "zebra copied in").unwrap();
+        set_mtime(&p, -365 * 24 * 3600);
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.stale_notes, 1);
+        assert_eq!(found(&f.db, "zebra"), vec!["copied"]);
+    }
+
+    #[test]
+    fn an_edited_note_is_reindexed_with_its_new_text() {
+        let f = fx();
+        let p = f.dir.join("pattern_old.md");
+        fs::write(&p, "old beta").unwrap();
+        set_mtime(&p, 10);
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.stale_notes, 1);
+        assert_eq!(found(&f.db, "beta"), vec!["old"]);
+        assert!(found(&f.db, "alpha").is_empty(), "the old text is replaced, not duplicated");
+    }
+
+    #[test]
+    fn a_deleted_note_is_dropped() {
+        let f = fx();
+        fs::remove_file(f.dir.join("pattern_old.md")).unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.deleted_notes, 1);
+        assert_eq!(r.outcome, FreshnessOutcome::Refreshed);
+        assert!(found(&f.db, "alpha").is_empty());
+    }
+
+    #[test]
+    fn a_fresh_index_is_not_written() {
+        let f = fx();
+        let before = fs::metadata(&f.db).unwrap().modified().unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Fresh);
+        assert_eq!((r.stale_notes, r.deleted_notes, r.unreadable), (0, 0, 0));
+        assert!(r.index_age_s.is_some_and(|a| a < 60), "built moments ago: {:?}", r.index_age_s);
+        assert_eq!(fs::metadata(&f.db).unwrap().modified().unwrap(), before);
+    }
+
+    #[test]
+    fn over_budget_rolls_back_and_keeps_the_stale_index() {
+        let f = fx();
+        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::ZERO);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Timeout));
+        assert_eq!(r.stale_notes, 1, "staleness is still reported");
+        assert!(found(&f.db, "zebra").is_empty());
+        assert_eq!(found(&f.db, "alpha"), vec!["old"]);
+    }
+
+    #[test]
+    fn a_locked_index_falls_back_to_stale_within_the_budget() {
+        let f = fx();
+        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+        let lock = Connection::open(&f.db).unwrap();
+        lock.execute_batch("BEGIN EXCLUSIVE").unwrap();
+
+        let started = std::time::Instant::now();
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_millis(300));
+        let waited = started.elapsed();
+        lock.execute_batch("ROLLBACK").unwrap();
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Busy));
+        // Every statement re-arms its lock wait from the remaining budget, so the
+        // call as a whole stays near the budget, not a multiple of it.
+        assert!(waited < Duration::from_millis(800), "waited {waited:?}, budget was 300 ms");
+        assert_eq!(found(&f.db, "alpha"), vec!["old"]);
+    }
+
+    #[test]
+    fn an_unreadable_note_keeps_its_old_row_and_other_changes_land() {
+        if running_as_root() {
+            return;
+        }
+        let f = fx();
+        let old = f.dir.join("pattern_old.md");
+        fs::write(&old, "old beta").unwrap();
+        set_mtime(&old, 10);
+        set_mode(&old, 0o000);
+        write_note(&f.dir.join("pattern_new.md"), "zebra crossing");
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+        set_mode(&old, 0o644);
+
+        assert_eq!(r.unreadable, 1);
+        assert_eq!(r.outcome, FreshnessOutcome::Refreshed);
+        assert_eq!(found(&f.db, "zebra"), vec!["new"]);
+        assert_eq!(found(&f.db, "alpha"), vec!["old"], "never emptied or dropped");
+        assert!(found(&f.db, "beta").is_empty());
+
+        // Readable again: the next refresh picks the edit up.
+        let again = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+        assert_eq!(again.stale_notes, 1);
+        assert_eq!(found(&f.db, "beta"), vec!["old"]);
+    }
+
+    #[test]
+    fn a_folder_that_cannot_be_listed_keeps_its_rows() {
+        if running_as_root() {
+            return;
+        }
+        let f = fx();
+        let other = f._tmp.path().join("project-memory");
+        fs::create_dir_all(&other).unwrap();
+        fs::write(other.join("pattern_gamma.md"), "gamma ray").unwrap();
+        let dirs = vec![f.dirs[0].clone(), ("project".to_string(), other.clone())];
+        reindex_fts_dirs(&dirs, &f.db).unwrap();
+
+        set_mode(&other, 0o000);
+        let r = refresh_fts_dirs(&dirs, &f.db, BUDGET);
+        set_mode(&other, 0o755);
+
+        assert_eq!(r.deleted_notes, 0);
+        assert_eq!(found(&f.db, "gamma"), vec!["gamma"]);
+    }
+
+    #[test]
+    fn a_missing_folder_keeps_its_rows() {
+        let f = fx();
+        let other = f._tmp.path().join("project-memory");
+        fs::create_dir_all(&other).unwrap();
+        fs::write(other.join("pattern_gamma.md"), "gamma ray").unwrap();
+        let dirs = vec![f.dirs[0].clone(), ("project".to_string(), other.clone())];
+        reindex_fts_dirs(&dirs, &f.db).unwrap();
+        fs::rename(&other, f._tmp.path().join("moved-away")).unwrap();
+
+        let r = refresh_fts_dirs(&dirs, &f.db, BUDGET);
+
+        assert_eq!(r.deleted_notes, 0, "a vanished folder (unmounted, moved) prunes nothing");
+        assert_eq!(found(&f.db, "gamma"), vec!["gamma"]);
+    }
+
+    #[test]
+    fn an_index_from_an_older_build_is_refreshed_once() {
+        let f = fx();
+        // An older binary's index: memory_fts only, no file-state tables.
+        Connection::open(&f.db)
+            .unwrap()
+            .execute_batch("DROP TABLE IF EXISTS memory_files; DROP TABLE IF EXISTS memory_meta;")
+            .unwrap();
+
+        let first = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+        let second = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(first.index_age_s, None, "no build time recorded yet");
+        assert_eq!((first.stale_notes, first.outcome.clone()), (1, FreshnessOutcome::Refreshed));
+        assert_eq!(second.outcome, FreshnessOutcome::Fresh);
+        assert_eq!(found(&f.db, "alpha"), vec!["old"], "re-indexed once, not duplicated");
+    }
+
+    #[test]
+    fn a_backlog_larger_than_the_budget_converges_over_calls() {
+        // Must-fire: an all-or-nothing refresh that times out never catches up
+        // (measured 2026-10-15: a 402-note first refresh took 1.6 s).
+        let f = fx();
+        for i in 0..60 {
+            write_note(&f.dir.join(format!("pattern_bulk-{i}.md")), &format!("bulk note {i}"));
+        }
+        let tiny = Duration::from_nanos(1);
+
+        let first = refresh_fts_dirs(&f.dirs, &f.db, tiny);
+        assert_eq!(first.outcome, FreshnessOutcome::Stale(StaleReason::Timeout));
+        assert!(first.refreshed_notes >= 1, "every non-zero budget makes progress");
+
+        let mut calls = 1;
+        while refresh_fts_dirs(&f.dirs, &f.db, tiny).outcome != FreshnessOutcome::Fresh {
+            calls += 1;
+            assert!(calls <= 61, "did not converge");
+        }
+        assert_eq!(search_fts(&f.db, "bulk", 100).unwrap().len(), 60);
+    }
+
+    #[test]
+    fn a_completed_refresh_reports_how_many_notes_it_wrote() {
+        let f = fx();
+        fs::write(f.dir.join("pattern_new.md"), "zebra crossing").unwrap();
+        fs::remove_file(f.dir.join("pattern_old.md")).unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!((r.refreshed_notes, r.deleted_notes, r.outcome), (1, 1, FreshnessOutcome::Refreshed));
+    }
+
+    #[test]
+    fn a_note_replaced_by_a_non_note_is_dropped_even_though_its_path_exists() {
+        // Second variant of "deleted": the path still exists but is no longer a
+        // note (here a folder took its name), so "file gone" never fires; the
+        // listing — the rebuild's own rule — decides.
+        let f = fx();
+        fs::remove_file(f.dir.join("pattern_old.md")).unwrap();
+        fs::create_dir(f.dir.join("pattern_old.md")).unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.deleted_notes, 1);
+        assert!(found(&f.db, "alpha").is_empty());
+    }
+
+    #[test]
+    fn an_unreadable_first_note_does_not_block_progress() {
+        if running_as_root() {
+            return;
+        }
+        let f = fx();
+        let stuck = f.dir.join("pattern_aaa-stuck.md");
+        write_note(&stuck, "stuck");
+        set_mode(&stuck, 0o000);
+        write_note(&f.dir.join("pattern_zzz-new.md"), "zebra crossing");
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_nanos(1));
+        set_mode(&stuck, 0o644);
+
+        assert_eq!(r.refreshed_notes, 1, "the first readable note always goes through: {r:?}");
+        assert_eq!(found(&f.db, "zebra"), vec!["zzz-new"]);
+    }
+
+    #[test]
+    fn only_unreadable_changes_take_no_write_lock() {
+        if running_as_root() {
+            return;
+        }
+        let f = fx();
+        let stuck = f.dir.join("pattern_stuck.md");
+        write_note(&stuck, "stuck");
+        set_mode(&stuck, 0o000);
+        // A writer holds the reserved lock: a refresh that tried to write would
+        // report Busy; one that knows it has nothing to write never asks.
+        let other = Connection::open(&f.db).unwrap();
+        other.execute_batch("BEGIN IMMEDIATE").unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_millis(200));
+        other.execute_batch("ROLLBACK").unwrap();
+        set_mode(&stuck, 0o644);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Unreadable));
+        assert_eq!(r.unreadable, 1);
+    }
+
+    #[test]
+    fn a_write_error_rolls_the_whole_refresh_back() {
+        let f = fx();
+        // The failing note sorts last, so an earlier note is already written when
+        // the error hits: only a whole-transaction rollback leaves nothing behind.
+        write_note(&f.dir.join("pattern_fine.md"), "zebra crossing");
+        write_note(&f.dir.join("pattern_zboom.md"), "zebra boom");
+        let c = Connection::open(&f.db).unwrap();
+        c.execute_batch(
+            "CREATE TRIGGER boom BEFORE INSERT ON memory_files WHEN NEW.path LIKE '%boom%'
+             BEGIN SELECT RAISE(ABORT, 'boom'); END;",
+        )
+        .unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Error));
+        assert_eq!(r.refreshed_notes, 0);
+        assert!(found(&f.db, "zebra").is_empty(), "nothing from a failed refresh commits");
+        assert_eq!(found(&f.db, "alpha"), vec!["old"]);
+    }
+
+    #[test]
+    fn a_folder_listed_twice_does_not_duplicate_rows() {
+        let f = fx();
+        write_note(&f.dir.join("pattern_new.md"), "zebra crossing");
+        let twice = vec![f.dirs[0].clone(), ("project".to_string(), f.dir.clone())];
+
+        refresh_fts_dirs(&twice, &f.db, BUDGET);
+
+        assert_eq!(search_fts(&f.db, "zebra", 10).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_same_size_rewrite_in_the_same_clock_tick_is_not_missed() {
+        // Racily clean: the state recorded for a note modified moments before it
+        // was recorded cannot prove a later same-size rewrite in the same tick is
+        // different, so such a note is re-read on the next check.
+        let f = fx();
+        let p = f.dir.join("pattern_quick.md");
+        fs::write(&p, "first word").unwrap();
+        let tick = fs::metadata(&p).unwrap().modified().unwrap();
+        refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        fs::write(&p, "other word").unwrap(); // same size
+        fs::File::options().write(true).open(&p).unwrap().set_modified(tick).unwrap();
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.stale_notes, 1);
+        assert_eq!(found(&f.db, "other"), vec!["quick"]);
+    }
+
+    #[test]
+    fn a_folder_named_like_a_note_is_not_a_note_and_does_not_break_the_rebuild() {
+        let f = fx();
+        fs::create_dir(f.dir.join("pattern_folder.md")).unwrap();
+
+        let listing = list_memory_listing(&f.dirs);
+        assert!(listing.files.iter().all(|x| !x.path.ends_with("pattern_folder.md")));
+        assert!(reindex_fts_dirs(&f.dirs, &f.db).is_ok(), "a folder is not an unreadable note");
+    }
+
+    #[test]
+    fn a_missing_index_is_reported_stale_and_never_created() {
+        let f = fx();
+        let missing = f._tmp.path().join("no-index.db");
+
+        let r = refresh_fts_dirs(&f.dirs, &missing, BUDGET);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Error));
+        assert!(!missing.exists());
+    }
+
+    #[test]
+    fn a_writer_blocking_only_the_write_phase_falls_back_within_the_budget() {
+        // RESERVED lets readers in, so the check phase runs and the wait happens
+        // at BEGIN IMMEDIATE.
+        let f = fx();
+        write_note(&f.dir.join("pattern_new.md"), "zebra crossing");
+        let other = Connection::open(&f.db).unwrap();
+        other.execute_batch("BEGIN IMMEDIATE").unwrap();
+
+        let started = std::time::Instant::now();
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_millis(300));
+        let waited = started.elapsed();
+        other.execute_batch("ROLLBACK").unwrap();
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Busy));
+        assert_eq!(r.stale_notes, 1, "the check phase ran");
+        assert!(waited < Duration::from_millis(800), "waited {waited:?}, budget was 300 ms");
+        assert!(found(&f.db, "zebra").is_empty());
+    }
+
+    #[test]
+    fn a_note_that_is_not_text_keeps_its_old_row_without_permission_tricks() {
+        // Root-independent unreadable note: invalid UTF-8 fails read_to_string.
+        let f = fx();
+        let old = f.dir.join("pattern_old.md");
+        fs::write(&old, [0xff_u8, 0xfe, 0xfd]).unwrap();
+        set_mtime(&old, -30);
+        write_note(&f.dir.join("pattern_new.md"), "zebra crossing");
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!((r.unreadable, r.outcome), (1, FreshnessOutcome::Refreshed));
+        assert_eq!(found(&f.db, "alpha"), vec!["old"], "old row kept");
+        assert_eq!(found(&f.db, "zebra"), vec!["new"]);
+    }
+
+    #[test]
+    fn a_note_that_is_not_text_never_takes_the_write_lock() {
+        // Root-independent twin of the permission case: invalid UTF-8 opens fine but
+        // fails to read; it must be found before the lock, or every call would lock
+        // the index, scan it and roll back.
+        let f = fx();
+        let bad = f.dir.join("pattern_cp1252.md");
+        fs::write(&bad, [0x63_u8, 0x61, 0x66, 0xe9]).unwrap();
+        set_mtime(&bad, -60);
+        let other = Connection::open(&f.db).unwrap();
+        other.execute_batch("BEGIN IMMEDIATE").unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_millis(200));
+        other.execute_batch("ROLLBACK").unwrap();
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Unreadable));
+        assert_eq!(r.unreadable, 1);
+    }
+
+    #[test]
+    fn a_future_dated_note_settles_instead_of_being_rewritten_forever() {
+        // Clock skew, `touch -d`, a restore: a later rewrite cannot share a future
+        // tick, so it is recorded as is and the next check is fresh.
+        let f = fx();
+        let p = f.dir.join("pattern_future.md");
+        fs::write(&p, "from the future").unwrap();
+        set_mtime(&p, 3600);
+
+        refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+        let again = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(again.outcome, FreshnessOutcome::Fresh);
+    }
+
+    #[test]
+    fn the_rebuild_records_a_just_written_note_as_suspect() {
+        // Must-fire for the rebuild side of racily clean: a note written moments
+        // before the rebuild is re-read on the next check.
+        let f = fx();
+        let p = f.dir.join("pattern_quick.md");
+        fs::write(&p, "first word").unwrap();
+        let tick = fs::metadata(&p).unwrap().modified().unwrap();
+        reindex_fts_dirs(&f.dirs, &f.db).unwrap();
+
+        fs::write(&p, "other word").unwrap(); // same size, same tick
+        fs::File::options().write(true).open(&p).unwrap().set_modified(tick).unwrap();
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(found(&f.db, "other"), vec!["quick"], "{r:?}");
+    }
+
+    #[test]
+    fn a_dangling_symlink_is_reported_unreadable_not_ignored() {
+        let f = fx();
+        std::os::unix::fs::symlink(f.dir.join("gone-target.md"), f.dir.join("pattern_link.md")).unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!(r.unreadable, 1, "{r:?}");
     }
 }

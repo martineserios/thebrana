@@ -47,6 +47,55 @@ pub fn memory_row_key(path: &Path) -> String {
     format!("{KEY_PREFIX}{}", path.to_string_lossy())
 }
 
+/// Whether a stored memory-file row still matches the file: same text and the
+/// current [`EMBED_VERSION`] tag. The one rule shared by [`embed_memory_files`]
+/// (skip as `unchanged`) and [`unembedded_count`], so they cannot disagree.
+fn row_is_current(stored: &str, tags: Option<&str>, content: &str) -> bool {
+    stored == content && parse_tags(tags.unwrap_or("")).iter().any(|t| t == EMBED_VERSION)
+}
+
+/// How many of `files` lack a current vector by the embedder's own rule
+/// ([`row_is_current`]): no row, a row with other text, or an old version tag. A
+/// missing store means nothing is embedded; an unreadable file counts as not
+/// embedded (it cannot be confirmed). `lock_wait` bounds each wait for the store
+/// (t-3536, the bundle's `unembedded` field).
+pub fn unembedded_count(
+    knowledge_db: &Path,
+    files: &[crate::memory::MemoryFileRef],
+    lock_wait: std::time::Duration,
+) -> Result<usize> {
+    use anyhow::Context as _;
+    if !knowledge_db.exists() {
+        return Ok(files.len());
+    }
+    let conn = rusqlite::Connection::open_with_flags(
+        knowledge_db,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .with_context(|| format!("opening vector store {}", knowledge_db.display()))?;
+    conn.busy_timeout(lock_wait)?;
+    let mut stmt = conn.prepare("SELECT key, content, tags FROM knowledge WHERE source = ?1")?;
+    let rows = stmt.query_map([MEMORY_SOURCE], |r| {
+        Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<String>>(2)?))
+    })?;
+    let mut rows_by_key: std::collections::HashMap<String, (String, Option<String>)> =
+        std::collections::HashMap::new();
+    for row in rows {
+        let (key, content, tags) = row?;
+        rows_by_key.insert(key, (content, tags));
+    }
+    let mut seen: HashSet<&Path> = HashSet::new();
+    Ok(files
+        .iter()
+        .filter(|f| seen.insert(f.path.as_path())) // a folder listed twice counts once
+        .filter(|f| match rows_by_key.get(&memory_row_key(&f.path)) {
+            Some((stored, tags)) => std::fs::read_to_string(&f.path)
+                .map_or(true, |content| !row_is_current(stored, tags.as_deref(), &content)),
+            None => true,
+        })
+        .count())
+}
+
 /// The file path a memory-file row key points at.
 pub fn memory_row_path(key: &str) -> Option<PathBuf> {
     key.strip_prefix(KEY_PREFIX).map(PathBuf::from)
@@ -91,8 +140,7 @@ pub fn embed_memory_files(
         };
         if !force {
             if let Some((stored, tags)) = store.content_and_tags_of(&key)? {
-                let current = parse_tags(tags.as_deref().unwrap_or("")).iter().any(|t| t == EMBED_VERSION);
-                if stored == content && current {
+                if row_is_current(&stored, tags.as_deref(), &content) {
                     stats.unchanged += 1;
                     continue;
                 }
@@ -904,5 +952,47 @@ mod tests {
         let hits = crate::vector::recall_provider(&fts, &db, Arc::new(Fake::new()), scope).query("scraping", 10);
 
         assert_eq!(slugs(&hits), vec!["mine-scraping", "shared-scraping"]);
+    }
+
+    // ── t-3536: unembedded count for the bundle's freshness fields ───────────
+
+    #[test]
+    fn unembedded_counts_notes_without_a_current_vector() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        put(&f, "pattern_pricing.md", "pricing notes");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+        let files = |f: &Fixture| list_memory_listing(&dirs(f)).files;
+
+        let wait = std::time::Duration::from_millis(200);
+        let set_mtime = |p: &std::path::Path, offset_s: i64| {
+            let now = std::time::SystemTime::now();
+            let t = if offset_s >= 0 {
+                now + std::time::Duration::from_secs(offset_s as u64)
+            } else {
+                now - std::time::Duration::from_secs((-offset_s) as u64)
+            };
+            fs::File::options().write(true).open(p).unwrap().set_modified(t).unwrap();
+        };
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 0);
+
+        put(&f, "pattern_new.md", "not embedded yet");
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 1, "no vector row");
+
+        // Same rule as the embedder: content and version tag, not mtime.
+        let pricing = f.mem.join("pattern_pricing.md");
+        set_mtime(&pricing, 60);
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 1, "touched, same text: current");
+
+        put(&f, "pattern_pricing.md", "pricing notes, edited");
+        set_mtime(&pricing, -3600);
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 2, "edited with an old mtime: stale");
+
+        assert_eq!(
+            unembedded_count(&f.mem.join("no-store.db"), &files(&f), wait).unwrap(),
+            3,
+            "no store: nothing is embedded"
+        );
     }
 }
