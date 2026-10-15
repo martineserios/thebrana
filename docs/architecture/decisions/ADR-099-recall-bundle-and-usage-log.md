@@ -55,6 +55,9 @@ sessions, and adds it as pointers.
      the dual project-dir encoding already used by `brana time`. No new encoder is added.
    - Other projects' and clients' notes never appear, and archived notes (`archive*/`) stay out.
      A must-fire test proves an other-client note is excluded.
+   - This scope is the bundle's. Plain `brana recall` and MCP `recall` keep every project by
+     default; the scope is a `recall_provider` parameter and `brana recall --scope project`
+     opts in (decision 2026-10-15, t-3535).
    - Candidates without a file path and scope (knowledge-store rows from links and feeds) are left
      out of the bundle in v1, because their project cannot be checked. They still reach LOAD
      through plain `brana recall`. The memory-file vector leg comes from t-3510, which blocks

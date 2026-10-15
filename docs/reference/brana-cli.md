@@ -648,6 +648,28 @@ it never contends with the drain cron's whole-invocation `lock_pipeline()`.
 
 ---
 
+## brana recall
+
+```
+brana recall <query> [--top N] [--json] [--db PATH] [--scope all|project]
+```
+
+Hybrid recall (ADR-058): keyword search over the curated memory notes, semantic
+search over the knowledge store, and a semantic list of memory notes (t-3510),
+fused with reciprocal rank fusion. CLI and the MCP `recall` tool build the same
+provider (`brana_core::vector::recall_provider`).
+
+- **`--scope all`** (default): memory notes from every project folder.
+- **`--scope project`**: only notes directly in this project's memory folder
+  (resolved from the main checkout, so every worktree gets the same project,
+  both folder-name encodings) and in global `~/.claude/memory`. Sub-folders such
+  as `archive/` are out. If the project cannot be resolved, only global memory
+  is searched. Knowledge-store entries are not filtered. The filter runs inside
+  each search, before the top-N cut (t-3535).
+- MCP `recall` always uses `all`.
+
+---
+
 ## brana knowledge embed-memory
 
 ```

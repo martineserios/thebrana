@@ -1,9 +1,17 @@
 use anyhow::Result;
-use brana_core::search::{DocRef, SearchProvider};
+use brana_core::search::{DocRef, RecallScope, SearchProvider};
 use brana_core::vector::RufloEmbedder;
 use std::sync::Arc;
 
-pub fn cmd_recall(query: &str, top_k: usize, json: bool, db: Option<String>) -> Result<()> {
+use crate::cli::RecallScopeArg;
+
+pub fn cmd_recall(
+    query: &str,
+    top_k: usize,
+    json: bool,
+    db: Option<String>,
+    scope: RecallScopeArg,
+) -> Result<()> {
     let db_path = db
         .map(std::path::PathBuf::from)
         .unwrap_or_else(brana_core::memory::fts_index_path);
@@ -16,6 +24,10 @@ pub fn cmd_recall(query: &str, top_k: usize, json: bool, db: Option<String>) -> 
         db_path,
         brana_core::vector::knowledge_db_path(),
         Arc::new(RufloEmbedder),
+        match scope {
+            RecallScopeArg::All => RecallScope::All,
+            RecallScopeArg::Project => RecallScope::current_project(),
+        },
     );
 
     let hits = provider.query(query, top_k);
