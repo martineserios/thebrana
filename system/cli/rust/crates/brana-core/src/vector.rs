@@ -691,15 +691,18 @@ impl SearchProvider for VectorProvider {
                 r.get::<_, Option<String>>(4)?,
             ))
         });
-        // A row that fails to read is a store error, not a non-match.
-        let rows = rows
-            .context("reading vector store")?
-            .collect::<rusqlite::Result<Vec<_>>>()
-            .context("reading vector store row")?;
-
+        // Streamed, as before t-3535: one unreadable row is skipped, not the whole
+        // leg. Only a store whose every row fails to read is an error, because then
+        // "nothing matched" would be a lie.
+        let (mut seen, mut unreadable) = (0usize, 0usize);
         let mut scored: Vec<(f32, String, String, Option<String>, Option<String>)> = rows
-            .into_iter()
-            .filter_map(|(key, content, blob, tags, source)| {
+            .context("reading vector store")?
+            .filter_map(|row| {
+                seen += 1;
+                let Ok((key, content, blob, tags, source)) = row else {
+                    unreadable += 1;
+                    return None;
+                };
                 let is_memory = source.as_deref() == Some(crate::memory_vectors::MEMORY_SOURCE);
                 match self.memory_scope {
                     MemoryScope::Exclude if is_memory => return None,
@@ -726,6 +729,9 @@ impl SearchProvider for VectorProvider {
                 Some((score, key, content, tags, source))
             })
             .collect();
+        if seen > 0 && unreadable == seen {
+            bail!("vector store: none of its {seen} rows could be read");
+        }
         scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
         scored.truncate(top_k);
 

@@ -666,11 +666,15 @@ pub fn search_fts_in(
     if match_query.is_empty() || dirs.is_some_and(|d| d.is_empty()) {
         return Ok(Vec::new());
     }
-    if !db_path.exists() {
-        bail!("FTS index missing: {} (run `brana memory reindex`)", db_path.display());
-    }
-    let conn = Connection::open(db_path)
-        .with_context(|| format!("opening FTS index db: {}", db_path.display()))?;
+    // Read-only: a search never creates the index file or writes to it (journal
+    // recovery included), whatever happens to the file between calls.
+    let conn = Connection::open_with_flags(
+        db_path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .with_context(|| {
+        format!("opening FTS index {} (missing? run `brana memory reindex`)", db_path.display())
+    })?;
 
     // Each dir is bound as `<dir>/`: the path must start with it and hold no
     // further `/` after it.

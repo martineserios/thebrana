@@ -364,7 +364,16 @@ t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshne
   opts in). The keyword leg filters in SQL and the memory-vector leg filters before scoring,
   so out-of-scope notes never take top-k slots. An unresolvable project narrows to global only.
 - **Encoders:** `brana_core::util::encode_project_dir` / `encode_project_dir_legacy` are the
-  only copies; `session.rs`, `handoff.rs` and `brana time` call them.
+  only copies; `session.rs`, `handoff.rs` and `brana time` call them. They fold `/` and `_`
+  and keep `.`, which matches the folder names on disk (checked 2026-10-15: `.` and `_` are the
+  only characters other than letters, digits and `-` in `~/.claude/projects`).
+- **Boundary — worktree-keyed folders:** Claude Code also keys folders by a session's own cwd,
+  so a session started inside a worktree writes to `<main-checkout-encoding>-<suffix>/memory`.
+  These are out of `Project` scope. Checked 2026-10-15: 161 such folders exist for this repo and
+  none holds a note (only `MEMORY.md` indexes, which recall skips). Revisit if notes appear there.
+- **Failure semantics:** the vector leg skips a row it cannot read and is `error` only when no
+  row can be read; the keyword leg opens the index read-only, so a missing index is `error` and
+  is never created by a search.
 
 ## Index freshness (amendment 2026-10-14, ADR-099 §4a)
 

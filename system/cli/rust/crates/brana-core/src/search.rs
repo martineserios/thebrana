@@ -249,6 +249,9 @@ impl SearchProvider for RufloProvider {
 /// Duplication is intentional: `brana-core` cannot depend on `brana-cli`.
 ///
 /// Expected element shape: `{"key": "...", "value": "...", "score": 0.0}`
+// Lenient form kept for the parser contract tests; production goes through
+// `parse_ruflo_hits`, which reports unparsable output as an error.
+#[cfg(test)]
 fn parse_ruflo_json(raw: &str, namespace: &str) -> Vec<SearchHit> {
     parse_ruflo_hits(raw, namespace).unwrap_or_default()
 }
@@ -380,6 +383,9 @@ impl HybridProvider {
         let (tx_fts5,  rx_fts5)  = mpsc::channel();
         let (tx_ruflo, rx_ruflo) = mpsc::channel();
 
+        // Budgets run from dispatch: the clock starts before the first leg spawns.
+        let start = Instant::now();
+
         thread::spawn(move || { let _ = tx_fts5.send(fts5.try_query(&q_fts5, fetch)); });
         thread::spawn(move || { let _ = tx_ruflo.send(ruflo.try_query(&q_ruflo, fetch)); });
 
@@ -398,7 +404,6 @@ impl HybridProvider {
 
         // Ruflo budget starts from dispatch, not from when FTS5 returns.
         // Worst-case wall-clock = RUFLO_DEADLINE.
-        let start = Instant::now();
         let (fts5_results, keyword) = leg_outcome(rx_fts5.recv_timeout(fts5_dl));
         let ruflo_budget = ruflo_dl.saturating_sub(start.elapsed());
         let (ruflo_results, semantic) = leg_outcome(rx_ruflo.recv_timeout(ruflo_budget));
