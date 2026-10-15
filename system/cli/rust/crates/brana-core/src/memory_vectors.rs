@@ -47,6 +47,45 @@ pub fn memory_row_key(path: &Path) -> String {
     format!("{KEY_PREFIX}{}", path.to_string_lossy())
 }
 
+/// How many of `files` have no current vector: no row, a row without the current
+/// [`EMBED_VERSION`] tag, or a row older than the file (t-3536, the bundle's
+/// `unembedded` field). A missing store means nothing is embedded.
+pub fn unembedded_count(knowledge_db: &Path, files: &[crate::memory::MemoryFileRef]) -> Result<usize> {
+    use anyhow::Context as _;
+    if !knowledge_db.exists() {
+        return Ok(files.len());
+    }
+    let conn = rusqlite::Connection::open_with_flags(
+        knowledge_db,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .with_context(|| format!("opening vector store {}", knowledge_db.display()))?;
+    let mut stmt = conn.prepare("SELECT key, tags, created_at FROM knowledge WHERE source = ?1")?;
+    let rows = stmt.query_map([MEMORY_SOURCE], |r| {
+        Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?, r.get::<_, i64>(2)?))
+    })?;
+    let mut rows_by_key: std::collections::HashMap<String, (bool, i64)> = std::collections::HashMap::new();
+    for row in rows {
+        let (key, tags, created_at) = row?;
+        let current = parse_tags(tags.as_deref().unwrap_or("")).iter().any(|t| t == EMBED_VERSION);
+        rows_by_key.insert(key, (current, created_at));
+    }
+    Ok(files
+        .iter()
+        .filter(|f| {
+            let modified_ms = std::fs::metadata(&f.path)
+                .and_then(|m| m.modified())
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_millis() as i64);
+            match rows_by_key.get(&memory_row_key(&f.path)) {
+                Some((true, created_at)) => modified_ms.is_none_or(|m| m > *created_at),
+                _ => true,
+            }
+        })
+        .count())
+}
+
 /// The file path a memory-file row key points at.
 pub fn memory_row_path(key: &str) -> Option<PathBuf> {
     key.strip_prefix(KEY_PREFIX).map(PathBuf::from)

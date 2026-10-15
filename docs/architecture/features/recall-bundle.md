@@ -419,8 +419,10 @@ t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshne
 - **Indexes from older binaries** have no `memory_files`: the first refresh treats every in-scope
   note as stale and re-indexes it once. Deleted-note detection reads `memory_fts` paths, so it
   works on old indexes too.
-- **Lock waits elsewhere:** the full rebuild waits up to 5 s for a lock; the keyword search leg
-  waits up to 200 ms, inside its 500 ms deadline.
+- **Lock waits elsewhere:** the full rebuild and the keyword search keep rusqlite's default 5 s
+  lock wait (a refresh holds the lock for milliseconds; the search leg's 500 ms deadline already
+  bounds what recall waits). Only the refresh shortens its wait, to the remaining budget, because
+  the default would overrun it.
 
 ## Challenger findings
 

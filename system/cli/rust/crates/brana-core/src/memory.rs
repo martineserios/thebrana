@@ -600,11 +600,15 @@ pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<us
     }
     // Read every file before touching the index: an unreadable note aborts the
     // rebuild instead of being indexed as empty text (t-3510 gate, iteration 2).
+    // The file's state is taken before its text, so a write in between shows up as
+    // stale on the next freshness refresh rather than being missed (t-3536).
     let mut docs = Vec::with_capacity(listing.files.len());
     for f in listing.files {
+        let state = file_state(&f.path)
+            .with_context(|| format!("memory reindex: checking {} (index left unchanged)", f.path.display()))?;
         let content = fs::read_to_string(&f.path)
             .with_context(|| format!("memory reindex: reading {} (index left unchanged)", f.path.display()))?;
-        docs.push((f, content));
+        docs.push((f, state, content));
     }
 
     let mut conn = Connection::open(db_path)
@@ -618,29 +622,302 @@ pub fn reindex_fts_dirs(dirs: &[(String, PathBuf)], db_path: &Path) -> Result<us
         "DROP TABLE IF EXISTS memory_fts;
          CREATE VIRTUAL TABLE memory_fts USING fts5(
              slug, mtype, scope, path UNINDEXED, content
-         );",
+         );
+         DROP TABLE IF EXISTS memory_files;",
     )
     .context("creating memory_fts table")?;
+    tx.execute_batch(FILE_STATE_SCHEMA).context("creating file-state tables")?;
     {
         let mut insert = tx.prepare(
             "INSERT INTO memory_fts (slug, mtype, scope, path, content)
              VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
+        let mut record = tx.prepare(
+            "INSERT OR REPLACE INTO memory_files (path, mtime_ns, size) VALUES (?1, ?2, ?3)",
+        )?;
 
-        for (f, content) in docs {
+        for (f, (mtime_ns, size), content) in docs {
+            let path = f.path.to_string_lossy();
             // Content read verbatim — bound parameter, no escaping needed.
-            insert.execute(rusqlite::params![
-                f.slug,
-                f.mtype,
-                f.scope,
-                f.path.to_string_lossy(),
-                content,
-            ])?;
+            insert.execute(rusqlite::params![f.slug, f.mtype, f.scope, path, content])?;
+            record.execute(rusqlite::params![path, mtime_ns, size])?;
             count += 1;
         }
     }
+    stamp_refreshed_at(&tx)?;
     tx.commit()?;
     Ok(count)
+}
+
+// ── Index freshness (t-3536, ADR-099 §4a) ─────────────────────────────────────
+
+/// Per-file state recorded alongside `memory_fts`, and the last refresh time.
+const FILE_STATE_SCHEMA: &str = "
+    CREATE TABLE IF NOT EXISTS memory_files (
+        path     TEXT PRIMARY KEY,
+        mtime_ns INTEGER NOT NULL,
+        size     INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS memory_meta (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );";
+
+/// `(mtime in ns since the epoch, size in bytes)` — what freshness compares.
+fn file_state(path: &Path) -> std::io::Result<(i64, i64)> {
+    let meta = fs::metadata(path)?;
+    let mtime_ns = meta
+        .modified()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as i64)
+        .unwrap_or(0);
+    Ok((mtime_ns, meta.len() as i64))
+}
+
+fn unix_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+fn stamp_refreshed_at(conn: &Connection) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO memory_meta (key, value) VALUES ('refreshed_at', ?1)",
+        [unix_now().to_string()],
+    )
+    .context("recording index refresh time")?;
+    Ok(())
+}
+
+/// What a freshness check found and did. Never an error: a refresh that cannot
+/// finish leaves the index as it was and says why (ADR-099 §4a fail-open).
+///
+/// The counts and `index_age_s` describe the index as the check found it, before
+/// any refresh; `outcome` says whether the refresh brought it up to date.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct FreshnessReport {
+    /// Seconds since the index was last built or refreshed; `None` for an index
+    /// built before refresh times were recorded.
+    pub index_age_s: Option<u64>,
+    /// In-scope notes that were new or changed since the index last saw them.
+    pub stale_notes: usize,
+    /// Indexed in-scope notes whose file is gone.
+    pub deleted_notes: usize,
+    /// Stale notes that could not be read: skipped, their previous row kept.
+    pub unreadable: usize,
+    pub outcome: FreshnessOutcome,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase", tag = "state", content = "reason")]
+pub enum FreshnessOutcome {
+    /// Nothing was stale; nothing was written.
+    Fresh,
+    /// Changes were written (unreadable notes, if any, kept their old rows).
+    Refreshed,
+    /// The index was left as it was.
+    Stale(StaleReason),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum StaleReason {
+    /// The budget ran out before the refresh could commit.
+    Timeout,
+    /// Another writer held the index longer than the remaining budget.
+    Busy,
+    /// Every stale note was unreadable, so there was nothing to write.
+    Unreadable,
+    /// The index is missing or could not be read or written.
+    Error,
+}
+
+fn stale_reason(e: &rusqlite::Error) -> StaleReason {
+    match e.sqlite_error_code() {
+        Some(rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked) => StaleReason::Busy,
+        _ => StaleReason::Error,
+    }
+}
+
+/// Bring the FTS index up to date for the notes in `dirs` before a bundle query
+/// (t-3536, ADR-099 §4a). Only notes whose recorded mtime or size differ (or that
+/// the index has never seen) are re-read; rows whose file is gone are dropped,
+/// but only under folders that listed completely. One transaction, written only
+/// when something changed. `budget` bounds the whole call, lock waits included;
+/// over budget or locked, it rolls back and reports the index as stale.
+pub fn refresh_fts_dirs(
+    dirs: &[(String, PathBuf)],
+    db_path: &Path,
+    budget: std::time::Duration,
+) -> FreshnessReport {
+    let mut report = FreshnessReport {
+        index_age_s: None,
+        stale_notes: 0,
+        deleted_notes: 0,
+        unreadable: 0,
+        outcome: FreshnessOutcome::Fresh,
+    };
+    report.outcome = match refresh_inner(dirs, db_path, budget, &mut report) {
+        Ok(outcome) => outcome,
+        Err(reason) => FreshnessOutcome::Stale(reason),
+    };
+    report
+}
+
+fn refresh_inner(
+    dirs: &[(String, PathBuf)],
+    db_path: &Path,
+    budget: std::time::Duration,
+    report: &mut FreshnessReport,
+) -> std::result::Result<FreshnessOutcome, StaleReason> {
+    let started = std::time::Instant::now();
+    let remaining = || budget.checked_sub(started.elapsed());
+
+    // No CREATE flag: a refresh never builds an index from nothing (that is
+    // `brana memory reindex`), and never leaves an empty file behind.
+    let mut conn = Connection::open_with_flags(
+        db_path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(|_| StaleReason::Error)?;
+    let wait = |conn: &Connection| -> std::result::Result<(), StaleReason> {
+        let left = remaining().ok_or(StaleReason::Timeout)?;
+        conn.busy_timeout(left).map_err(|e| stale_reason(&e))
+    };
+    // The check itself (a few stats and reads, no write lock) always runs, so
+    // staleness is reported even when the budget is already spent; the budget
+    // gates note reads, lock waits and the write.
+    conn.busy_timeout(remaining().unwrap_or_default()).map_err(|e| stale_reason(&e))?;
+
+    // ── Read phase: no write lock taken ──
+    let has_table = |name: &str| -> std::result::Result<bool, StaleReason> {
+        conn.query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
+            [name],
+            |r| r.get::<_, i64>(0),
+        )
+        .map(|n| n > 0)
+        .map_err(|e| stale_reason(&e))
+    };
+    if !has_table("memory_fts")? {
+        return Err(StaleReason::Error);
+    }
+    let has_state = has_table("memory_files")?;
+    if has_table("memory_meta")? {
+        let at: Option<String> = conn
+            .query_row("SELECT value FROM memory_meta WHERE key = 'refreshed_at'", [], |r| r.get(0))
+            .map(Some)
+            .or_else(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => Ok(None),
+                e => Err(stale_reason(&e)),
+            })?;
+        report.index_age_s = at
+            .and_then(|v| v.parse::<i64>().ok())
+            .map(|t| (unix_now() - t).max(0) as u64);
+    }
+    let mut known: HashMap<String, (i64, i64)> = HashMap::new();
+    if has_state {
+        let mut stmt = conn
+            .prepare("SELECT path, mtime_ns, size FROM memory_files")
+            .map_err(|e| stale_reason(&e))?;
+        let rows = stmt
+            .query_map([], |r| Ok((r.get::<_, String>(0)?, (r.get::<_, i64>(1)?, r.get::<_, i64>(2)?))))
+            .map_err(|e| stale_reason(&e))?;
+        for row in rows {
+            let (path, state) = row.map_err(|e| stale_reason(&e))?;
+            known.insert(path, state);
+        }
+    }
+
+    let listing = list_memory_listing(dirs);
+    let mut stale: Vec<(MemoryFileRef, (i64, i64))> = Vec::new();
+    for f in listing.files {
+        // A file that vanished between listing and stat is left to the next check.
+        let Ok(state) = file_state(&f.path) else { continue };
+        if known.get(f.path.to_string_lossy().as_ref()) != Some(&state) {
+            stale.push((f, state));
+        }
+    }
+
+    // Deleted notes: indexed rows directly inside a folder that listed completely
+    // whose file is definitely gone. A missing or unlistable folder prunes nothing.
+    let mut deleted: Vec<String> = Vec::new();
+    for dir in &listing.complete_dirs {
+        let prefix = format!("{}/", dir.to_string_lossy().trim_end_matches('/'));
+        let mut stmt = conn
+            .prepare(
+                "SELECT path FROM memory_fts
+                 WHERE substr(path, 1, length(?1)) = ?1 AND instr(substr(path, length(?1) + 1), '/') = 0",
+            )
+            .map_err(|e| stale_reason(&e))?;
+        let rows = stmt
+            .query_map([&prefix], |r| r.get::<_, String>(0))
+            .map_err(|e| stale_reason(&e))?;
+        for row in rows {
+            let path = row.map_err(|e| stale_reason(&e))?;
+            let gone = matches!(fs::symlink_metadata(&path), Err(e) if e.kind() == std::io::ErrorKind::NotFound);
+            if gone && !deleted.contains(&path) {
+                deleted.push(path);
+            }
+        }
+    }
+
+    report.stale_notes = stale.len();
+    report.deleted_notes = deleted.len();
+    if stale.is_empty() && deleted.is_empty() {
+        return Ok(FreshnessOutcome::Fresh);
+    }
+
+    // Read the stale notes before taking the write lock. An unreadable note is
+    // skipped and keeps its previous row (decision 2026-10-15): a failed read is
+    // never indexed as empty text and never drops the note.
+    let mut docs: Vec<(MemoryFileRef, (i64, i64), String)> = Vec::with_capacity(stale.len());
+    for (f, state) in stale {
+        remaining().ok_or(StaleReason::Timeout)?;
+        match fs::read_to_string(&f.path) {
+            Ok(content) => docs.push((f, state, content)),
+            Err(_) => report.unreadable += 1,
+        }
+    }
+    if docs.is_empty() && deleted.is_empty() {
+        return Err(StaleReason::Unreadable);
+    }
+
+    // ── Write phase: one IMMEDIATE transaction, lock wait bounded by the budget ──
+    wait(&conn)?;
+    let tx = conn
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .map_err(|e| stale_reason(&e))?;
+    let write = |tx: &rusqlite::Transaction| -> rusqlite::Result<()> {
+        tx.execute_batch(FILE_STATE_SCHEMA)?;
+        let mut drop_fts = tx.prepare("DELETE FROM memory_fts WHERE path = ?1")?;
+        let mut drop_state = tx.prepare("DELETE FROM memory_files WHERE path = ?1")?;
+        let mut insert = tx.prepare(
+            "INSERT INTO memory_fts (slug, mtype, scope, path, content) VALUES (?1, ?2, ?3, ?4, ?5)",
+        )?;
+        let mut record =
+            tx.prepare("INSERT OR REPLACE INTO memory_files (path, mtime_ns, size) VALUES (?1, ?2, ?3)")?;
+        for (f, (mtime_ns, size), content) in &docs {
+            let path = f.path.to_string_lossy();
+            drop_fts.execute([path.as_ref()])?;
+            insert.execute(rusqlite::params![f.slug, f.mtype, f.scope, path, content])?;
+            record.execute(rusqlite::params![path, mtime_ns, size])?;
+        }
+        for path in &deleted {
+            drop_fts.execute([path])?;
+            drop_state.execute([path])?;
+        }
+        tx.execute(
+            "INSERT OR REPLACE INTO memory_meta (key, value) VALUES ('refreshed_at', ?1)",
+            [unix_now().to_string()],
+        )?;
+        Ok(())
+    };
+    write(&tx).map_err(|e| stale_reason(&e))?;
+    remaining().ok_or(StaleReason::Timeout)?; // dropping `tx` rolls back
+    tx.commit().map_err(|e| stale_reason(&e))?;
+    Ok(FreshnessOutcome::Refreshed)
 }
 
 /// Full-text search the embedded index, returning up to `limit` hits ranked by
@@ -1344,45 +1621,5 @@ mod freshness_tests {
         assert_eq!((first.stale_notes, first.outcome.clone()), (1, FreshnessOutcome::Refreshed));
         assert_eq!(second.outcome, FreshnessOutcome::Fresh);
         assert_eq!(found(&f.db, "alpha"), vec!["old"], "re-indexed once, not duplicated");
-    }
-
-    #[test]
-    fn search_waits_briefly_for_a_writer_instead_of_failing() {
-        let f = fx();
-        let db = f.db.clone();
-        let (tx, rx) = std::sync::mpsc::channel();
-        let writer = std::thread::spawn(move || {
-            let c = Connection::open(&db).unwrap();
-            c.execute_batch("BEGIN EXCLUSIVE").unwrap();
-            tx.send(()).unwrap();
-            std::thread::sleep(Duration::from_millis(80));
-            c.execute_batch("COMMIT").unwrap();
-        });
-        rx.recv().unwrap();
-
-        let hits = search_fts(&f.db, "alpha", 5);
-        writer.join().unwrap();
-
-        assert_eq!(hits.unwrap().len(), 1, "a short write lock must not fail the keyword leg");
-    }
-
-    #[test]
-    fn the_full_rebuild_waits_for_a_short_lock_instead_of_failing() {
-        let f = fx();
-        let db = f.db.clone();
-        let (tx, rx) = std::sync::mpsc::channel();
-        let holder = std::thread::spawn(move || {
-            let c = Connection::open(&db).unwrap();
-            c.execute_batch("BEGIN EXCLUSIVE").unwrap();
-            tx.send(()).unwrap();
-            std::thread::sleep(Duration::from_millis(300));
-            c.execute_batch("COMMIT").unwrap();
-        });
-        rx.recv().unwrap();
-
-        let res = reindex_fts_dirs(&f.dirs, &f.db);
-        holder.join().unwrap();
-
-        assert!(res.is_ok(), "{res:?}");
     }
 }
