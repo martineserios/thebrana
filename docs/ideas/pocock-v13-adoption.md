@@ -1,10 +1,11 @@
 ---
 title: Adopt Pocock's implementation discipline, v1.3 round — tdd, pr, two invariants, retro held
-status: draft
+status: superseded
 created: 2026-10-07
 tasks: [t-3263, t-2981, t-3013, t-3477]
 relates-to:
-  - "[ADR-097](../architecture/decisions/ADR-097-upstream-band-standing-v1-3.md) — the decision this idea proposes (proposed 2026-10-07)"
+  - "[ADR-097](../architecture/decisions/ADR-097-upstream-band-standing-v1-3.md) — the decision this idea proposed (accepted with changes 2026-10-07; superseded by ADR-098 2026-10-09)"
+  - "[ADR-098](../architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md) — retires the band and installs his plugin as-is; cancels P0/P1, rescopes P2, narrows P3"
   - "[ADR-084](../architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md) — the band mechanism; §7a left materialization to 'a separate follow-up ADR'"
   - "[2026-10-07-pocock-recheck.md](../research/2026-10-07-pocock-recheck.md) — evidence: skills v1.3, ring-fit, follow-ups F1–F6"
   - "[2026-08-22-pocock-alignment-decision-matrix.md](../research/2026-08-22-pocock-alignment-decision-matrix.md) — §0 ring-fit filter, KEEP/ADOPT rows"
@@ -15,6 +16,8 @@ relates-to:
 > Shaped 2026-10-07 from the quarterly recheck (t-3263). Status: decided — ADR-097 accepted then **superseded by ADR-098 (2026-10-09): band retired, plugin installed as-is**; originally
 > with changes 2026-10-07 after a 3-worker pre-mortem + deep verification (see its Challenge
 > record). The plan below is the post-challenge cut; the original P1–P10 is kept for the record.
+>
+> **Read ADR-098 first.** Everything about vendored organs, the pin, adapters and the `pr` organ below is the 2026-10-07 proposal and is withdrawn; P0 (t-3489) and P1 (t-3495) are cancelled, P2 (t-2981) is rescoped, P3 (t-3490) is narrowed, P4 (t-3491) and P7 (t-3492) stand. Annotated inline where it matters (t-3506).
 
 ## Seed
 
@@ -66,10 +69,10 @@ matrix flips.
 3. **Admit `tdd` (organ 4) and `pr` (organ 5).** `tdd` is t-2981 as already approved, with
    the ADR-061 invariants re-asserted in the adapter. `pr` is new: thin adapter, GLOSSARY.md
    remapped to `docs/domain/`, three headings mandatory, `pr-reviewer` reads Merge Danger.
-   Specs: `tdd-organ-build-loop.md`, `pr-body-organ.md`.
+   Specs: `tdd-organ-build-loop.md`, `pr-body-organ.md`. **Withdrawn:** `pr` is not vendored as an organ — the ADR-097 challenge reversed it to a template + hook, and ADR-098 §6 narrows it further to a headings hook + `--body-file`; there is no band and there are no adapters.
 4. **Two invariants into the Beat contract, no vendoring:** (a) exploration once, pointers
    after; (b) sync the integration tip before reporting done so the human merge is
-   fast-forward. Home: `/brana:close`'s merge-command step and the runner's close-out.
+   fast-forward. Home: `/brana:close`'s merge-command step and the runner's close-out. **(b) was reversed by ADR-097 D4** — a read-only merge-readiness probe at close step 10 (t-3491) replaces syncing the tip.
 5. **`retro` is not vendored this round.** A decision task picks its home; the constraint
    travels with it: human-in-the-loop, sampled sessions, never a loop.
 6. **GLOSSARY remap.** Every adapter that upstream points at `GLOSSARY.md` maps to
@@ -77,7 +80,7 @@ matrix flips.
    t-3013's discipline is where it would come from). ADR-084 §3's CONTEXT.md sentence is
    superseded.
 
-## Proposed backlog plan (penciled, not created — ADR acceptance first)
+## Original proposed plan (superseded — see "Plan after the challenge"; kept for the record)
 
 | # | Task | Kind | Effort | Blocked by | Spec |
 |---|---|---|---|---|---|
@@ -113,12 +116,12 @@ Lauren Tan's pstack reached brana's runner-manifest + human-merge-valve design i
 The one open item on that side — revert-and-tighten for whatever rung may merge alone — is
 now named as the consumer of the `pr` organ's Merge Danger call (ADR-097 D3).
 
-## Plan after the challenge (ADR-097 §Plan — the one that is filed)
+## Plan after the challenge (ADR-097 §Plan — the one that was filed; ADR-098 status noted per row)
 
 | # | Task | Kind | Effort | Blocked by | Why it survived |
 |---|---|---|---|---|---|
-| P0 (t-3489) | Fix the band's call path: drop `disable-model-invocation` from the two live adapters, add call-site records to all adapters, one resolution test per organ, re-read ADR-084 §7a against real records | fix | S | — | CRITICAL 1: the flag blocks the Skill tool; the pilot was never reachable |
-| P1 (t-3495) | Pin bump v1.2.3 → v1.3.1 with dated per-organ hold; `vendored_from:` updated; heading-presence + pin-equality tests created | chore | S | P0 | first measured drift; tests the specs assumed do not exist |
+| P0 (t-3489) | **CANCELLED 2026-10-08 (ADR-098).** Was: fix the band's call path: drop `disable-model-invocation` from the two live adapters, add call-site records to all adapters, one resolution test per organ, re-read ADR-084 §7a against real records | fix | S | — | CRITICAL 1: the flag blocks the Skill tool; the pilot was never reachable |
+| P1 (t-3495) | **CANCELLED 2026-10-08 (ADR-098 — no pin to bump).** Was: pin bump v1.2.3 → v1.3.1 with dated per-organ hold; `vendored_from:` updated; heading-presence + pin-equality tests created | chore | S | P0 | first measured drift; tests the specs assumed do not exist |
 | P2 (t-2981) | t-2981 corrected: `tdd` organ covers red + green only, callers keep 3d1/3d2, inline fallback, delegation checklist path named | feature | M | P1 | CRITICAL 2: no refactor step exists; registration commit must stay caller-owned |
 | P3 (t-3490) | PR-body template + `--body-file` in ship + runner body + `gh pr create` headings hook | feature | S | — | WARNING 4: both real PR paths are scripted; a template + hook covers them, an organ cannot |
 | P4 (t-3491) | Read-only merge-readiness probe at close.md step 10; one sentence in epic-drain §Merge; "explore once, point after" for the runner's exploration step | fix | XS | — | WARNING 6: no-ff merge, runner denies merge, close window must not widen |
@@ -139,7 +142,9 @@ Twins to cite when P2 starts: t-3010 (consolidate the diffused TDD discipline in
 reference) and t-3018 (spike: refactor split out of red-green into review). P2 does not
 pre-decide t-3018.
 
-## Open questions for the ADR challenge
+## Open questions for the ADR challenge (answered — ADR-097 Challenge record; ADR-098 supersedes in part)
+
+All three were resolved in the ADR-097 challenge (`pr`: template + hook, not an adapter; `tdd`: cut at green; bumps recorded per organ) and then overtaken by ADR-098 (no adapters, no pin, no bump). Kept as asked.
 
 - Does `pr` need its own adapter, or is a 20-line template inside `/brana:ship` cheaper and
   equally faithful? The ADR argues adapter: the organ is model-invoked and must fire on
