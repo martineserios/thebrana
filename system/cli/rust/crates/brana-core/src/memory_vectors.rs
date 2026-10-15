@@ -457,7 +457,7 @@ mod tests {
         );
 
         // The production wiring: knowledge-only plus memory-only legs, fused three ways.
-        let fused = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(FakeMixed(Fake::new()))).query(q, 5);
+        let fused = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(FakeMixed(Fake::new())), crate::search::RecallScope::All).query(q, 5);
         assert!(
             fused.iter().any(|h| matches!(&h.doc, DocRef::MemoryFile { slug, .. } if slug == "notes")),
             "memory leg must surface the file: {fused:?}"
@@ -712,7 +712,7 @@ mod tests {
         let store = KnowledgeStore::open(&f.db).unwrap();
         embed_memory_files(&store, &list_memory_listing(&d), &Fake::new(), false).unwrap();
 
-        let hits = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(NoEmbedder)).query("scraping", 5);
+        let hits = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(NoEmbedder), crate::search::RecallScope::All).query("scraping", 5);
 
         assert_eq!(hits.len(), 1, "keyword leg alone: {hits:?}");
         assert!(matches!(&hits[0].doc, DocRef::MemoryFile { slug, .. } if slug == "scraping-tips"));
@@ -725,5 +725,93 @@ mod tests {
         assert!(cached.embed("UNEMBEDDABLE text").is_none());
         assert!(cached.embed("UNEMBEDDABLE text").is_none());
         assert_eq!(inner.calls(), 1, "a None result is not retried within one query");
+    }
+
+    // ── t-3535: vector leg status and recall scope ───────────────────────────
+
+    #[test]
+    fn vector_try_query_errors_on_a_missing_store_or_embedder() {
+        let f = fixture();
+        let missing = VectorProvider::new(f.db.clone(), Arc::new(Fake::new()));
+        assert!(missing.try_query("scraping", 5).is_err(), "missing store is an error");
+
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+
+        let no_embedder = VectorProvider::new(f.db.clone(), Arc::new(NoEmbedder)).with_memory_scope(MemoryScope::Only);
+        assert!(no_embedder.try_query("scraping", 5).is_err(), "no query vector is an error");
+
+        let ok = VectorProvider::new(f.db.clone(), Arc::new(Fake::new())).with_memory_scope(MemoryScope::Only);
+        assert_eq!(ok.try_query("scraping", 5).unwrap().len(), 1);
+        assert!(ok.try_query("pricing", 5).unwrap().is_empty(), "no row above threshold is ok-empty");
+    }
+
+    struct TwoProjects {
+        _tmp: TempDir,
+        global: std::path::PathBuf,
+        fts: std::path::PathBuf,
+        db: std::path::PathBuf,
+    }
+
+    /// Global memory and another project's memory both hold a note about scraping,
+    /// in the FTS index and as embedded vectors.
+    fn two_projects() -> TwoProjects {
+        let tmp = tempdir().unwrap();
+        let global = tmp.path().join(".claude/memory");
+        let other = tmp.path().join(".claude/projects/-w-client/memory");
+        fs::create_dir_all(&global).unwrap();
+        fs::create_dir_all(&other).unwrap();
+        fs::write(global.join("pattern_mine-scraping.md"), "web scraping tips").unwrap();
+        fs::write(other.join("pattern_client-scraping.md"), "client scraping secrets").unwrap();
+        let d = vec![("global".to_string(), global.clone()), ("project".to_string(), other)];
+        let fts = tmp.path().join("index.db");
+        let db = tmp.path().join("knowledge.db");
+        reindex_fts_dirs(&d, &fts).unwrap();
+        let store = KnowledgeStore::open(&db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&d), &Fake::new(), false).unwrap();
+        TwoProjects { _tmp: tmp, global, fts, db }
+    }
+
+    fn slugs(hits: &[crate::search::SearchHit]) -> Vec<String> {
+        let mut out: Vec<String> = hits
+            .iter()
+            .filter_map(|h| match &h.doc {
+                DocRef::MemoryFile { slug, .. } => Some(slug.clone()),
+                _ => None,
+            })
+            .collect();
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn vector_scope_excludes_an_other_project_memory_row() {
+        let t = two_projects();
+        let leg = |scope| {
+            VectorProvider::new(t.db.clone(), Arc::new(Fake::new()))
+                .with_memory_scope(MemoryScope::Only)
+                .with_recall_scope(scope)
+                .query("scraping", 5)
+        };
+
+        assert_eq!(slugs(&leg(crate::search::RecallScope::All)), vec!["client-scraping", "mine-scraping"]);
+        assert_eq!(slugs(&leg(crate::search::RecallScope::Dirs(vec![t.global.clone()]))), vec!["mine-scraping"]);
+    }
+
+    #[test]
+    fn recall_provider_project_scope_excludes_other_project_rows_from_both_legs() {
+        // Must-fire for both legs at once: either leg leaking the client note puts it
+        // in the fused result.
+        let t = two_projects();
+        let run = |scope| {
+            crate::vector::recall_provider(&t.fts, &t.db, Arc::new(Fake::new()), scope).query("scraping", 10)
+        };
+
+        assert_eq!(slugs(&run(crate::search::RecallScope::All)), vec!["client-scraping", "mine-scraping"]);
+        assert_eq!(
+            slugs(&run(crate::search::RecallScope::Dirs(vec![t.global.clone()]))),
+            vec!["mine-scraping"]
+        );
     }
 }

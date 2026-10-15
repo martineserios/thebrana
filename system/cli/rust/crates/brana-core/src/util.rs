@@ -1647,3 +1647,19 @@ mod lock_timeout_tests {
         drop(holder);
     }
 }
+
+#[cfg(test)]
+mod encoder_tests {
+    use super::{encode_project_dir, encode_project_dir_legacy};
+    use std::path::Path;
+
+    #[test]
+    fn encode_project_dir_maps_slashes_and_underscores() {
+        assert_eq!(encode_project_dir(Path::new("/home/u/my_proj")), "-home-u-my-proj");
+    }
+
+    #[test]
+    fn encode_project_dir_legacy_keeps_underscores() {
+        assert_eq!(encode_project_dir_legacy(Path::new("/home/u/my_proj")), "-home-u-my_proj");
+    }
+}

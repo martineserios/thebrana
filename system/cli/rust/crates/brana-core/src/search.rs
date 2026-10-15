@@ -697,4 +697,171 @@ mod tests {
             "ruflo must timeout — budget starts from dispatch, not from fts5 return"
         );
     }
+
+    // ── Per-leg status (t-3535) ───────────────────────────────────────────────
+
+    struct FailingProvider;
+    impl SearchProvider for FailingProvider {
+        fn query(&self, _q: &str, _top_k: usize) -> Vec<SearchHit> {
+            Vec::new()
+        }
+        fn try_query(&self, _q: &str, _top_k: usize) -> anyhow::Result<Vec<SearchHit>> {
+            anyhow::bail!("backend down")
+        }
+    }
+
+    struct PanickingProvider;
+    impl SearchProvider for PanickingProvider {
+        fn query(&self, _q: &str, _top_k: usize) -> Vec<SearchHit> {
+            panic!("leg crashed")
+        }
+    }
+
+    fn keys(hits: &[SearchHit]) -> Vec<String> {
+        hits.iter()
+            .map(|x| match &x.doc {
+                DocRef::KnowledgeEntry { key, .. } => key.clone(),
+                DocRef::MemoryFile { slug, .. } => slug.clone(),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn hybrid_status_reports_ok_timeout_empty_and_error_per_leg() {
+        let hybrid = HybridProvider::with_deadlines(
+            FixedProvider::fixed(vec![h("a")]),
+            FixedProvider::delayed(vec![h("late")], Duration::from_millis(400)),
+            Duration::from_millis(100),
+            Duration::from_millis(150),
+        )
+        .with_extra(FixedProvider::fixed(vec![]))
+        .with_extra(Arc::new(FailingProvider));
+
+        let (hits, status) = hybrid.query_with_status("q", 10);
+
+        assert_eq!(
+            status,
+            HybridStatus {
+                keyword: LegStatus::Ok,
+                semantic: LegStatus::Timeout,
+                extras: vec![LegStatus::Empty, LegStatus::Error],
+            }
+        );
+        assert_eq!(keys(&hits), vec!["a"]);
+    }
+
+    #[test]
+    fn hybrid_status_keyword_timeout_and_semantic_error() {
+        let hybrid = HybridProvider::with_deadlines(
+            FixedProvider::delayed(vec![h("slow")], Duration::from_millis(300)),
+            Arc::new(FailingProvider),
+            Duration::from_millis(50),
+            Duration::from_millis(200),
+        );
+
+        let (hits, status) = hybrid.query_with_status("q", 10);
+
+        assert_eq!(status.keyword, LegStatus::Timeout);
+        assert_eq!(status.semantic, LegStatus::Error);
+        assert!(status.extras.is_empty());
+        assert!(hits.is_empty());
+    }
+
+    #[test]
+    fn hybrid_status_a_crashed_leg_is_error_not_timeout() {
+        // A panicking leg drops its sender: that is a failure, not a slow backend.
+        let hybrid = HybridProvider::with_deadlines(
+            FixedProvider::fixed(vec![h("a")]),
+            Arc::new(PanickingProvider),
+            Duration::from_millis(500),
+            Duration::from_millis(1500),
+        );
+
+        let started = Instant::now();
+        let (_hits, status) = hybrid.query_with_status("q", 10);
+
+        assert_eq!(status.semantic, LegStatus::Error);
+        assert!(started.elapsed() < Duration::from_millis(1000), "a crash must not wait out the deadline");
+    }
+
+    #[test]
+    fn hybrid_query_returns_the_same_hits_as_query_with_status() {
+        let make = || {
+            HybridProvider::new(
+                FixedProvider::fixed(vec![h("a"), h("b")]),
+                FixedProvider::fixed(vec![h("b"), h("c")]),
+            )
+        };
+        let plain = make().query("q", 10);
+        let (with_status, _) = make().query_with_status("q", 10);
+        assert_eq!(keys(&plain), keys(&with_status));
+    }
+
+    #[test]
+    fn fts5_try_query_errors_on_a_missing_index_without_creating_it() {
+        let tmp = tempdir().unwrap();
+        let db = tmp.path().join("index.db");
+
+        assert!(FTS5Provider::new(db.clone()).try_query("jwt", 5).is_err());
+        assert!(!db.exists(), "a status probe must not create an empty index");
+    }
+
+    #[test]
+    fn fts5_try_query_is_ok_with_hits_and_ok_empty_without() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write_mem(&mem, "pattern_jwt-auth.md", "JWT token validation");
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("global".into(), mem)], &db).unwrap();
+        let fts = FTS5Provider::new(db);
+
+        assert_eq!(fts.try_query("jwt", 5).unwrap().len(), 1);
+        assert!(fts.try_query("zzzunmatched", 5).unwrap().is_empty());
+    }
+
+    // ── RecallScope (t-3535) ──────────────────────────────────────────────────
+
+    #[test]
+    fn recall_scope_project_allows_global_and_current_project_top_level_only() {
+        let home = std::path::Path::new("/h");
+        let scope = RecallScope::project_in(home, Some(std::path::Path::new("/w/my_repo")));
+        let p = |s: &str| PathBuf::from(s);
+
+        assert!(scope.allows(&p("/h/.claude/memory/pattern_a.md")), "global");
+        assert!(scope.allows(&p("/h/.claude/projects/-w-my-repo/memory/x.md")), "current encoding");
+        assert!(scope.allows(&p("/h/.claude/projects/-w-my_repo/memory/x.md")), "legacy encoding");
+        assert!(!scope.allows(&p("/h/.claude/projects/-w-client/memory/x.md")), "other project");
+        assert!(!scope.allows(&p("/h/.claude/memory/archive/x.md")), "archived subfolder");
+        assert!(RecallScope::All.allows(&p("/h/.claude/projects/-w-client/memory/x.md")));
+    }
+
+    #[test]
+    fn recall_scope_without_a_session_root_is_global_only() {
+        // Fails closed: an unresolvable project must not widen the scope.
+        let scope = RecallScope::project_in(std::path::Path::new("/h"), None);
+        assert_eq!(scope, RecallScope::Dirs(vec![PathBuf::from("/h/.claude/memory")]));
+    }
+
+    #[test]
+    fn fts5_scope_excludes_other_project_rows_before_the_top_k_cut() {
+        // Must-fire: twelve stronger other-project hits outrank the one in-scope note.
+        // Filtering after the LIMIT (even with over-fetch) would return nothing.
+        let tmp = tempdir().unwrap();
+        let global = tmp.path().join(".claude/memory");
+        let other = tmp.path().join(".claude/projects/-w-client/memory");
+        write_mem(&global, "pattern_mine.md", "a long note that mentions jwt once among many other words here");
+        for i in 0..12 {
+            write_mem(&other, &format!("pattern_client-{i}.md"), "jwt jwt jwt");
+        }
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("global".into(), global.clone()), ("project".into(), other)], &db).unwrap();
+
+        let unscoped = FTS5Provider::new(db.clone()).query("jwt", 1);
+        let scoped = FTS5Provider::new(db)
+            .with_scope(RecallScope::Dirs(vec![global.clone()]))
+            .query("jwt", 1);
+
+        assert_ne!(keys(&unscoped), vec!["mine"], "fixture must rank other-project notes first");
+        assert_eq!(keys(&scoped), vec!["mine"]);
+    }
 }
