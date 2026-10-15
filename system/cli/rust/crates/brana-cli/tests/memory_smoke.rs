@@ -26,7 +26,8 @@ fn brana() -> Command {
     Command::cargo_bin("brana").expect("binary should build")
 }
 
-/// Mirror of brana-core encode_path: replace `/` and `_` with `-`.
+/// Mirror of brana-core `util::encode_project_dir`: replace `/` and `_` with `-`.
+/// A deliberate independent oracle, not a call into the code under test (t-3535).
 fn encode_path(p: &Path) -> String {
     p.to_string_lossy().replace('/', "-").replace('_', "-")
 }

@@ -43,6 +43,7 @@ User-facing documentation. Start here.
 | [judge-escalation-valve.md](guide/features/judge-escalation-valve.md) | Judge escalation valve (ADR-082) — sizing rungs, hard signals, SIBLINGS/SPLIT verdicts, escaped-defect log, blind test-author |
 | [knowledge-process-url.md](guide/features/knowledge-process-url.md) | `brana knowledge process-url` — fetch a link, extract an insight, store it; LinkedIn setup, batch mode, cron wiring |
 | [knowledge-drain-links.md](guide/features/knowledge-drain-links.md) | `brana knowledge drain-links` — drain pending link tasks; completion gated on the stored artifact, not exit status |
+| [transcribe.md](guide/features/transcribe.md) | `brana transcribe` — any whisper model, video input, `--frames` with `--every N` or `--scene X` sampling, real-time frame labels |
 | [async-close.md](guide/features/async-close.md) | Async close — what changed about ending a session |
 | [close-oriented-modes.md](guide/features/close-oriented-modes.md) | Oriented close modes |
 | [propagate-close-step.md](guide/features/propagate-close-step.md) | PROPAGATE — propagation-debt audit at close |
@@ -231,6 +232,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-096](architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md) | The Brana's cockpit surface is Claude Code mods under six laws — tiers 0→2a ship together, 2b gated on a pre-registered 50 % retention rule; gauge law (reads via `brana` + pushed events, no shadow state); no API calls, read+write allowlists; safety stays in shell hooks; valves via ADR-063; `mods/` + marketplace deploy, pinned CC in CI (accepted) |
 | [ADR-097](architecture/decisions/ADR-097-upstream-band-standing-v1-3.md) | Upstream skill band standing, pin v1.3.1 — superseded by ADR-098 (2026-10-09) |
 | [ADR-098](architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md) | Retire the vendored upstream band; install Pocock's plugin as-is (tie-break rule); tdd seam and PR-headings hook stay brana's; accepted 2026-10-09 |
+| [ADR-099](architecture/decisions/ADR-099-recall-bundle-and-usage-log.md) | Recall bundle at build LOAD (≤8 typed pointers, project + global scope, ADR-057 supersession first) and a canonical usage log written at CLOSE; shadow gates can only kill, canary decides keep; proposed 2026-10-14 |
 
 > Coverage is checked by `system/scripts/readme-coverage.sh` (t-3031) — run it before adding a doc; `tests/scripts/test-readme-coverage.sh` fails when a row is missing or dead.
 
@@ -274,6 +276,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [scheduler.md](architecture/features/scheduler.md) | Scheduled jobs system |
 | [scheduler-hardening.md](architecture/features/scheduler-hardening.md) | Scheduler hardening and reliability |
 | [brana-v2-compute-model.md](architecture/features/brana-v2-compute-model.md) | Compute hierarchy: Claude/Ruflo/Gemini stack, routing rules, phase map |
+| [recall-memory-file-vectors.md](architecture/features/recall-memory-file-vectors.md) | Semantic leg for curated memory files in `brana recall` — embed into knowledge.db, fuse via RRF (t-3510) |
 | [reconcile-dim-could-adopt-scan.md](architecture/features/reconcile-dim-could-adopt-scan.md) | Reconcile propagation PROP-3: scan dim "Could Adopt" sections, diff vs backlog, approve-and-add (t-1706) |
 | [claude-gemini-orchestration.md](architecture/features/claude-gemini-orchestration.md) | Gemini layer A/B/C, ENRICH+PERSIST lifecycle, compounding loop |
 | [ruflo-integration-map.md](architecture/features/ruflo-integration-map.md) | Ruflo tool-group map, ToolSearch preambles, hive-mind quorum gate specs |
@@ -307,7 +310,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [goal-binding-build-tdd.md](architecture/features/goal-binding-build-tdd.md) | `/goal` binding — `/brana:build` TDD loop as ADR-061 Stage 2 (status header stale: Stage 2 shipped t-2205/t-2206/t-2216) |
 | [golden-path-snapshot.md](architecture/features/golden-path-snapshot.md) | Golden path snapshot format — JSON record of a skill execution (schema only, no tooling) |
 | [hook-test-sweep.md](architecture/features/hook-test-sweep.md) | Hook test sweep — validate.sh Check 70 runs every suite under `system/hooks/tests/`; shipped |
-| [cockpit.md](architecture/features/cockpit.md) | Cockpit tier 1 + 2a — always-on band (context %, 5h/7d quota, guard-file state) and a Board-only pane, drawn by function-hook mods under ADR-096; `mods/` layout, `_shared` allowlist/run/state/probe, `brana cockpit snapshot|log-event|mark-shipped` + `ops cockpit`, bootstrap 7g/7h, vendored `_shared`, validate Check 77a/77b, pinned CLI in CI, UI states and keymap, enforcement matrix per law (approved) |
+| [cockpit.md](architecture/features/cockpit.md) | Cockpit tier 1 + 2a — always-on band (context %, 5h/7d quota, guard-file state) and a Board-only pane, drawn by function-hook mods under ADR-096; `mods/` layout, `_shared` allowlist/run/state/probe, `brana cockpit snapshot|log-event|mark-shipped` + `ops cockpit`, bootstrap 7g/7h/7i, vendored `_shared`, validate Check 77a/77b/77c (installed-mods Law 3 scan, acknowledge list, canaries), pinned CLI in CI, UI states and keymap, enforcement matrix per law (approved) |
 | [tdd-organ-build-loop.md](architecture/features/tdd-organ-build-loop.md) | `tdd` organ — superseded by ADR-098: call his plugin `tdd` directly, loop stops at green, no vendoring (t-2981 rescoped) |
 | [pr-body-organ.md](architecture/features/pr-body-organ.md) | PR-body headings hook — narrowed by ADR-098 (content from his `pr`; template file dropped; t-3490) |
 | [upstream-band-pin-bump.md](architecture/features/upstream-band-pin-bump.md) | Upstream band pin bump — superseded by ADR-098 (band retired; no pin) |
@@ -320,6 +323,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [lint-heal-deterministic.md](architecture/features/lint-heal-deterministic.md) | Lint+Heal L2 — deterministic memory consolidation (specced) |
 | [living-docs.md](architecture/features/living-docs.md) | Living documentation system — composable `/brana:docs`, spec-graph routed; shipped |
 | [local-vector-recall.md](architecture/features/local-vector-recall.md) | Local vector recall — own retrieval, drop the index (built) |
+| [recall-bundle.md](architecture/features/recall-bundle.md) | Recall bundle at build LOAD and usage log at CLOSE — contract, row schema, tests, surface (specifying, t-3514) |
 | [loops-library.md](architecture/features/loops-library.md) | Loops library — `system/loops/` catalog of committed loop definitions (shipped; not the drained idea doc of the same name) |
 | [memory-migration-manifest.md](architecture/features/memory-migration-manifest.md) | Memory migration manifest — Phase A file-by-file routing (awaiting human review) |
 | [memory-pattern-redesign.md](architecture/features/memory-pattern-redesign.md) | Memory pattern learning redesign — transferability filter on the pattern write path (specifying) |

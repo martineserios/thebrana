@@ -8,7 +8,8 @@
 //! results via RRF; it is implemented as a separate step blocked on this one.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::mpsc::RecvTimeoutError;
 use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -50,6 +51,129 @@ pub struct SearchHit {
 /// `HybridProvider` can dispatch them from separate threads.
 pub trait SearchProvider: Send + Sync {
     fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit>;
+
+    /// Like [`query`](Self::query), but a backend that cannot search (missing
+    /// index, no query embedding, unreadable store) returns `Err` instead of an
+    /// empty list, so "nothing matched" and "could not search" stay apart (t-3535).
+    /// The default wraps `query`, for providers with no failure signal of their own.
+    fn try_query(&self, q: &str, top_k: usize) -> anyhow::Result<Vec<SearchHit>> {
+        Ok(self.query(q, top_k))
+    }
+}
+
+/// Outcome of one recall leg (t-3535, recall-bundle spec §Gate-2 amendments).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LegStatus {
+    /// Searched and returned hits.
+    Ok,
+    /// Searched and matched nothing.
+    Empty,
+    /// Missed its deadline; its results, if any, were dropped.
+    Timeout,
+    /// Could not search (missing index or embedder, store error, crashed leg).
+    Error,
+}
+
+impl LegStatus {
+    /// The lowercase spelling used in JSON and human output.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Ok => "ok",
+            Self::Empty => "empty",
+            Self::Timeout => "timeout",
+            Self::Error => "error",
+        }
+    }
+}
+
+/// Per-leg outcome of a [`HybridProvider`] query, in dispatch order.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HybridStatus {
+    pub keyword: LegStatus,
+    pub semantic: LegStatus,
+    /// One entry per `with_extra` leg, in the order they were added.
+    pub extras: Vec<LegStatus>,
+}
+
+// ── RecallScope ───────────────────────────────────────────────────────────────
+
+/// Which memory notes a recall may return (t-3535, ADR-099 §2).
+///
+/// `All` is plain recall: every project's memory. `Dirs` keeps only notes directly
+/// inside the listed folders; sub-folders such as `archive/` are out. Knowledge-store
+/// entries carry no path and are not filtered here.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum RecallScope {
+    #[default]
+    All,
+    Dirs(Vec<PathBuf>),
+}
+
+impl RecallScope {
+    /// The current project plus global memory, resolved from the main checkout so
+    /// every worktree of a repo gets the same scope.
+    pub fn current_project() -> Self {
+        Self::project_in(&crate::util::home(), crate::util::find_session_root().as_deref())
+    }
+
+    /// Testable variant of [`current_project`](Self::current_project). Both folder
+    /// encodings are included because both exist on disk. Without a resolvable
+    /// project the scope is global memory only: it never widens on a lookup miss.
+    pub fn project_in(home: &Path, session_root: Option<&Path>) -> Self {
+        let mut dirs = vec![home.join(".claude/memory")];
+        if let Some(root) = session_root {
+            let projects = home.join(".claude/projects");
+            for name in [
+                crate::util::encode_project_dir(root),
+                crate::util::encode_project_dir_legacy(root),
+            ] {
+                let dir = projects.join(name).join("memory");
+                if !dirs.contains(&dir) {
+                    dirs.push(dir);
+                }
+            }
+        }
+        Self::Dirs(dirs)
+    }
+
+    /// Whether a memory note at `path` is in scope: it sits directly in a scope folder and,
+    /// if it is a symlink, resolves to a file directly in a scope folder too. Without the
+    /// second half a link planted in global memory could surface another project's note
+    /// (t-3537 gate). A link that cannot be resolved is not shown to be in scope.
+    pub fn allows(&self, path: &Path) -> bool {
+        match self {
+            Self::All => true,
+            Self::Dirs(dirs) => {
+                if !path.parent().is_some_and(|p| dirs.iter().any(|d| d == p)) {
+                    return false;
+                }
+                match std::fs::symlink_metadata(path) {
+                    Ok(m) if m.file_type().is_symlink() => resolves_into(path, dirs),
+                    _ => true,
+                }
+            }
+        }
+    }
+
+    /// The allowed folders, or `None` for no restriction.
+    pub fn dirs(&self) -> Option<&[PathBuf]> {
+        match self {
+            Self::All => None,
+            Self::Dirs(dirs) => Some(dirs),
+        }
+    }
+}
+
+/// Whether the symlink at `path` ends at a file directly inside one of `dirs`
+/// (compared after resolving the folders too, so a scope reached through a link works).
+fn resolves_into(path: &Path, dirs: &[PathBuf]) -> bool {
+    let Ok(real) = std::fs::canonicalize(path) else { return false };
+    if !real.is_file() {
+        return false;
+    }
+    let Some(parent) = real.parent() else { return false };
+    dirs.iter().any(|d| std::fs::canonicalize(d).is_ok_and(|cd| cd == parent))
 }
 
 // ── FTS5Provider ──────────────────────────────────────────────────────────────
@@ -62,19 +186,36 @@ pub trait SearchProvider: Send + Sync {
 /// during recall and SQLite WAL mode handles concurrent readers.
 pub struct FTS5Provider {
     db_path: PathBuf,
+    scope: RecallScope,
 }
 
 impl FTS5Provider {
     pub fn new(db_path: PathBuf) -> Self {
-        Self { db_path }
+        Self { db_path, scope: RecallScope::All }
+    }
+
+    /// Limit hits to notes in scope; applied inside the SQL query (t-3535).
+    pub fn with_scope(mut self, scope: RecallScope) -> Self {
+        self.scope = scope;
+        self
     }
 }
 
 impl SearchProvider for FTS5Provider {
     fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit> {
-        let hits = crate::memory::search_fts(&self.db_path, q, top_k)
-            .unwrap_or_default();
-        hits.into_iter()
+        self.try_query(q, top_k).unwrap_or_default()
+    }
+
+    fn try_query(&self, q: &str, top_k: usize) -> anyhow::Result<Vec<SearchHit>> {
+        // Over-fetch so ghost hits filtered below cannot crowd out live ones.
+        let hits = crate::memory::search_fts_in(&self.db_path, q, top_k * 2 + 5, self.scope.dirs())?;
+        Ok(hits.into_iter()
+            // The index is rebuilt weekly; a note deleted since then must not
+            // surface with a dangling path (t-3510 gate, F2).
+            .filter(|h| std::path::Path::new(&h.path).exists())
+            // The SQL prefix is lexical; a symlink in scope must also resolve into scope.
+            .filter(|h| self.scope.allows(std::path::Path::new(&h.path)))
+            .take(top_k)
             .map(|h| SearchHit {
                 doc: DocRef::MemoryFile {
                     path: PathBuf::from(&h.path),
@@ -85,7 +226,7 @@ impl SearchProvider for FTS5Provider {
                 snippet: h.snippet,
                 rrf_score: 0.0,
             })
-            .collect()
+            .collect())
     }
 }
 
@@ -119,6 +260,10 @@ impl RufloProvider {
 
 impl SearchProvider for RufloProvider {
     fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit> {
+        self.try_query(q, top_k).unwrap_or_default()
+    }
+
+    fn try_query(&self, q: &str, top_k: usize) -> anyhow::Result<Vec<SearchHit>> {
         let Some(raw) = crate::ruflo::ruflo_memory_search_raw(
             q,
             &self.namespace,
@@ -126,9 +271,9 @@ impl SearchProvider for RufloProvider {
             self.threshold,
             true, // json: true — required for full key names
         ) else {
-            return Vec::new();
+            anyhow::bail!("ruflo search failed (absent, timed out or exited non-zero)");
         };
-        parse_ruflo_json(&raw, &self.namespace)
+        parse_ruflo_hits(&raw, &self.namespace)
     }
 }
 
@@ -140,14 +285,22 @@ impl SearchProvider for RufloProvider {
 /// Duplication is intentional: `brana-core` cannot depend on `brana-cli`.
 ///
 /// Expected element shape: `{"key": "...", "value": "...", "score": 0.0}`
+// Lenient form kept for the parser contract tests; production goes through
+// `parse_ruflo_hits`, which reports unparsable output as an error.
+#[cfg(test)]
 fn parse_ruflo_json(raw: &str, namespace: &str) -> Vec<SearchHit> {
+    parse_ruflo_hits(raw, namespace).unwrap_or_default()
+}
+
+/// [`parse_ruflo_json`] that keeps "no JSON array" and "malformed JSON" apart from
+/// an empty result (t-3535): output without a parsable array is an error.
+fn parse_ruflo_hits(raw: &str, namespace: &str) -> anyhow::Result<Vec<SearchHit>> {
     let Some(start) = find_json_array_start(raw) else {
-        return Vec::new();
+        anyhow::bail!("ruflo output has no JSON array");
     };
-    let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&raw[start..]) else {
-        return Vec::new();
-    };
-    arr.into_iter()
+    let arr = serde_json::from_str::<Vec<serde_json::Value>>(&raw[start..])
+        .map_err(|e| anyhow::anyhow!("ruflo output is not a JSON array: {e}"))?;
+    Ok(arr.into_iter()
         .filter_map(|e| {
             let key = e["key"].as_str()?.to_string();
             let snippet = e["value"].as_str().unwrap_or("").to_string();
@@ -160,7 +313,7 @@ fn parse_ruflo_json(raw: &str, namespace: &str) -> Vec<SearchHit> {
                 rrf_score: 0.0,
             })
         })
-        .collect()
+        .collect())
 }
 
 /// Scan for the byte offset of the first `[` that opens a JSON array,
@@ -193,9 +346,12 @@ const K: usize = 20;
 /// Minimum candidate pool fetched from each provider before RRF truncation.
 const MIN_CANDIDATE_POOL: usize = 20;
 
-/// Parallel-dispatch recall provider that queries `FTS5Provider` and
-/// `RufloProvider` simultaneously, then merges results with Reciprocal Rank
-/// Fusion (k=20, no dedup — see ADR-058 §5–6).
+/// Parallel-dispatch recall provider: queries a keyword leg (`FTS5Provider`), a
+/// semantic leg (in production a knowledge-entry `VectorProvider`; historically
+/// `RufloProvider`) and any extra legs added with `with_extra` (the memory-file
+/// vector leg, t-3510) simultaneously, then merges results with Reciprocal Rank
+/// Fusion (k=20, no dedup — see ADR-058 §5–6). Semantic and extra legs share one
+/// absolute deadline.
 ///
 /// Degrades gracefully on timeout:
 /// - FTS5 misses its 500ms deadline → ruflo-only results (not empty).
@@ -207,6 +363,9 @@ const MIN_CANDIDATE_POOL: usize = 20;
 pub struct HybridProvider {
     fts5: Arc<dyn SearchProvider>,
     ruflo: Arc<dyn SearchProvider>,
+    /// Further ranked lists fused with the two above (t-3510): they share the
+    /// semantic leg's deadline and degrade the same way.
+    extras: Vec<Arc<dyn SearchProvider>>,
     fts5_deadline: Duration,
     ruflo_deadline: Duration,
 }
@@ -214,7 +373,21 @@ pub struct HybridProvider {
 impl HybridProvider {
     /// Construct with production deadlines (FTS5: 500ms, ruflo: 2s).
     pub fn new(fts5: Arc<dyn SearchProvider>, ruflo: Arc<dyn SearchProvider>) -> Self {
-        Self { fts5, ruflo, fts5_deadline: FTS5_DEADLINE, ruflo_deadline: RUFLO_DEADLINE }
+        Self {
+            fts5,
+            ruflo,
+            extras: Vec::new(),
+            fts5_deadline: FTS5_DEADLINE,
+            ruflo_deadline: RUFLO_DEADLINE,
+        }
+    }
+
+    /// Add another ranked list to the fusion. A document confirmed by several lists
+    /// accumulates RRF score across all of them. Used by recall to rank curated memory
+    /// files apart from the much larger knowledge store.
+    pub fn with_extra(mut self, provider: Arc<dyn SearchProvider>) -> Self {
+        self.extras.push(provider);
+        self
     }
 
     /// Construct with custom deadlines — for testing and configuration.
@@ -224,12 +397,15 @@ impl HybridProvider {
         fts5_deadline: Duration,
         ruflo_deadline: Duration,
     ) -> Self {
-        Self { fts5, ruflo, fts5_deadline, ruflo_deadline }
+        Self { fts5, ruflo, extras: Vec::new(), fts5_deadline, ruflo_deadline }
     }
 }
 
-impl SearchProvider for HybridProvider {
-    fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit> {
+impl HybridProvider {
+    /// [`query`](SearchProvider::query) plus each leg's outcome, so a caller can
+    /// tell a degraded result (a leg timed out or failed) from a genuine miss
+    /// (t-3535). The hits are exactly what `query` returns.
+    pub fn query_with_status(&self, q: &str, top_k: usize) -> (Vec<SearchHit>, HybridStatus) {
         let q: Arc<str> = Arc::from(q);
         let fetch = top_k.max(MIN_CANDIDATE_POOL);
 
@@ -243,17 +419,59 @@ impl SearchProvider for HybridProvider {
         let (tx_fts5,  rx_fts5)  = mpsc::channel();
         let (tx_ruflo, rx_ruflo) = mpsc::channel();
 
-        thread::spawn(move || { let _ = tx_fts5.send(fts5.query(&q_fts5, fetch)); });
-        thread::spawn(move || { let _ = tx_ruflo.send(ruflo.query(&q_ruflo, fetch)); });
+        // Budgets run from dispatch: the clock starts before the first leg spawns.
+        let start = Instant::now();
+
+        thread::spawn(move || { let _ = tx_fts5.send(fts5.try_query(&q_fts5, fetch)); });
+        thread::spawn(move || { let _ = tx_ruflo.send(ruflo.try_query(&q_ruflo, fetch)); });
+
+        // Extra legs are dispatched with the others and share the semantic budget.
+        let extra_rx: Vec<_> = self
+            .extras
+            .iter()
+            .map(|p| {
+                let p = Arc::clone(p);
+                let q = Arc::clone(&q);
+                let (tx, rx) = mpsc::channel();
+                thread::spawn(move || { let _ = tx.send(p.try_query(&q, fetch)); });
+                rx
+            })
+            .collect();
 
         // Ruflo budget starts from dispatch, not from when FTS5 returns.
         // Worst-case wall-clock = RUFLO_DEADLINE.
-        let start         = Instant::now();
-        let fts5_results  = rx_fts5.recv_timeout(fts5_dl).unwrap_or_default();
-        let ruflo_budget  = ruflo_dl.saturating_sub(start.elapsed());
-        let ruflo_results = rx_ruflo.recv_timeout(ruflo_budget).unwrap_or_default();
+        let (fts5_results, keyword) = leg_outcome(rx_fts5.recv_timeout(fts5_dl));
+        let ruflo_budget = ruflo_dl.saturating_sub(start.elapsed());
+        let (ruflo_results, semantic) = leg_outcome(rx_ruflo.recv_timeout(ruflo_budget));
 
-        rrf_merge(vec![fts5_results, ruflo_results], K, top_k)
+        let mut lists = vec![fts5_results, ruflo_results];
+        let mut extras = Vec::with_capacity(extra_rx.len());
+        for rx in extra_rx {
+            let budget = ruflo_dl.saturating_sub(start.elapsed());
+            let (hits, status) = leg_outcome(rx.recv_timeout(budget));
+            lists.push(hits);
+            extras.push(status);
+        }
+        (rrf_merge(lists, K, top_k), HybridStatus { keyword, semantic, extras })
+    }
+}
+
+impl SearchProvider for HybridProvider {
+    fn query(&self, q: &str, top_k: usize) -> Vec<SearchHit> {
+        self.query_with_status(q, top_k).0
+    }
+}
+
+/// Map one leg's channel result to its hits and status. A dropped sender (the leg
+/// thread panicked) is an error, not a timeout, and returns at once.
+fn leg_outcome(
+    received: Result<anyhow::Result<Vec<SearchHit>>, RecvTimeoutError>,
+) -> (Vec<SearchHit>, LegStatus) {
+    match received {
+        Ok(Ok(hits)) if hits.is_empty() => (hits, LegStatus::Empty),
+        Ok(Ok(hits)) => (hits, LegStatus::Ok),
+        Ok(Err(_)) | Err(RecvTimeoutError::Disconnected) => (Vec::new(), LegStatus::Error),
+        Err(RecvTimeoutError::Timeout) => (Vec::new(), LegStatus::Timeout),
     }
 }
 
@@ -493,6 +711,38 @@ mod tests {
     }
 
     #[test]
+    fn hybrid_extra_provider_adds_its_own_ranked_list() {
+        // fts5: [a]   ruflo: [b]   extra: [c, a]
+        // c appears only via the extra leg; a is confirmed by fts5 + extra and must lead.
+        let fts5  = FixedProvider::fixed(vec![h("a")]);
+        let ruflo = FixedProvider::fixed(vec![h("b")]);
+        let extra = FixedProvider::fixed(vec![h("c"), h("a")]);
+        let hits = HybridProvider::new(fts5, ruflo).with_extra(extra).query("q", 10);
+        let keys: Vec<_> = hits
+            .iter()
+            .map(|x| match &x.doc { DocRef::KnowledgeEntry { key, .. } => key.clone(), _ => String::new() })
+            .collect();
+        assert_eq!(keys[0], "a", "two-leg confirmation ranks first: {keys:?}");
+        assert!(keys.contains(&"c".to_string()), "extra-only doc must appear: {keys:?}");
+        assert!(keys.contains(&"b".to_string()));
+    }
+
+    #[test]
+    fn hybrid_extra_timeout_degrades_to_the_other_legs() {
+        let fts5  = FixedProvider::fixed(vec![h("from-fts5")]);
+        let ruflo = FixedProvider::fixed(vec![h("from-ruflo")]);
+        let extra = FixedProvider::delayed(vec![h("from-extra")], Duration::from_millis(400));
+        let hybrid = HybridProvider::with_deadlines(
+            fts5, ruflo,
+            Duration::from_millis(50),
+            Duration::from_millis(100),
+        )
+        .with_extra(extra);
+        let hits = hybrid.query("q", 10);
+        assert_eq!(hits.len(), 2, "slow extra leg must be dropped, not awaited: {hits:?}");
+    }
+
+    #[test]
     fn hybrid_rrf_score_set_on_every_result() {
         let fts5  = FixedProvider::fixed(vec![h("x")]);
         let ruflo = FixedProvider::fixed(vec![h("y")]);
@@ -621,5 +871,262 @@ mod tests {
             !hits.iter().any(|h| matches!(&h.doc, DocRef::KnowledgeEntry { key, .. } if key == "from-ruflo")),
             "ruflo must timeout — budget starts from dispatch, not from fts5 return"
         );
+    }
+
+    // ── Per-leg status (t-3535) ───────────────────────────────────────────────
+
+    struct FailingProvider;
+    impl SearchProvider for FailingProvider {
+        fn query(&self, _q: &str, _top_k: usize) -> Vec<SearchHit> {
+            Vec::new()
+        }
+        fn try_query(&self, _q: &str, _top_k: usize) -> anyhow::Result<Vec<SearchHit>> {
+            anyhow::bail!("backend down")
+        }
+    }
+
+    struct PanickingProvider;
+    impl SearchProvider for PanickingProvider {
+        fn query(&self, _q: &str, _top_k: usize) -> Vec<SearchHit> {
+            panic!("leg crashed")
+        }
+    }
+
+    fn keys(hits: &[SearchHit]) -> Vec<String> {
+        hits.iter()
+            .map(|x| match &x.doc {
+                DocRef::KnowledgeEntry { key, .. } => key.clone(),
+                DocRef::MemoryFile { slug, .. } => slug.clone(),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn hybrid_status_reports_ok_timeout_empty_and_error_per_leg() {
+        // Margins are wide so a loaded machine cannot flip a status: instant legs
+        // get a full second, the late leg sleeps ten times past its deadline.
+        let hybrid = HybridProvider::with_deadlines(
+            FixedProvider::fixed(vec![h("a")]),
+            FixedProvider::delayed(vec![h("late")], Duration::from_secs(10)),
+            Duration::from_secs(2),
+            Duration::from_secs(1),
+        )
+        .with_extra(FixedProvider::fixed(vec![]))
+        .with_extra(Arc::new(FailingProvider));
+
+        let (hits, status) = hybrid.query_with_status("q", 10);
+
+        assert_eq!(
+            status,
+            HybridStatus {
+                keyword: LegStatus::Ok,
+                semantic: LegStatus::Timeout,
+                extras: vec![LegStatus::Empty, LegStatus::Error],
+            }
+        );
+        assert_eq!(keys(&hits), vec!["a"]);
+    }
+
+    #[test]
+    fn hybrid_status_keyword_timeout_and_semantic_error() {
+        let hybrid = HybridProvider::with_deadlines(
+            FixedProvider::delayed(vec![h("slow")], Duration::from_secs(10)),
+            Arc::new(FailingProvider),
+            Duration::from_millis(300),
+            Duration::from_secs(2),
+        );
+
+        let (hits, status) = hybrid.query_with_status("q", 10);
+
+        assert_eq!(status.keyword, LegStatus::Timeout);
+        assert_eq!(status.semantic, LegStatus::Error);
+        assert!(status.extras.is_empty());
+        assert!(hits.is_empty());
+    }
+
+    #[test]
+    fn hybrid_status_a_crashed_leg_is_error_not_timeout() {
+        // A panicking leg drops its sender: that is a failure, not a slow backend.
+        let hybrid = HybridProvider::with_deadlines(
+            FixedProvider::fixed(vec![h("a")]),
+            Arc::new(PanickingProvider),
+            Duration::from_millis(500),
+            Duration::from_millis(1500),
+        );
+
+        let started = Instant::now();
+        let (_hits, status) = hybrid.query_with_status("q", 10);
+
+        assert_eq!(status.semantic, LegStatus::Error);
+        assert!(started.elapsed() < Duration::from_millis(1000), "a crash must not wait out the deadline");
+    }
+
+    #[test]
+    fn hybrid_query_returns_the_same_hits_as_query_with_status() {
+        let make = || {
+            HybridProvider::new(
+                FixedProvider::fixed(vec![h("a"), h("b")]),
+                FixedProvider::fixed(vec![h("b"), h("c")]),
+            )
+        };
+        let plain = make().query("q", 10);
+        let (with_status, _) = make().query_with_status("q", 10);
+        assert_eq!(keys(&plain), keys(&with_status));
+    }
+
+    #[test]
+    fn fts5_try_query_errors_on_a_missing_index_without_creating_it() {
+        let tmp = tempdir().unwrap();
+        let db = tmp.path().join("index.db");
+
+        assert!(FTS5Provider::new(db.clone()).try_query("jwt", 5).is_err());
+        assert!(!db.exists(), "a status probe must not create an empty index");
+    }
+
+    #[test]
+    fn fts5_try_query_is_ok_with_hits_and_ok_empty_without() {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        write_mem(&mem, "pattern_jwt-auth.md", "JWT token validation");
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("global".into(), mem)], &db).unwrap();
+        let fts = FTS5Provider::new(db);
+
+        assert_eq!(fts.try_query("jwt", 5).unwrap().len(), 1);
+        assert!(fts.try_query("zzzunmatched", 5).unwrap().is_empty());
+    }
+
+    // ── RecallScope (t-3535) ──────────────────────────────────────────────────
+
+    #[test]
+    fn recall_scope_project_allows_global_and_current_project_top_level_only() {
+        let home = std::path::Path::new("/h");
+        let scope = RecallScope::project_in(home, Some(std::path::Path::new("/w/my_repo")));
+        let p = |s: &str| PathBuf::from(s);
+
+        assert!(scope.allows(&p("/h/.claude/memory/pattern_a.md")), "global");
+        assert!(scope.allows(&p("/h/.claude/projects/-w-my-repo/memory/x.md")), "current encoding");
+        assert!(scope.allows(&p("/h/.claude/projects/-w-my_repo/memory/x.md")), "legacy encoding");
+        assert!(!scope.allows(&p("/h/.claude/projects/-w-client/memory/x.md")), "other project");
+        assert!(!scope.allows(&p("/h/.claude/memory/archive/x.md")), "archived subfolder");
+        assert!(RecallScope::All.allows(&p("/h/.claude/projects/-w-client/memory/x.md")));
+    }
+
+    #[test]
+    fn recall_scope_without_a_session_root_is_global_only() {
+        // Fails closed: an unresolvable project must not widen the scope.
+        let scope = RecallScope::project_in(std::path::Path::new("/h"), None);
+        assert_eq!(scope, RecallScope::Dirs(vec![PathBuf::from("/h/.claude/memory")]));
+    }
+
+    #[test]
+    fn fts5_scope_excludes_other_project_rows_before_the_top_k_cut() {
+        // Must-fire: twelve stronger other-project hits outrank the one in-scope note.
+        // Filtering after the LIMIT (even with over-fetch) would return nothing.
+        let tmp = tempdir().unwrap();
+        let global = tmp.path().join(".claude/memory");
+        let other = tmp.path().join(".claude/projects/-w-client/memory");
+        write_mem(&global, "pattern_mine.md", "a long note that mentions jwt once among many other words here");
+        for i in 0..12 {
+            write_mem(&other, &format!("pattern_client-{i}.md"), "jwt jwt jwt");
+        }
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("global".into(), global.clone()), ("project".into(), other)], &db).unwrap();
+
+        let unscoped = FTS5Provider::new(db.clone()).query("jwt", 1);
+        let scoped = FTS5Provider::new(db)
+            .with_scope(RecallScope::Dirs(vec![global.clone()]))
+            .query("jwt", 1);
+
+        assert_ne!(keys(&unscoped), vec!["mine"], "fixture must rank other-project notes first");
+        assert_eq!(keys(&scoped), vec!["mine"]);
+    }
+
+    #[test]
+    fn hybrid_status_reports_ok_and_timeout_for_extra_legs() {
+        let hybrid = HybridProvider::with_deadlines(
+            FixedProvider::fixed(vec![]),
+            FixedProvider::fixed(vec![h("k")]),
+            Duration::from_secs(2),
+            Duration::from_secs(1),
+        )
+        .with_extra(FixedProvider::fixed(vec![h("x")]))
+        .with_extra(FixedProvider::delayed(vec![h("late")], Duration::from_secs(10)));
+
+        let (hits, status) = hybrid.query_with_status("q", 10);
+
+        assert_eq!(
+            status,
+            HybridStatus {
+                keyword: LegStatus::Empty,
+                semantic: LegStatus::Ok,
+                extras: vec![LegStatus::Ok, LegStatus::Timeout],
+            }
+        );
+        let mut got = keys(&hits);
+        got.sort();
+        assert_eq!(got, vec!["k", "x"]);
+    }
+
+    #[test]
+    fn ruflo_output_without_a_json_array_is_an_error_not_empty() {
+        assert!(parse_ruflo_hits("[INFO] embedding model failed to load", "knowledge").is_err());
+        assert!(parse_ruflo_hits("[{\"key\": \"broken\"", "knowledge").is_err());
+        assert!(parse_ruflo_hits("[INFO] ok\n[]", "knowledge").unwrap().is_empty());
+        assert_eq!(parse_ruflo_hits("[{\"key\":\"k\",\"value\":\"v\"}]", "knowledge").unwrap().len(), 1);
+    }
+
+    // ── symlinks cannot smuggle an out-of-scope note into scope (t-3537 gate) ───
+
+    #[test]
+    fn allows_rejects_a_symlink_into_another_projects_memory() {
+        let tmp = tempdir().unwrap();
+        let mine = tmp.path().join("mine");
+        let client = tmp.path().join("client");
+        fs::create_dir_all(&mine).unwrap();
+        fs::create_dir_all(&client).unwrap();
+        fs::write(client.join("pattern_secret.md"), "client secret").unwrap();
+        fs::write(mine.join("pattern_real.md"), "mine").unwrap();
+        std::os::unix::fs::symlink(client.join("pattern_secret.md"), mine.join("pattern_link.md")).unwrap();
+        std::os::unix::fs::symlink(mine.join("pattern_real.md"), mine.join("pattern_alias.md")).unwrap();
+        std::os::unix::fs::symlink(mine.join("gone.md"), mine.join("pattern_dangling.md")).unwrap();
+        let scope = RecallScope::Dirs(vec![mine.clone()]);
+
+        assert!(scope.allows(&mine.join("pattern_real.md")));
+        assert!(!scope.allows(&mine.join("pattern_link.md")), "resolves into another project");
+        assert!(scope.allows(&mine.join("pattern_alias.md")), "resolves to an in-scope note");
+        assert!(!scope.allows(&mine.join("pattern_dangling.md")), "cannot be shown to be in scope");
+    }
+
+    #[test]
+    fn allows_follows_a_scope_folder_that_is_itself_reached_through_a_symlink() {
+        let tmp = tempdir().unwrap();
+        let real = tmp.path().join("real-mem");
+        fs::create_dir_all(&real).unwrap();
+        fs::write(real.join("pattern_a.md"), "a").unwrap();
+        let via = tmp.path().join("via");
+        std::os::unix::fs::symlink(&real, &via).unwrap();
+        fs::write(real.join("pattern_target.md"), "t").unwrap();
+        std::os::unix::fs::symlink(real.join("pattern_target.md"), real.join("pattern_l.md")).unwrap();
+        let scope = RecallScope::Dirs(vec![via.clone()]);
+
+        assert!(scope.allows(&via.join("pattern_l.md")), "link resolves into the same real folder");
+    }
+
+    #[test]
+    fn fts5_scope_excludes_a_symlink_that_resolves_out_of_scope() {
+        let tmp = tempdir().unwrap();
+        let mine = tmp.path().join("mine");
+        let client = tmp.path().join("client");
+        write_mem(&client, "pattern_secret.md", "jwt jwt jwt client secret");
+        write_mem(&mine, "pattern_real.md", "jwt once");
+        std::os::unix::fs::symlink(client.join("pattern_secret.md"), mine.join("pattern_link.md")).unwrap();
+        let db = tmp.path().join("index.db");
+        reindex_fts_dirs(&[("project".into(), mine.clone())], &db).unwrap();
+
+        let hits = FTS5Provider::new(db).with_scope(RecallScope::Dirs(vec![mine])).query("jwt", 10);
+
+        let slugs: Vec<_> = hits.iter().map(|h| match &h.doc { DocRef::MemoryFile { slug, .. } => slug.clone(), _ => String::new() }).collect();
+        assert_eq!(slugs, vec!["real"], "the symlink's target text must not surface: {slugs:?}");
     }
 }

@@ -82,8 +82,9 @@ pub fn cmd_transcribe(
     model: Option<String>,
     frames: Option<PathBuf>,
     every: u32,
+    scene: Option<f64>,
 ) -> anyhow::Result<()> {
-    let opts = transcribe::Options { model, frames_dir: frames, every };
+    let opts = transcribe::Options { model, frames_dir: frames, every, scene };
     let text = transcribe::transcribe(file.as_path(), &opts)
         .context("Transcription failed")?;
     println!("{text}");

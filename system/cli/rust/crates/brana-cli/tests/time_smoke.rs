@@ -91,7 +91,8 @@ fn data_store_path(repo_root: &Path, task_id: &str) -> PathBuf {
 }
 
 /// Encode a project root the same way `session.rs::encode_path` does (spec's "which
-/// transcript file" resolution): `/` and `_` both become `-`.
+/// transcript file" resolution): `/` and `_` both become `-`. A deliberate independent
+/// oracle for `brana_core::util::encode_project_dir`, not a call into it (t-3535).
 fn encode_project_path(project_root: &str) -> String {
     project_root.replace('/', "-").replace('_', "-")
 }

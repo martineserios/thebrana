@@ -174,17 +174,24 @@ pub enum Commands {
     Transcribe {
         /// Path to audio or video file (.wav, .mp3, .ogg, .m4a, .mp4, .mkv, .mov, .webm, .avi, .m4v)
         file: PathBuf,
-        /// Whisper model: a name (tiny, base, small, medium, large-v3, ...) or a path to a ggml file.
-        /// Default: the largest installed model; if none is installed, downloads small.
+        /// Whisper model: a name (tiny, base, small, medium, large-v3, ...) or a path to a ggml file
+        /// (a path contains `/` or ends with `.bin`). Default: the largest installed model
+        /// (searched in absolute $BRANA_WHISPER_MODELS dirs, then ~/.cache/whisper-models); if
+        /// none is installed, downloads small.
         #[arg(long)]
         model: Option<String>,
         /// Video only: extract frames into DIR (must not already hold frame_* files) and print a
         /// timestamped transcript plus frame index. Needs ffmpeg >= 5.1
         #[arg(long, value_name = "DIR")]
         frames: Option<PathBuf>,
-        /// Seconds between extracted frames (requires --frames)
+        /// Seconds between extracted frames (requires --frames; excludes --scene)
         #[arg(long, default_value_t = 10, requires = "frames")]
         every: u32,
+        /// Instead of a fixed interval, keep the first frame plus every scene change whose
+        /// ffmpeg scene score exceeds THRESHOLD (0 < x < 1; 0.3-0.5 detects cuts, lower values
+        /// keep nearly every frame of a busy video). Requires --frames; excludes --every
+        #[arg(long, value_name = "THRESHOLD", requires = "frames", conflicts_with = "every")]
+        scene: Option<f64>,
     },
     /// Manage tracked large files (models, assets, datasets)
     Files {
@@ -294,8 +301,18 @@ pub enum Commands {
     },
     /// Hybrid recall — FTS5 + ruflo parallel search, merged via RRF (ADR-058)
     Recall {
-        /// Query string
-        query: String,
+        /// Query string (omit with --bundle)
+        #[arg(required_unless_present = "bundle", conflicts_with = "bundle")]
+        query: Option<String>,
+        /// Compute the recall bundle for a task instead: at most 8 typed pointers
+        /// (note + one-line description), scoped to this project plus global memory,
+        /// with superseded notes dropped. The query is the task's subject and tags.
+        #[arg(long, value_name = "TASK_ID", conflicts_with_all = ["top", "scope"])]
+        bundle: Option<String>,
+        /// With --bundle: compute the bundle and append its offered row to the usage log
+        /// (shown: false), printing nothing. Used by build LOAD to measure without showing.
+        #[arg(long, requires = "bundle")]
+        shadow: bool,
         /// Maximum results to return
         #[arg(long, default_value = "10")]
         top: usize,
@@ -305,7 +322,18 @@ pub enum Commands {
         /// FTS5 index DB path (default: ~/.claude/memory/index.db)
         #[arg(long)]
         db: Option<String>,
+        /// Which memory notes to search: every project's (all) or only this
+        /// project's plus global memory (project). Knowledge entries are unaffected.
+        #[arg(long, value_enum, default_value_t = RecallScopeArg::All)]
+        scope: RecallScopeArg,
     },
+}
+
+/// `brana recall --scope` (t-3535).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum RecallScopeArg {
+    All,
+    Project,
 }
 
 #[derive(Subcommand)]
@@ -603,6 +631,22 @@ pub enum KnowledgeCmd {
         /// Scoring itself is never capped — only the subprocess tag writes are.
         #[arg(long)]
         tag_cap: Option<usize>,
+        /// Output stats as JSON
+        #[arg(long)]
+        json: bool,
+    },
+    /// Embed the curated memory files (~/.claude/memory and
+    /// ~/.claude/projects/*/memory) into knowledge.db so `brana recall` matches
+    /// them by meaning as well as keyword (t-3510). Incremental: unchanged files
+    /// are skipped, changed files re-embedded, rows for deleted files pruned.
+    /// Embeds through ruflo's ONNX MiniLM (~1s per file on first run).
+    EmbedMemory {
+        /// Destination store (default: ~/.claude/memory/knowledge.db)
+        #[arg(long)]
+        dest: Option<PathBuf>,
+        /// Re-embed every file, even unchanged ones (after an embedder or model change)
+        #[arg(long)]
+        force: bool,
         /// Output stats as JSON
         #[arg(long)]
         json: bool,
@@ -1694,6 +1738,31 @@ pub enum MemoryCmd {
         #[arg(long)]
         db: Option<String>,
     },
+    /// Recall usage log (ADR-099): record which offered notes a task used or ignored,
+    /// check that a shown bundle was answered, or report on the log
+    Usage {
+        /// Task id (not needed with --report)
+        #[arg(required_unless_present = "report")]
+        task: Option<String>,
+        /// Notes from the offered bundle that the work used (comma-separated; "" = none)
+        #[arg(long, value_delimiter = ',', num_args = 1, conflicts_with_all = ["no_answer", "check", "report"])]
+        used: Option<Vec<String>>,
+        /// Notes from the offered bundle that the work looked at and did not use
+        #[arg(long, value_delimiter = ',', num_args = 1, conflicts_with_all = ["no_answer", "check", "report"])]
+        ignored: Option<Vec<String>>,
+        /// Record that no answer was given
+        #[arg(long, conflicts_with_all = ["check", "report"])]
+        no_answer: bool,
+        /// Exit 2 if the latest shown bundle for the task has no outcome yet, else 0
+        #[arg(long, conflicts_with = "report")]
+        check: bool,
+        /// Counts over the whole project log (offered rows, sizes, degraded legs)
+        #[arg(long)]
+        report: bool,
+        /// Emit --report as JSON
+        #[arg(long, requires = "report")]
+        json: bool,
+    },
     /// Full-text search the embedded recall index
     Search {
         /// Query terms
@@ -1884,6 +1953,29 @@ mod tests {
         assert!(
             names.iter().any(|n| n == "epic"),
             "TaskType enum must include an Epic variant mapping to \"epic\", got {names:?}"
+        );
+    }
+
+    /// t-3471: `--scene` is an alternative frame sampler to `--every`, so the two are refused
+    /// together, and like `--every` it only makes sense with `--frames`.
+    #[test]
+    fn transcribe_scene_excludes_every_and_requires_frames() {
+        let parsed = Cli::try_parse_from(["brana", "transcribe", "v.mp4", "--frames", "o", "--scene", "0.3"])
+            .expect("--frames --scene is valid");
+        match parsed.command {
+            Commands::Transcribe { scene, every, .. } => {
+                assert_eq!(scene, Some(0.3));
+                assert_eq!(every, 10, "default --every is untouched by --scene");
+            }
+            _ => panic!("expected Transcribe"),
+        }
+        assert!(
+            Cli::try_parse_from(["brana", "transcribe", "v.mp4", "--frames", "o", "--every", "5", "--scene", "0.3"]).is_err(),
+            "--scene and --every must conflict"
+        );
+        assert!(
+            Cli::try_parse_from(["brana", "transcribe", "v.mp4", "--scene", "0.3"]).is_err(),
+            "--scene requires --frames"
         );
     }
 }

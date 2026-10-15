@@ -179,3 +179,93 @@ fn require_project_root() -> Result<PathBuf> {
     crate::util::find_session_root()
         .context("could not resolve project root (not in git repo and CLAUDE_PROJECT_DIR not set)")
 }
+
+/// `brana memory usage` (t-3517, ADR-099 §5-6). Returns the process exit code: 0, or 2 for
+/// `--check` when a shown bundle is still waiting for its outcome.
+pub fn cmd_memory_usage(
+    task: Option<&str>,
+    used: Option<Vec<String>>,
+    ignored: Option<Vec<String>>,
+    no_answer: bool,
+    check: bool,
+    report: bool,
+    json: bool,
+) -> Result<i32> {
+    use brana_core::usage_log;
+    let root = brana_core::util::find_session_root().context("no project root found")?;
+    let paths = usage_log::log_paths(&brana_core::util::session_store_root(), &root);
+    let read = usage_log::read_rows(&paths);
+
+    if report {
+        let r = usage_log::report(&read);
+        if json {
+            println!("{}", serde_json::to_string(&r)?);
+        } else {
+            if r.offered == 0 && r.outcomes == 0 {
+                println!("no rows yet (the log is written by `brana recall --bundle`; an older installed brana has no --shadow)");
+            }
+            println!("offered {} (shown {}, shadow {}) over {} task(s)", r.offered, r.shown, r.shadow, r.tasks);
+            println!("outcomes {}; shown bundles without one {}", r.outcomes, r.unresolved_shown);
+            println!("bundle size mean {:.1}, max {}; empty bundles {}", r.bundle_size_mean, r.bundle_size_max, r.empty_bundles);
+            for (leg, n) in &r.legs_not_ok {
+                println!("leg {leg}: {n}");
+            }
+            if r.malformed_lines > 0 {
+                println!("malformed lines skipped: {}", r.malformed_lines);
+            }
+        }
+        return Ok(0);
+    }
+
+    let task = task.context("a task id is required")?;
+    if check {
+        let c = usage_log::check(&read.rows, task);
+        for o in &c.orphans {
+            eprintln!("note: older shown bundle {o} for {task} has no outcome (not blocking)");
+        }
+        return Ok(match c.unresolved {
+            None => 0,
+            Some(id) => {
+                eprintln!(
+                    "{task}: the shown bundle {id} has no outcome. Run: brana memory usage {task} \
+                     --used <refs> --ignored <refs>   (or --no-answer)"
+                );
+                2
+            }
+        });
+    }
+
+    // `--used ""` is a deliberate "used none"; a bare call is not an answer.
+    if !no_answer && used.is_none() && ignored.is_none() {
+        anyhow::bail!("give --used/--ignored (use --used \"\" for none) or --no-answer");
+    }
+    let clean = |v: Option<Vec<String>>| -> Vec<String> {
+        v.unwrap_or_default().into_iter().filter(|s| !s.trim().is_empty()).collect()
+    };
+    let answer = if no_answer {
+        usage_log::Answer::NoAnswer
+    } else {
+        usage_log::Answer::Given { used: clean(used), ignored: clean(ignored) }
+    };
+    let projects: Vec<PathBuf> =
+        paths.iter().filter_map(|p| p.parent().and_then(|d| d.parent()).map(PathBuf::from)).collect();
+    let row = usage_log::record_outcome(
+        &paths,
+        task,
+        &answer,
+        |offered| {
+            let refs = usage_log::offered_refs(offered);
+            let stem = offered["session"].as_str().map(usage_log::safe_stem).filter(|s| !s.is_empty());
+            match stem.and_then(|stem| {
+                projects.iter().find_map(|d| usage_log::opened_in_transcript(&d.join(format!("{stem}.jsonl")), &refs))
+            }) {
+                Some(r) => usage_log::Opened::Refs(r),
+                None => usage_log::Opened::Unavailable,
+            }
+        },
+        chrono::Utc::now(),
+    )
+    .map_err(|e| anyhow::anyhow!(e))?;
+    println!("recorded {} for {task}", row["answer"].as_str().unwrap_or("outcome"));
+    Ok(0)
+}

@@ -3,8 +3,8 @@
 > **Narrowed 2026-10-09 by ADR-098 §6.** Content comes from his installed `pr` skill; only the `gh pr create` headings hook, `--body-file` in ship and the runner body remain. The template file and reference copy below are dropped. t-3490.
 
 **Date:** 2026-10-07 (revised same day after the ADR-097 challenge: template + hook, not a vendored organ)
-**Status:** specced — ADR-097 accepted; implementation is P3 (S)
-**Task:** P3 · ADR-097 D3 · research 2026-10-07 §2.2
+**Status:** specced — ADR-097 accepted; narrowed by ADR-098 §6 (headings hook + `--body-file` only); implementation is t-3490 (pending)
+**Task:** t-3490 (ADR-097 plan P3, narrowed by ADR-098 §6) · ADR-097 D3 · research 2026-10-07 §2.2
 
 ## Problem
 

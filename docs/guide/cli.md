@@ -78,10 +78,10 @@ Manage binary assets, models, and datasets via `.brana-files.json` manifest.
 | Command | Description |
 |---------|-------------|
 | `brana files list` | List all tracked files |
-| `brana files status` | Show ok/missing/modified state (SHA-256 verified) |
-| `brana files add <name> <path> [--url U] [--r2-key K]` | Register file with hash |
-| `brana files pull` | Download missing/modified files from remote URLs |
-| `brana files push [--remote brana-r2]` | Upload tracked files to R2 via rclone |
+| `brana files status` | Show ok/missing/modified state (SHA-256 verified); an entry whose path is refused (escapes the project, symlink, `.git/`) shows as `refused: <reason>` |
+| `brana files add <name> <path> [--url U] [--r2-key K]` | Register file with hash; the file must live inside the project |
+| `brana files pull` | Download missing/modified files from their https URLs — atomically (`<dest>.part-<pid>-<hex>`, sha256 checked before the rename, so a failed download leaves nothing). Entries with absolute, `..`, symlinked or control (`.git/`, `.claude/`, the manifest) paths, or non-https URLs, are refused before any write |
+| `brana files push [--remote brana-r2]` | Upload tracked files to R2 via rclone — same containment check, so a hostile manifest cannot exfiltrate a file outside the project |
 
 ### `brana feed` — RSS/Atom Feed Polling
 
@@ -145,7 +145,7 @@ Multi-account Gmail via IMAP with OS keyring credential storage.
 | `brana run <id> [--spawn]` | — | Create worktree + set in_progress, optionally spawn tmux |
 | `brana queue [--max 5] [--auto]` | — | Show next unblocked tasks with model recommendations |
 | `brana agents [kill <id>]` | — | List or kill active agents |
-| `brana transcribe <file> [--model <name\|path>] [--frames DIR [--every N]]` | — | Audio/video to text via whisper.cpp. Default model = largest installed in `~/.cache/whisper-models` (or `$BRANA_WHISPER_MODELS`); none installed → downloads `small`. `--frames` (video, ffmpeg ≥ 5.1) extracts a JPEG every N s (default 10) and prints a timestamped transcript + frame index labelled with each frame's real time. Files without the ggml magic header are ignored as models. Use `--model base` for a fast draft (`libwhisper.so.1` injected automatically from `$HOME/.local/lib`) |
+| `brana transcribe <file> [--model <name\|path>] [--frames DIR [--every N \| --scene X]]` | — | Audio/video to text via whisper.cpp. Default model = largest installed in `~/.cache/whisper-models` (or `$BRANA_WHISPER_MODELS`); none installed → downloads `small`. `--frames` (video, ffmpeg ≥ 5.1) extracts a JPEG every N s (default 10) — or, with `--scene X` (0 < X < 1, e.g. 0.3; excludes `--every`), the first frame plus one per scene change — and prints a timestamped transcript + frame index labelled with each frame's real time. Files without the ggml magic header are ignored as models. Use `--model base` for a fast draft (`libwhisper.so.1` injected automatically from `$HOME/.local/lib`) |
 | `brana version` | `bv` | Show CLI version |
 | `brana deploy` | — | Print deployment workflow (merge to main — no build step) |
 
@@ -186,6 +186,7 @@ User terminal
 | Source | Path | Used by |
 |--------|------|---------|
 | Tasks | `.claude/tasks.json` (project-relative, worktree-aware) | `backlog *` |
+| Tasks override | `BRANA_TASKS_FILE` — absolute path to an alternate ledger (parent must exist; auto-initialised `{"tasks":[]}`). Set by the test-suite runner per suite so no suite can write the live ledger; a relative value is ignored, an unusable one is an error, never a fallback to the live file | `backlog *`, `sync`, `receipt` |
 | Portfolio | `~/.claude/tasks-portfolio.json` | `backlog status --all`, `portfolio` |
 | Theme config | `~/.claude/tasks-config.json` | all rendering |
 | Theme defs | `system/cli/themes.json` | all rendering |
@@ -261,9 +262,18 @@ system/cli/rust/src/
 
 ## Changelog
 
+- 2026-10-14: `brana backlog set <id> notes` and `add --json` (`notes` key) now write exactly one line — LF, CR, VT, FF, FS/GS/RS, NEL, LS and PS in the value are escaped to visible `\n` / `\u{…}` text, because `notes` is read line by line for `Evaluator:` / `Challenger:` verdicts (latest wins) and a newline in LLM-composed free text could forge one. `context` and `description` keep their newlines (`context` is read for `AC:` lines; write gate-composed text there single-line). A multi-line value you used to append to notes (e.g. goal-completion's failed-criteria list) now lands as one line with literal `\n`. Gate free text rides on `Evaluator-gap:` / `Challenger-gap:` lines (t-3504).
+- 2026-10-14: `brana doctor` "Plugin registered" reads the engine's `~/.claude/plugins/installed_plugins.json` (v2, `brana@<marketplace>` keys) and falls back to the legacy `~/.claude/installed_plugins.json` only when the engine file is absent, saying so. New SessionStart hook `mods-installed-check.sh` re-runs the static half of `mods-check.sh --installed` every session start and warns, one line, never blocks (ADR-096 Law 4); `/brana:plugin add` writes the engine's v2 registry and scans before activation (t-3502).
+- 2026-10-14: `BRANA_TASKS_FILE` names an alternate ledger (absolute; parent must exist; auto-initialised exclusively). `system/scripts/lib/suite-home.sh` exports a scratch one per suite, so a sweep launched from a linked worktree can no longer write the live ledger through the git common root (it did: t-3526); a conventional `--file .claude/tasks.json` of the *running* repo follows the override, any other repo's keeps its literal remap; `tests/scripts/test-suite-ledger-isolation.sh` is the must-fire; `/brana:ship` 2b hard-stops on a ledger decrease during the sweep (t-3501).
 - 2026-05-24: Knowledge tier-1/tier-2 pipeline added; `call_gemini_json()` routes eligible tasks to Gemini Flash (t-1667). `brana backlog focus --top N` propagated to CLI guide.
+- 2026-10-14: `/brana:ship` Step 4 now rebuilds and atomically installs **both** `brana` and `brana-mcp` (one `cargo build`, verify both before swapping either, restore both on failure; brana-mcp is checked with an `initialize` handshake since it takes no arguments). `bootstrap.sh`'s stale-binary hints point there, with a bare-minimum `cp X.new && mv -f` one-liner for use outside a ship — the 2026-10-05 bare `cp` recipe below is superseded (t-3499).
+- 2026-10-14: `brana transcribe` checks the input exists and is readable before looking up whisper-cli or resolving/downloading a model, and warns when a run extracts more than 500 frames (t-3485).
+- 2026-10-14: CI's `validate`, `tests` and `rust` jobs are pinned to `ubuntu-24.04` (the `ubuntu-latest` label moves to Ubuntu 26 from 2026-10-19; the real-ffmpeg frame tests are only verified on ffmpeg 6.1.1). Unpin after a green `workflow_dispatch` run on ubuntu-26.04. Asserted by `tests/scripts/test-ci-rust-tests.sh` (t-3484).
+- 2026-10-14: `brana transcribe` hardening — ffmpeg runs with `-protocol_whitelist file` and a `file:` input (odd file names are never protocols), a run-created `--frames` dir is `0o700` and a planted `frame_*` symlink refuses the run, ffmpeg stderr is streamed not buffered, `--model` is a path only with `/` or `.bin`, relative `BRANA_WHISPER_MODELS` entries are ignored, leaked temp wavs are swept after 1 h (t-3480).
+- 2026-10-14: `brana files pull`, `push`, `status`, `add` and manifest-tracked whisper models treat `.brana-files.json` as untrusted: entries with absolute, `..` or symlinked paths, or non-https URLs, are refused before any read or write. Downloads are atomic (`<dest>.part-<pid>-<hex>` created exclusively, sha256 or ggml-magic verified before the rename; curl pinned to https on redirects with a 5-min stall timeout); only brana's own stale partials are swept after 1 h, by age, no `/proc` (t-3473).
+- 2026-10-14: `brana transcribe --frames DIR --scene X` samples frames on scene changes (the first frame plus ffmpeg `gt(scene,X)`, 0 < X < 1) instead of the fixed `--every` interval; the two flags are mutually exclusive and labels still come from `showinfo` `pts_time` (t-3471).
 - 2026-10-07: CI's required `rust` job now runs `cargo test --workspace` (brana-cli, brana-core, brana-mcp; ffmpeg ≥ 5.1 installed and asserted, `BRANA_REQUIRE_FFMPEG=1` so the real-ffmpeg frame tests can't skip; 45 min job timeout). Before this, no CI job ran the Rust suites — Check 46 only compiles them. Pinned by `tests/scripts/test-ci-rust-tests.sh` (t-3472).
-- 2026-10-05: **After shipping, rebuild the binary** — `bootstrap.sh` does not build the CLI: `cd system/cli/rust && cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana`, then check `brana transcribe --help` lists `--frames` (t-3470).
+- 2026-10-05 *(superseded 2026-10-14 by t-3499 — use `/brana:ship` Step 4 or the atomic `cp X.new && mv -f` form, never a bare cp onto the live binary)*: **After shipping, rebuild the binary** — `bootstrap.sh` does not build the CLI: `cd system/cli/rust && cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana`, then check `brana transcribe --help` lists `--frames` (t-3470).
 - 2026-10-05: `brana transcribe` accepts any whisper model (`--model <name|path>`), defaults to the largest installed (small auto-downloaded if none), and handles video with `--frames` (t-3470).
 - 2026-05-13: Backlog v2 schema: `kind` field replaces `stream`, `initiative` type added, `stream` deprecated. `brana backlog complete` alias documented.
 - 2026-05-06: `brana transcribe` now auto-injects `LD_LIBRARY_PATH=$HOME/.local/lib` — no manual env var needed (t-1282).

@@ -500,6 +500,15 @@ if [ -d "$SYSTEM_DIR/scripts/lib" ]; then
     sync_dir "$SYSTEM_DIR/scripts/lib" "$TARGET_DIR/scripts/lib" "scripts/lib/"
 fi
 
+# config/ (t-3505): the tracked ADR-096 acknowledgement list. mods-check.sh reads
+# <script dir>/../config/mods-acknowledged.txt — system/config/ in a checkout, ~/.claude/config/ once deployed.
+# Without this the DEPLOYED checker (the session-start hook, /brana:plugin add step 8b) would not see an
+# acknowledgement the repo grants, and would be stricter than validate/bootstrap.
+if [ -f "$SYSTEM_DIR/config/mods-acknowledged.txt" ]; then
+    mkdir -p "$TARGET_DIR/config"
+    sync_file "$SYSTEM_DIR/config/mods-acknowledged.txt" "$TARGET_DIR/config/mods-acknowledged.txt" "config/mods-acknowledged.txt"
+fi
+
 # --- Step 3b: Hooks ---
 # hooks.json invokes scripts at $HOME/.claude/hooks/ — the plugin does NOT
 # serve the script files (same failure class as rules, t-1946). Ongoing syncs
@@ -1062,7 +1071,9 @@ if [ -f "$BRANA_BIN" ] && [ -d "$RUST_SRC_DIR" ]; then
     NEWEST_SRC=$(find "$RUST_SRC_DIR" -name "*.rs" -newer "$BRANA_BIN" 2>/dev/null | head -1)
     if [ -n "$NEWEST_SRC" ]; then
         echo "  ! brana-cli binary may be stale (source changed since last build)"
-        echo "    Run: cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana"
+        echo "    After a ship: /brana:ship Step 4 does this (one build of brana-cli + brana-mcp, backup, atomic swap, verified)."
+        echo "    Outside a ship, bare minimum (no backup/verify; builds THIS checkout; a symlinked install becomes a regular file):"
+        echo "      cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana.new && mv -f ~/.local/bin/brana.new ~/.local/bin/brana"
     else
         echo "  = brana-cli binary (current)"
     fi
@@ -1077,8 +1088,10 @@ if [ -f "$BRANA_MCP_BIN" ] && [ -d "$RUST_SRC_DIR" ]; then
     NEWEST_MCP_SRC=$(find "$RUST_SRC_DIR" -name "*.rs" -newer "$BRANA_MCP_BIN" 2>/dev/null | head -1)
     if [ -n "$NEWEST_MCP_SRC" ]; then
         echo "  ! brana-mcp binary may be stale (source changed since last build)"
-        echo "    Run: cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-mcp && cp target/release/brana-mcp ~/.local/bin/brana-mcp"
-        echo "    Then restart Claude Code sessions to pick up the rebuilt MCP server."
+        echo "    After a ship: /brana:ship Step 4 rebuilds brana-mcp together with brana-cli (t-3499) — atomic swap, verified."
+        echo "    Outside a ship, bare minimum (no backup/verify; builds THIS checkout):"
+        echo "      cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-mcp && cp target/release/brana-mcp ~/.local/bin/brana-mcp.new && mv -f ~/.local/bin/brana-mcp.new ~/.local/bin/brana-mcp"
+        echo "    Then restart Claude Code sessions to pick up the rebuilt MCP server (running ones keep the old inode)."
     else
         echo "  = brana-mcp binary (current)"
     fi
@@ -1136,36 +1149,30 @@ if command -v jq &>/dev/null; then
             echo "  = installed_plugins.json ($PLUGIN_KEY v$PLUGIN_VERSION registered)"
         fi
     fi
+else
+    # Said here, not only by `brana doctor`: without jq 7e cannot write the engine registry,
+    # and the legacy stub that used to mask this (7f) is gone (t-3502 verifier C2).
+    echo "  ! jq missing — brana NOT registered in the engine registry (7e); install jq and re-run"
+    CHANGES=$((CHANGES + 1))
 fi
 
-# 7f: Keep ~/.claude/installed_plugins.json in sync (brana doctor check 2)
-# CC reads this file to verify plugin registration. Bootstrap manages the verbose
-# plugins/installed_plugins.json separately; this step ensures the simple file
-# also has a brana entry so fresh installs pass `brana doctor`.
-SIMPLE_INSTALLED="$TARGET_DIR/installed_plugins.json"
-if command -v jq &>/dev/null; then
-    # (a dry run must not write: seed the file only on a real run — jq below tolerates its absence)
-    if ! $CHECK_ONLY; then [ -f "$SIMPLE_INSTALLED" ] || echo '{}' > "$SIMPLE_INSTALLED"; fi
-    CURRENT_VER=$(jq -r '.brana.version // empty' "$SIMPLE_INSTALLED" 2>/dev/null || true)
-    if [ "$CURRENT_VER" != "$PLUGIN_VERSION" ]; then
-        CHANGES=$((CHANGES + 1))
-        if $CHECK_ONLY; then
-            echo "  + $TARGET_DIR/installed_plugins.json (would write brana v$PLUGIN_VERSION)"
-        else
-            jq --arg ver "$PLUGIN_VERSION" '.brana = {"version": $ver}' \
-               "$SIMPLE_INSTALLED" > "$SIMPLE_INSTALLED.tmp" && mv "$SIMPLE_INSTALLED.tmp" "$SIMPLE_INSTALLED"
-            echo "  + $TARGET_DIR/installed_plugins.json (brana v$PLUGIN_VERSION)"
-        fi
+# 7f (removed, t-3502): this step wrote a hand-rolled ~/.claude/installed_plugins.json "so
+# fresh installs pass brana doctor". Nothing but that check ever read the file — the engine
+# reads plugins/installed_plugins.json, which 7e writes — so its only effect was to let a stub
+# mask an engine registry without brana. brana doctor now reads the engine registry alone, and
+# a leftover stub (brana's own artefact) is removed here so it cannot mislead anyone later.
+LEGACY_STUB="$TARGET_DIR/installed_plugins.json"
+# only a file brana wrote: its keys are exactly {brana} (7f wrote `{"brana":{"version":…}}`);
+# anything else is somebody's file — left alone, reported
+if [ -f "$LEGACY_STUB" ] && ! jq -e 'type=="object" and ((keys - ["brana"]) | length == 0)' "$LEGACY_STUB" >/dev/null 2>&1; then
+    echo "  ! $LEGACY_STUB has keys other than brana — not removed (nothing in brana reads it)"
+elif [ -f "$LEGACY_STUB" ]; then
+    CHANGES=$((CHANGES + 1))
+    if $CHECK_ONLY; then
+        echo "  - $LEGACY_STUB (would remove: legacy stub, nothing reads it — t-3502)"
     else
-        echo "  = $TARGET_DIR/installed_plugins.json (brana v$PLUGIN_VERSION)"
-    fi
-else
-    if [ ! -f "$SIMPLE_INSTALLED" ]; then
-        if ! $CHECK_ONLY; then
-            printf '{"brana":{"version":"%s"}}\n' "$PLUGIN_VERSION" > "$SIMPLE_INSTALLED"
-            echo "  + $TARGET_DIR/installed_plugins.json (brana v$PLUGIN_VERSION, no jq)"
-            CHANGES=$((CHANGES + 1))
-        fi
+        rm -f "$LEGACY_STUB"
+        echo "  - $LEGACY_STUB (legacy stub removed: nothing reads it — t-3502)"
     fi
 fi
 
@@ -1222,13 +1229,25 @@ mods_installed_guard() {
     MODS_GUARD_HIT=""
     local chk="$SCRIPT_DIR/system/scripts/mods-check.sh" out
     [ -f "$chk" ] && [ -f "$TARGET_DIR/plugins/installed_plugins.json" ] || return 0
-    if out="$(bash "$chk" --installed "$TARGET_DIR" 2>&1)"; then return 0; fi
+    # MODS_INSTALLED_STATIC_ONLY is pinned empty: a project env block must not turn the engine half off here
+    local rc=0; out="$(MODS_INSTALLED_STATIC_ONLY= bash "$chk" --installed "$TARGET_DIR" 2>&1)" || rc=$?
+    if [ "$rc" -eq 0 ]; then
+        # exit 0 is not silent (t-3505): an acknowledged plugin and a skipped engine half are said, never a pass in the dark
+        local warns; warns="$(printf '%s\n' "$out" | grep '^WARN:' || true)"
+        if [ -n "$warns" ]; then echo "Installed mods guard:"; printf '%s\n' "$warns" | sed 's/^/  ~ /'; fi
+        return 0
+    fi
     # any non-zero exit is a hit — a checker that died (rc 2, python3 missing, unreadable registry)
     # must never pass the guard silently (challenger F2, t-3493)
     MODS_GUARD_HIT="$(printf '%s\n' "$out" | tail -1)"; [ -n "$MODS_GUARD_HIT" ] || MODS_GUARD_HIT="mods-check --installed exited non-zero with no output"
     echo "Installed mods guard:"
     printf '%s\n' "$out" | grep -E '^  ' | sed 's/^  /  ! /'   || true   # grep returns 1 on no indented line; under set -e + pipefail that aborted bootstrap before the exit-3 summary
-    echo "  ! an installed mod calls \$.model/\$.http or is refused by the engine at load (ADR-096 Law 3, t-3493) — uninstall it (claude plugin uninstall <name>); the mods step is refused until then"
+    if [ "$rc" -eq 1 ]; then
+        echo "  ! an installed mod calls \$.model/\$.http or is refused by the engine at load (ADR-096 Law 3, t-3493) — uninstall it (claude plugin uninstall <name>); a plugin that cannot be uninstalled is acknowledged in system/config/mods-acknowledged.txt; the mods step is refused until then"
+    else
+        # exit 2 (or anything else): the scan did not run — never a verdict on a mod, never "uninstall" (t-3505)
+        echo "  ! the installed mods could not be scanned (mods-check exit $rc: python3 missing, or plugins/installed_plugins.json unreadable) — fix python3 / the registry file; this is not a finding about any mod; the mods step is refused until it scans"
+    fi
     return 0
 }
 

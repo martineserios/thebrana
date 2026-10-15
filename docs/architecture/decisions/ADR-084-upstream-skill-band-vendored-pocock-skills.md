@@ -1,5 +1,6 @@
 ---
 status: accepted
+amended-by: docs/architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md
 ---
 
 # ADR-084: Upstream Skill Band — Vendored Pocock Cognitive Skills Over Brana Orchestration Shells

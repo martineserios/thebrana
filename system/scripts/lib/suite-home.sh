@@ -40,7 +40,7 @@ suite_home_init() { [ -n "$SUITE_HOME_LEDGER" ] || SUITE_HOME_LEDGER="$(mktemp)"
 
 # Every HOME-bypassing override a hook reads (grep 'BRANA_[A-Z_]*_\(DIR\|FILE\|TMPROOT\)' system/hooks when adding one)
 suite_env_scrub() {
-    unset BRANA_RUN_STATE_DIR BRANA_GOAL_FILE BRANA_DIGEST_DIR \
+    unset BRANA_TASKS_FILE BRANA_RUN_STATE_DIR BRANA_GOAL_FILE BRANA_DIGEST_DIR \
           BRANA_RATINGS_DIR BRANA_FAILURES_DIR BRANA_PRECOMPACT_GUARD_DIR BRANA_SS_TMPROOT \
           BRANA_DEPLOY_DIR BRANA_SOURCE_DIR
 }
@@ -92,12 +92,20 @@ suite_home_drop_all() {
 # run_suite_isolated REAL_HOME cmd args... — run cmd under a scratch HOME; returns cmd's exit status
 run_suite_isolated() {
     local real="$1" rc; shift
-    if suite_home_keep; then "$@"; return $?; fi
+    if suite_home_keep; then
+        # HOME isolation off (diagnosis) never means LEDGER isolation off: a scratch ledger still.
+        local keep_ledger; keep_ledger="$(mktemp -d)/brana-tasks.json" || return 2
+        BRANA_TASKS_FILE="$keep_ledger" "$@"; rc=$?
+        rm -rf "$(dirname "$keep_ledger")"; return $rc
+    fi
     SUITE_HOME_CURRENT="$(suite_home_make "$real")" || {
         echo "suite-home: cannot create a scratch HOME under $real (unwritable HOME is fatal — nothing runs un-isolated)" >&2
         return 2
     }
-    HOME="$SUITE_HOME_CURRENT" "$@"; rc=$?
+    # The ledger is NOT under HOME: brana resolves it through the git common root, so a suite
+    # run from any linked worktree would read/write the LIVE tasks.json. Hand every suite an
+    # explicit scratch ledger (t-3501, ADR-094); brana auto-inits it empty.
+    HOME="$SUITE_HOME_CURRENT" BRANA_TASKS_FILE="$SUITE_HOME_CURRENT/brana-tasks.json" "$@"; rc=$?
     suite_home_drop "$SUITE_HOME_CURRENT" "$real"; SUITE_HOME_CURRENT=""
     return $rc
 }

@@ -21,8 +21,21 @@ doc below). Edit terms there, then regenerate.
 | **Blocked chain** | The transitive dependency path preventing a task from starting | Backlog |
 | **Burndown** | Time-bucketed view of created vs completed tasks | Backlog |
 | **Rollup** | Auto-completing a parent when all children are done | Backlog |
+| **Channel** | A named, configured delivery endpoint (telegram, desktop, ntfy) | Notify |
+| **Channel registry** | Hand-edited config owning channel definitions + routing defaults | Notify |
+| **Routing** | Resolving a reminder's target channels: explicit list > priority defaults | Notify |
+| **Broadcast** | Routing to every enabled channel (`channels: ["all"]`) | Notify |
+| **Dispatch** | The locked, idempotent act of sending a due reminder through its resolved channels | Reminders (app layer) |
+| **Due** | The instant after which a reminder is eligible for dispatch | Reminders |
 | **Propagation gap** | A knowledge artifact (spec status, doc checkbox, promise, memory claim) contradicting the system's actual state after work completes | Close / Knowledge |
 | **Knowledge debt** | Accumulated undetected propagation gaps — docs claiming a state the system is no longer in (ADR-056) | Close / Knowledge |
+| **Recall bundle** | The at-most-8 typed pointers computed for one task at build LOAD (ADR-099). _Avoid_: context pack, recall results | Recall |
+| **Pointer** | A note slug or ADR reference plus its `description` line, never the note body (ADR-099). _Avoid_: snippet, excerpt | Recall |
+| **Offered row** | A usage-log record of the bundle computed for a task, with `shown` true or false (ADR-099). _Avoid_: hit, impression | Recall |
+| **Outcome row** | A usage-log record, written at the build's exit step, of which notes from a shown bundle the work used and ignored; never asked in shadow mode (ADR-099). _Avoid_: feedback, citation | Recall |
+| **Exposure** | A note appearing in a bundle that was shown to the worker (`shown: true`); the staleness input (ADR-099). _Avoid_: recall hit | Recall |
+| **Shadow mode** | Computing and logging a recall bundle without showing it to the worker (ADR-099). _Avoid_: dry run | Recall |
+| **Derived supersession** | A supersession signal inferred from an older dated twin or a prose "superseded by" line; it only down-weights a note, never drops it (ADR-099) | Recall |
 | **Classification** | Computed status: done, active, blocked, parked, pending | Backlog |
 | **PipelineState** | The knowledge pipeline's aggregate root — canonical-URL-keyed map of `UrlEntry` records; `ingest` is its sole ingestion writer (ADR-042 §1) | Knowledge Pipeline |
 | **UrlEntry** | Per-URL pipeline record: tier status ladder, scores, cluster assignment, optional drained `fetched_content` | Knowledge Pipeline |

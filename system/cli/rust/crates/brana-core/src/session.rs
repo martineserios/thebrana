@@ -19,13 +19,8 @@ use crate::util;
 // ── Path helpers ────────────────────────────────────────────────────────
 
 /// Encode a project root path into the CC project directory name.
-///
-/// CC convention: replace `/` and `_` with `-`.
 fn encode_path(project_root: &Path) -> String {
-    project_root
-        .to_string_lossy()
-        .replace('/', "-")
-        .replace('_', "-")
+    util::encode_project_dir(project_root)
 }
 
 /// Resolve the CC project memory dir for a given project root.

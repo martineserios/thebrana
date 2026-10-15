@@ -334,6 +334,12 @@ to answer, which is where brana's persisted substrate earns its weight.
 
 ---
 
+## 5. Next recheck
+
+Due ~2027-01-07 (quarterly, t-3263 cadence). Watch specifically: whether `chief-of-staff` or
+`loop-me` graduate (first Epic-ring object on his side), whether `implement-spec` grows any
+persistence between runs, and whether `retro` gets an automated mode despite his stated rule.
+
 ## 6. Deeper sweep, same day — 14 videos, 9 article pages, 12 posts/interviews
 
 **Method.** Three parallel researchers (two Haiku scouts, one Sonnet transcript miner over
@@ -384,9 +390,3 @@ triage session; give the *why* with every instruction ("if it doesn't know the w
 can't suggest alternatives"); "look harder" when the agent claims no tests exist; glossary
 updated and committed at the end of each grill; QA finds what specs cannot (the non-git-repo
 case left DB and disk out of sync).
-
-## 5. Next recheck
-
-Due ~2027-01-07 (quarterly, t-3263 cadence). Watch specifically: whether `chief-of-staff` or
-`loop-me` graduate (first Epic-ring object on his side), whether `implement-spec` grows any
-persistence between runs, and whether `retro` gets an automated mode despite his stated rule.

@@ -33,10 +33,13 @@ pub fn scrub_git_env(cmd: &mut Command) -> &mut Command {
 ///
 /// Resolution order:
 /// 1. Git common-dir root (shared across all worktrees) — auto-inits if missing
+/// 0. `BRANA_TASKS_FILE` — an explicit, absolute ledger path (t-3501): the suite runner's
+///    scratch ledger; an unusable value resolves to nothing rather than the live ledger
 /// 2. Git show-toplevel (worktree root) — auto-inits if missing
 /// 3. CWD fallback — CLAUDE_PROJECT_DIR (CC-injected since v2.1.139) takes priority over process CWD
 pub fn find_tasks_file() -> Option<PathBuf> {
     find_tasks_file_with_hint(
+        std::env::var_os("BRANA_TASKS_FILE").map(PathBuf::from),
         std::env::var("CLAUDE_PROJECT_DIR").ok().map(PathBuf::from),
         git_common_root(),
         git_toplevel(),
@@ -66,12 +69,42 @@ pub fn find_tasks_file() -> Option<PathBuf> {
 /// finding, t-3286 iteration 1 — the original version of this function did
 /// exactly that).
 pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
-    let anchor: &Path = match explicit.parent() {
-        Some(p) if !p.as_os_str().is_empty() => p,
-        _ => Path::new("."),
+    resolve_tasks_file_override_with(explicit, std::env::var_os("BRANA_TASKS_FILE").map(PathBuf::from))
+}
+
+/// `resolve_tasks_file_override` with the `BRANA_TASKS_FILE` value injected: a conventional
+/// `.claude/tasks.json` `--file` that is the ledger of the repo brana is running in is remapped
+/// to the override when one is active (otherwise a suite passing `--file` to a worktree copy
+/// would still land on the live ledger, t-3501); a non-conventional `--file` stays literal
+/// either way.
+pub fn resolve_tasks_file_override_with(explicit: &Path, override_file: Option<PathBuf>) -> PathBuf {
+    resolve_tasks_file_override_in(explicit, override_file, None)
+}
+
+/// Testable variant — `cwd` pins the repo brana is running in (the process cwd when None).
+///
+/// The override applies ONLY when `explicit` resolves to the running repo's own ledger
+/// (same git common root). A conventional `.claude/tasks.json` inside some OTHER repo — a
+/// test fixture, a sibling project — keeps its literal common-root remap even under an
+/// active override: the canonical-resolution hook test runs `rollup --file
+/// <fixture-wt>/.claude/tasks.json` under the suite runner's scratch override and asserts
+/// the fixture's canonical ledger changed; an unconditional remap sent that write to the
+/// empty scratch ledger instead (t-3501 verifier N1, sev 4).
+fn resolve_tasks_file_override_in(
+    explicit: &Path,
+    override_file: Option<PathBuf>,
+    cwd: Option<&Path>,
+) -> PathBuf {
+    let anchor: PathBuf = match explicit.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+        _ => PathBuf::from("."),
     };
-    let toplevel = git_toplevel_in(Some(anchor));
-    let common_root = git_common_root_in(Some(anchor));
+    let anchor = match (anchor.is_absolute(), cwd) {
+        (false, Some(c)) => c.join(&anchor),
+        _ => anchor,
+    };
+    let toplevel = git_toplevel_in(Some(&anchor));
+    let common_root = git_common_root_in(Some(&anchor));
 
     if let (Some(top), Some(common)) = (&toplevel, &common_root) {
         // strip_prefix only ever matches like-for-like absoluteness — a
@@ -84,11 +117,17 @@ pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
         let absolute_explicit = if explicit.is_absolute() {
             explicit.to_path_buf()
         } else {
-            std::env::current_dir()
-                .map(|cwd| cwd.join(explicit))
-                .unwrap_or_else(|_| explicit.to_path_buf())
+            cwd.map(|c| c.to_path_buf())
+                .or_else(|| std::env::current_dir().ok())
+                .map(|base| base.join(explicit))
+                .unwrap_or_else(|| explicit.to_path_buf())
         };
         if absolute_explicit.strip_prefix(top) == Ok(Path::new(".claude/tasks.json")) {
+            if same_root(common, git_common_root_in(cwd).as_deref()) {
+                if let LedgerOverride::File(f) = ledger_override(override_file) {
+                    return f;
+                }
+            }
             if let Some(canon) = find_tasks_file_from(Some(common.clone()), None, None) {
                 return canon;
             }
@@ -98,13 +137,88 @@ pub fn resolve_tasks_file_override(explicit: &Path) -> PathBuf {
     explicit.to_path_buf()
 }
 
+/// Two git common roots name the same repo. Compared canonicalized (symlinked checkouts,
+/// `/tmp` vs `/private/tmp`), falling back to the raw paths when either cannot be resolved.
+///
+/// Known gap (t-3501 verifier R1, sev 2): with the process cwd OUTSIDE the running repo (a
+/// suite that `cd`s into a mktemp fixture) and an absolute `--file <live repo>/.claude/tasks.json`,
+/// the cwd side resolves to None, this returns false, and the write lands on the live ledger
+/// despite an active override. No suite does that today (the only `--file <ledger>` call in
+/// the test trees targets its own fixture); widen the rule with a test if one ever must.
+fn same_root(a: &Path, b: Option<&Path>) -> bool {
+    let Some(b) = b else { return false };
+    match (a.canonicalize(), b.canonicalize()) {
+        (Ok(x), Ok(y)) => x == y,
+        _ => a == b,
+    }
+}
+
 /// Testable variant. hint overrides cwd as the non-git fallback (CLAUDE_PROJECT_DIR pattern).
+/// Outcome of validating a `BRANA_TASKS_FILE` value (t-3501, ADR-094).
+enum LedgerOverride {
+    /// Unset, empty or whitespace, or not absolute (a relative value would fragment the
+    /// ledger per cwd): no override — resolve the repo ledger as usual.
+    None,
+    /// A usable ledger path: existing, or freshly initialised as `{"tasks":[]}`.
+    File(PathBuf),
+    /// Set and absolute but unusable (parent directory missing, unwritable): refuse, never
+    /// fall back to the live ledger — a typo must not quietly redirect writes.
+    Invalid,
+}
+
+/// Validate an explicit ledger override. Never creates parent directories (the runner's
+/// scratch HOME already exists; a missing parent is a typo). Initialisation is
+/// `create_new`, so two brana processes racing on a fresh override cannot truncate each
+/// other's ledger: whoever loses the race just uses the file the winner wrote.
+fn ledger_override(raw: Option<PathBuf>) -> LedgerOverride {
+    let Some(f) = raw else { return LedgerOverride::None };
+    let trimmed = f.to_string_lossy().trim().to_string();
+    if trimmed.is_empty() || !f.is_absolute() {
+        return LedgerOverride::None;
+    }
+    if f.exists() {
+        return LedgerOverride::File(f);
+    }
+    let parent_ok = f.parent().map(|d| d.is_dir()).unwrap_or(false);
+    if !parent_ok {
+        return LedgerOverride::Invalid;
+    }
+    use std::io::Write as _;
+    match std::fs::OpenOptions::new().write(true).create_new(true).open(&f) {
+        Ok(mut fh) => {
+            if fh.write_all(b"{\"tasks\":[]}").is_ok() { LedgerOverride::File(f) } else { LedgerOverride::Invalid }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => LedgerOverride::File(f),
+        Err(_) => LedgerOverride::Invalid,
+    }
+}
+
+/// The active `BRANA_TASKS_FILE` override, validated, or None. Every ledger resolver in the
+/// workspace — this module, the `--file` remap, and the private resolvers in brana-cli's
+/// sync / sync_linear / receipt — consults this first (t-3501).
+pub fn ledger_override_from_env() -> Option<PathBuf> {
+    match ledger_override(std::env::var_os("BRANA_TASKS_FILE").map(PathBuf::from)) {
+        LedgerOverride::File(f) => Some(f),
+        _ => None,
+    }
+}
+
+/// `override_file` (`BRANA_TASKS_FILE`) is an explicit ledger and wins over the repo
+/// resolution below: inside a repo the git common root otherwise decides, so a test suite
+/// run from ANY linked worktree would read and write the live ledger — the runner exports a
+/// scratch file per suite (t-3501, ADR-094). An unusable override resolves to nothing.
 fn find_tasks_file_with_hint(
+    override_file: Option<PathBuf>,
     hint: Option<PathBuf>,
     common_root: Option<PathBuf>,
     toplevel: Option<PathBuf>,
     cwd: Option<PathBuf>,
 ) -> Option<PathBuf> {
+    match ledger_override(override_file) {
+        LedgerOverride::File(f) => return Some(f),
+        LedgerOverride::Invalid => return None,
+        LedgerOverride::None => {}
+    }
     let effective_cwd = hint.filter(|p| p.is_dir()).or(cwd);
     find_tasks_file_from(common_root, toplevel, effective_cwd)
 }
@@ -286,6 +400,20 @@ pub fn session_store_root() -> PathBuf {
         Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
         _ => home().join(".claude/projects"),
     }
+}
+
+/// Encode a project root into its Claude Code project folder name: `/` and `_`
+/// both become `-` (e.g. `/home/u/my_proj` → `-home-u-my-proj`). The one copy
+/// shared by session lanes, handoff, `brana time` and recall scope (t-3535).
+pub fn encode_project_dir(root: &Path) -> String {
+    root.to_string_lossy().replace(['/', '_'], "-")
+}
+
+/// Legacy encoding (`/` only, underscores kept). Older Claude Code versions wrote
+/// project folders this way and both still exist on disk, so readers that look a
+/// project up try both (t-3535).
+pub fn encode_project_dir_legacy(root: &Path) -> String {
+    root.to_string_lossy().replace('/', "-")
 }
 
 /// Find the project root that **keys the session/memory store** under
@@ -556,7 +684,7 @@ pub fn load_status() -> HashMap<String, serde_json::Value> {
 
 #[cfg(test)]
 mod tests {
-    use super::{find_project_root_from, find_project_root_with_hint, find_tasks_file_from, find_tasks_file_with_hint};
+    use super::{find_project_root_from, find_project_root_with_hint, find_tasks_file_from, find_tasks_file_with_hint, resolve_tasks_file_override_in};
     use super::{find_tasks_config_from, find_tasks_config_with_hint, find_project_path_in_portfolio};
     use std::path::PathBuf;
     use std::fs;
@@ -631,6 +759,96 @@ mod tests {
     }
 
     // ── CWD fallback (non-git projects) ─────────────────────────────────────
+
+    #[test]
+    fn ledger_override_is_absolute_only_and_never_creates_parents() {
+        // t-3501 panel: a relative value would fragment the ledger per cwd, and auto-creating
+        // parents turns a typo into a silent new ledger — both are refused (no override).
+        let repo = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(repo.path().join(".claude")).unwrap();
+        let live = repo.path().join(".claude/tasks.json");
+        std::fs::write(&live, b"{\"tasks\":[]}").unwrap();
+        let got = find_tasks_file_with_hint(Some(PathBuf::from("rel/ledger.json")), None, Some(repo.path().to_path_buf()), None, None).unwrap();
+        assert_eq!(got, live, "a relative override is ignored");
+        let scratch = tempfile::tempdir().unwrap();
+        let missing_parent = scratch.path().join("nope").join("ledger.json");
+        let got = find_tasks_file_with_hint(Some(missing_parent.clone()), None, Some(repo.path().to_path_buf()), None, None);
+        assert_eq!(got, None, "an override whose parent does not exist is an error, not a new ledger");
+        assert!(!missing_parent.parent().unwrap().exists());
+        let ok = scratch.path().join("ledger.json");
+        let got = find_tasks_file_with_hint(Some(ok.clone()), None, Some(repo.path().to_path_buf()), None, None).unwrap();
+        assert_eq!(got, ok);
+        assert_eq!(std::fs::read_to_string(&ok).unwrap(), "{\"tasks\":[]}");
+    }
+
+    #[test]
+    fn file_override_path_honours_the_ledger_override_only_for_the_running_repo() {
+        use std::path::Path;
+        // --file <conventional .claude/tasks.json> is remapped to the common-root ledger. With
+        // BRANA_TASKS_FILE set, that remap lands on the scratch ledger ONLY when the --file path
+        // is the ledger of the repo brana is running in; a fixture repo's conventional ledger
+        // keeps its literal remap (t-3501 verifier N1: the canonical-resolution hook test runs
+        // `rollup --file <fixture-wt>/.claude/tasks.json` under the runner's override and
+        // asserts the FIXTURE's canonical ledger changed — an unconditional remap sent that
+        // write to the empty scratch ledger and turned validate Check 70 red).
+        let here = tmp();
+        git_init(here.path());
+        std::fs::create_dir_all(here.path().join(".claude")).unwrap();
+        let live = here.path().join(".claude/tasks.json");
+        std::fs::write(&live, b"{\"tasks\":[{\"id\":\"t-1\"}]}").unwrap();
+        let fixture = tmp();
+        git_init(fixture.path());
+        std::fs::create_dir_all(fixture.path().join(".claude")).unwrap();
+        let fixture_live = fixture.path().join(".claude/tasks.json");
+        std::fs::write(&fixture_live, b"{\"tasks\":[]}").unwrap();
+        let scratch = tmp();
+        let over = scratch.path().join("ledger.json");
+
+        let got = resolve_tasks_file_override_in(&live, Some(over.clone()), Some(here.path()));
+        assert_eq!(got, over, "the env override wins over the --file remap of the running repo's ledger");
+        let got = resolve_tasks_file_override_in(Path::new(".claude/tasks.json"), Some(over.clone()), Some(here.path()));
+        assert_eq!(got, over, "a relative conventional --file from inside the running repo is that same ledger");
+        let got = resolve_tasks_file_override_in(&fixture_live, Some(over.clone()), Some(here.path()));
+        assert_eq!(
+            got.canonicalize().unwrap(),
+            fixture_live.canonicalize().unwrap(),
+            "a fixture repo's conventional ledger keeps its literal remap under the override"
+        );
+        let got = resolve_tasks_file_override_in(&live, None, Some(here.path()));
+        assert_eq!(got.canonicalize().unwrap(), live.canonicalize().unwrap(), "without the override the normal remap applies");
+        let custom = scratch.path().join("custom-name.json");
+        let got = resolve_tasks_file_override_in(&custom, Some(over.clone()), Some(here.path()));
+        assert_eq!(got, custom, "a non-conventional --file stays literal (fixtures), even with the override set");
+        assert_eq!(std::fs::read_to_string(&live).unwrap(), "{\"tasks\":[{\"id\":\"t-1\"}]}", "live ledger untouched");
+    }
+
+    #[test]
+    fn explicit_ledger_override_beats_the_repo_ledger() {
+        // t-3501: a suite run from any worktree resolves the LIVE ledger through the git
+        // common root; BRANA_TASKS_FILE (exported by the suite runner into the scratch HOME)
+        // must win over it, auto-init if missing, and leave the repo ledger untouched.
+        let repo = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(repo.path().join(".claude")).unwrap();
+        let live = repo.path().join(".claude/tasks.json");
+        std::fs::write(&live, b"{\"tasks\":[{\"id\":\"t-1\"}]}").unwrap();
+        let scratch = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(scratch.path().join("sub")).unwrap();   // parents are never auto-created
+        let override_file = scratch.path().join("sub").join("brana-tasks.json");
+        let got = find_tasks_file_with_hint(
+            Some(override_file.clone()),
+            None,
+            Some(repo.path().to_path_buf()),
+            Some(repo.path().to_path_buf()),
+            None,
+        )
+        .unwrap();
+        assert_eq!(got, override_file, "the override is the ledger, not the repo's");
+        assert_eq!(std::fs::read_to_string(&override_file).unwrap(), "{\"tasks\":[]}", "auto-inited empty");
+        assert_eq!(std::fs::read_to_string(&live).unwrap(), "{\"tasks\":[{\"id\":\"t-1\"}]}", "live ledger untouched");
+        // an empty override is no override
+        let got = find_tasks_file_with_hint(Some(PathBuf::new()), None, Some(repo.path().to_path_buf()), None, None).unwrap();
+        assert_eq!(got, live);
+    }
 
     #[test]
     fn cwd_fallback_returns_existing_tasks_json() {
@@ -739,7 +957,7 @@ mod tests {
         let f = dir.path().join(".claude/tasks.json");
         fs::write(&f, b"{\"tasks\":[]}").unwrap();
 
-        let result = find_tasks_file_with_hint(Some(dir.path().to_path_buf()), None, None, None);
+        let result = find_tasks_file_with_hint(None, Some(dir.path().to_path_buf()), None, None, None);
         assert_eq!(result, Some(f));
     }
 
@@ -752,6 +970,7 @@ mod tests {
         fs::write(&f, b"{\"tasks\":[]}").unwrap();
 
         let result = find_tasks_file_with_hint(
+            None,
             Some(hint_dir.path().to_path_buf()),
             Some(git_dir.path().to_path_buf()),
             None,
@@ -929,6 +1148,7 @@ mod tests {
         fs::write(&f, b"{\"tasks\":[]}").unwrap();
 
         let result = find_tasks_file_with_hint(
+            None,
             Some(PathBuf::from("/nonexistent-brana-test-dir")),
             None,
             None,
@@ -1439,5 +1659,29 @@ mod lock_timeout_tests {
         // Cleanup: detach rather than join — the holder thread sleeps 5s total and
         // isn't needed further; the test process exiting reclaims it either way.
         drop(holder);
+    }
+}
+
+#[cfg(test)]
+mod encoder_tests {
+    use super::{encode_project_dir, encode_project_dir_legacy};
+    use std::path::Path;
+
+    #[test]
+    fn encode_project_dir_maps_slashes_and_underscores() {
+        assert_eq!(encode_project_dir(Path::new("/home/u/my_proj")), "-home-u-my-proj");
+    }
+
+    #[test]
+    fn encode_project_dir_keeps_dots() {
+        // Claude Code keeps `.` in folder names (on disk: `-tmp-.tmpVDgLSm`); only `/`
+        // and `_` are folded. A wrong fold here silently narrows recall scope.
+        assert_eq!(encode_project_dir(Path::new("/tmp/.tmpVDgLSm")), "-tmp-.tmpVDgLSm");
+        assert_eq!(encode_project_dir(Path::new("/home/u/my.repo")), "-home-u-my.repo");
+    }
+
+    #[test]
+    fn encode_project_dir_legacy_keeps_underscores() {
+        assert_eq!(encode_project_dir_legacy(Path::new("/home/u/my_proj")), "-home-u-my_proj");
     }
 }

@@ -1,0 +1,1011 @@
+//! Semantic index over curated memory files (t-3510).
+//!
+//! `brana recall` fuses FTS5 keyword search with exact-cosine search over
+//! `knowledge.db`. That store is fed from ruflo's `memory_entries`, so the curated
+//! memory files were found by keyword only. This module embeds them with the
+//! existing [`Embedder`] seam into the same `knowledge` table and maps the rows
+//! back to [`DocRef::MemoryFile`] with the identity the FTS leg uses, so the RRF
+//! merge fuses both signals for one document.
+//!
+//! Spec: docs/architecture/features/recall-memory-file-vectors.md
+
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
+
+use anyhow::Result;
+
+use crate::memory::{MemoryListing, memory_file_identity};
+use crate::search::DocRef;
+use crate::vector::{EMBED_DIM, Embedder, KnowledgeStore, parse_tags, truncate_chars};
+
+/// `source` column value marking a row as an embedded memory file.
+pub const MEMORY_SOURCE: &str = "memory-file";
+
+/// Characters of file text passed to the embedder (MiniLM truncates near this anyway).
+pub const EMBED_CHARS: usize = 1500;
+
+/// Version tag stored on every memory-file row: embedder model, dimension and
+/// [`EMBED_CHARS`]. A row without the current tag is re-embedded even if its
+/// content is unchanged, so a model or truncation change never mixes old and new
+/// vectors silently (t-3510 gate, F3). Bump it whenever any of those change.
+pub const EMBED_VERSION: &str = "emb:minilm-l6-384:1500";
+
+/// Outcome of one [`embed_memory_files`] run.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct EmbedStats {
+    pub scanned: usize,
+    pub embedded: usize,
+    pub unchanged: usize,
+    pub pruned: usize,
+    pub failed: usize,
+}
+
+const KEY_PREFIX: &str = "memory-file:";
+
+/// Row key for a memory file: `memory-file:<absolute path>`.
+pub fn memory_row_key(path: &Path) -> String {
+    format!("{KEY_PREFIX}{}", path.to_string_lossy())
+}
+
+/// Whether a stored memory-file row still matches the file: same text and the
+/// current [`EMBED_VERSION`] tag. The one rule shared by [`embed_memory_files`]
+/// (skip as `unchanged`) and [`unembedded_count`], so they cannot disagree.
+fn row_is_current(stored: &str, tags: Option<&str>, content: &str) -> bool {
+    stored == content && parse_tags(tags.unwrap_or("")).iter().any(|t| t == EMBED_VERSION)
+}
+
+/// How many of `files` lack a current vector by the embedder's own rule
+/// ([`row_is_current`]): no row, a row with other text, or an old version tag. A
+/// missing store means nothing is embedded; an unreadable file counts as not
+/// embedded (it cannot be confirmed). `lock_wait` bounds each wait for the store
+/// (t-3536, the bundle's `unembedded` field).
+pub fn unembedded_count(
+    knowledge_db: &Path,
+    files: &[crate::memory::MemoryFileRef],
+    lock_wait: std::time::Duration,
+) -> Result<usize> {
+    use anyhow::Context as _;
+    if !knowledge_db.exists() {
+        return Ok(files.len());
+    }
+    let conn = rusqlite::Connection::open_with_flags(
+        knowledge_db,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .with_context(|| format!("opening vector store {}", knowledge_db.display()))?;
+    conn.busy_timeout(lock_wait)?;
+    let mut stmt = conn.prepare("SELECT key, content, tags FROM knowledge WHERE source = ?1")?;
+    let rows = stmt.query_map([MEMORY_SOURCE], |r| {
+        Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<String>>(2)?))
+    })?;
+    let mut rows_by_key: std::collections::HashMap<String, (String, Option<String>)> =
+        std::collections::HashMap::new();
+    for row in rows {
+        let (key, content, tags) = row?;
+        rows_by_key.insert(key, (content, tags));
+    }
+    let mut seen: HashSet<&Path> = HashSet::new();
+    Ok(files
+        .iter()
+        .filter(|f| seen.insert(f.path.as_path())) // a folder listed twice counts once
+        .filter(|f| match rows_by_key.get(&memory_row_key(&f.path)) {
+            Some((stored, tags)) => std::fs::read_to_string(&f.path)
+                .map_or(true, |content| !row_is_current(stored, tags.as_deref(), &content)),
+            None => true,
+        })
+        .count())
+}
+
+/// The file path a memory-file row key points at.
+pub fn memory_row_path(key: &str) -> Option<PathBuf> {
+    key.strip_prefix(KEY_PREFIX).map(PathBuf::from)
+}
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+/// Embed new or changed files, skip unchanged ones, prune rows whose file is gone.
+///
+/// - A file whose stored `content` equals the file on disk and whose row carries
+///   the current [`EMBED_VERSION`] is `unchanged`: the embedder is not called.
+///   `force` re-embeds every file regardless.
+/// - A file the embedder cannot embed (or that cannot be read) is `failed`. It
+///   leaves no new row; an older row for it, if any, is kept rather than pruned,
+///   so a transient embedder outage never deletes working recall.
+/// - A row of source [`MEMORY_SOURCE`] is pruned only when its file is absent
+///   from a dir that listed *completely*. A dir that failed to list or is missing
+///   (unreadable, unmounted, moved) prunes nothing, so a read failure never
+///   deletes recall (t-3510 gate, F5); recall hides hits whose file is gone.
+///   Rows from other sources are never touched.
+pub fn embed_memory_files(
+    store: &KnowledgeStore,
+    listing: &MemoryListing,
+    embedder: &dyn Embedder,
+    force: bool,
+) -> Result<EmbedStats> {
+    let mut stats = EmbedStats { scanned: listing.files.len(), ..Default::default() };
+    let mut live: HashSet<String> = HashSet::new();
+
+    for f in &listing.files {
+        let key = memory_row_key(&f.path);
+        live.insert(key.clone());
+
+        let Ok(content) = std::fs::read_to_string(&f.path) else {
+            stats.failed += 1;
+            continue;
+        };
+        if !force {
+            if let Some((stored, tags)) = store.content_and_tags_of(&key)? {
+                if row_is_current(&stored, tags.as_deref(), &content) {
+                    stats.unchanged += 1;
+                    continue;
+                }
+            }
+        }
+        let text: String = content.chars().take(EMBED_CHARS).collect();
+        let Some(vec) = embedder.embed(&text).filter(|v| v.len() == EMBED_DIM) else {
+            stats.failed += 1;
+            continue;
+        };
+        let tags = format!("memory-file,scope:{},{EMBED_VERSION}", f.scope);
+        store.upsert(&key, &content, Some(&tags), Some(MEMORY_SOURCE), now_ms(), &vec)?;
+        stats.embedded += 1;
+    }
+
+    for key in store.keys_with_source(MEMORY_SOURCE)? {
+        if live.contains(&key) {
+            continue;
+        }
+        let in_complete_dir = memory_row_path(&key)
+            .and_then(|p| p.parent().map(Path::to_path_buf))
+            .is_some_and(|dir| listing.complete_dirs.contains(&dir));
+        if in_complete_dir && store.delete(&key)? {
+            stats.pruned += 1;
+        }
+    }
+    Ok(stats)
+}
+
+/// Map a `knowledge` row to its [`DocRef`] when it is an embedded memory file.
+///
+/// Identity is rebuilt from the key's path with [`memory_file_identity`], the same
+/// rule the FTS index uses, so both legs produce equal `DocRef`s for one file.
+pub fn memory_doc_ref(key: &str, tags: Option<&str>, source: Option<&str>) -> Option<DocRef> {
+    if source != Some(MEMORY_SOURCE) {
+        return None;
+    }
+    let path = memory_row_path(key)?;
+    let stem = path.file_stem()?.to_string_lossy().to_string();
+    let (mtype, slug) = memory_file_identity(&stem);
+    let scope = parse_tags(tags.unwrap_or(""))
+        .iter()
+        .find_map(|t| t.strip_prefix("scope:").map(str::to_string))
+        .unwrap_or_else(|| "project".to_string());
+    Some(DocRef::MemoryFile { path, slug, mtype, scope })
+}
+
+/// Short display snippet for a memory-file vector hit: the body after the
+/// frontmatter block, truncated.
+pub fn memory_snippet(content: &str, max: usize) -> String {
+    let body = content
+        .strip_prefix("---\n")
+        .and_then(|rest| rest.find("\n---").map(|i| &rest[i + 4..]))
+        .unwrap_or(content)
+        .trim();
+    let body = if body.is_empty() { content.trim() } else { body };
+    truncate_chars(body, max)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::memory::{list_memory_listing, reindex_fts_dirs, MemoryListing};
+    use crate::search::{FTS5Provider, HybridProvider, SearchProvider};
+    use crate::vector::{CachedEmbedder, MemoryScope, VectorProvider, EMBED_DIM};
+    use std::fs;
+    use std::sync::{Arc, Mutex};
+    use tempfile::{tempdir, TempDir};
+
+    fn unit(hot: usize) -> Vec<f32> {
+        let mut v = vec![0.0_f32; EMBED_DIM];
+        v[hot] = 1.0;
+        v
+    }
+
+    /// Keyword-steered fake: "scraping" → axis 0, "pricing" → axis 1, else axis 2.
+    /// Text containing "UNEMBEDDABLE" yields None. Records every text it embeds.
+    struct Fake {
+        seen: Mutex<Vec<String>>,
+    }
+
+    impl Fake {
+        fn new() -> Self {
+            Self { seen: Mutex::new(Vec::new()) }
+        }
+        fn calls(&self) -> usize {
+            self.seen.lock().unwrap().len()
+        }
+        fn longest(&self) -> usize {
+            self.seen.lock().unwrap().iter().map(|s| s.chars().count()).max().unwrap_or(0)
+        }
+    }
+
+    impl Embedder for Fake {
+        fn embed(&self, text: &str) -> Option<Vec<f32>> {
+            self.seen.lock().unwrap().push(text.to_string());
+            if text.contains("UNEMBEDDABLE") {
+                None
+            } else if text.contains("scraping") {
+                Some(unit(0))
+            } else if text.contains("pricing") {
+                Some(unit(1))
+            } else {
+                Some(unit(2))
+            }
+        }
+    }
+
+    struct Fixture {
+        _tmp: TempDir,
+        mem: std::path::PathBuf,
+        db: std::path::PathBuf,
+        fts: std::path::PathBuf,
+    }
+
+    fn fixture() -> Fixture {
+        let tmp = tempdir().unwrap();
+        let mem = tmp.path().join("memory");
+        fs::create_dir_all(&mem).unwrap();
+        let db = tmp.path().join("knowledge.db");
+        let fts = tmp.path().join("index.db");
+        Fixture { _tmp: tmp, mem, db, fts }
+    }
+
+    fn put(f: &Fixture, name: &str, body: &str) {
+        fs::write(f.mem.join(name), body).unwrap();
+    }
+
+    fn dirs(f: &Fixture) -> Vec<(String, std::path::PathBuf)> {
+        vec![("project".to_string(), f.mem.clone())]
+    }
+
+    #[test]
+    fn embed_inserts_rows_marked_as_memory_files() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "---\nname: x\n---\nweb scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let files = list_memory_listing(&dirs(&f));
+
+        let stats = embed_memory_files(&store, &files, &Fake::new(), false).unwrap();
+
+        assert_eq!(stats, EmbedStats { scanned: 1, embedded: 1, ..Default::default() });
+        assert_eq!(store.count().unwrap(), 1);
+        let key = memory_row_key(&f.mem.join("pattern_scraping-tips.md"));
+        assert!(key.starts_with("memory-file:"), "key was {key}");
+        assert_eq!(store.keys_with_source(MEMORY_SOURCE).unwrap(), vec![key]);
+    }
+
+    #[test]
+    fn second_run_skips_unchanged_files_without_embedding() {
+        let f = fixture();
+        put(&f, "pattern_a.md", "alpha scraping");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let files = list_memory_listing(&dirs(&f));
+        let e = Fake::new();
+        embed_memory_files(&store, &files, &e, false).unwrap();
+        let calls_after_first = e.calls();
+
+        let stats = embed_memory_files(&store, &files, &e, false).unwrap();
+
+        assert_eq!(stats, EmbedStats { scanned: 1, unchanged: 1, ..Default::default() });
+        assert_eq!(e.calls(), calls_after_first, "unchanged file must not hit the embedder");
+    }
+
+    #[test]
+    fn changed_file_is_reembedded() {
+        let f = fixture();
+        put(&f, "pattern_a.md", "alpha scraping");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        put(&f, "pattern_a.md", "alpha pricing now");
+        let stats = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        assert_eq!(stats.embedded, 1);
+        assert_eq!(stats.unchanged, 0);
+        assert_eq!(store.count().unwrap(), 1, "update in place, no duplicate row");
+    }
+
+    #[test]
+    fn rows_for_deleted_files_are_pruned_but_other_rows_survive() {
+        let f = fixture();
+        put(&f, "pattern_a.md", "alpha scraping");
+        put(&f, "pattern_b.md", "beta pricing");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        // A non-memory row (e.g. copied from ruflo) must never be pruned.
+        store.upsert("knowledge:url:x", "link", None, Some("memory_entries"), 1, &unit(2)).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+        assert_eq!(store.count().unwrap(), 3);
+
+        fs::remove_file(f.mem.join("pattern_b.md")).unwrap();
+        let stats = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        assert_eq!(stats.pruned, 1);
+        assert_eq!(store.count().unwrap(), 2, "b pruned; a and the foreign row remain");
+    }
+
+    #[test]
+    fn unembeddable_file_is_counted_failed_and_leaves_no_row() {
+        let f = fixture();
+        put(&f, "pattern_bad.md", "UNEMBEDDABLE");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+
+        let stats = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+
+        assert_eq!(stats, EmbedStats { scanned: 1, failed: 1, ..Default::default() });
+        assert_eq!(store.count().unwrap(), 0);
+    }
+
+    #[test]
+    fn empty_scan_prunes_nothing() {
+        let f = fixture();
+        put(&f, "pattern_a.md", "alpha scraping");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        // Discovery found nothing (bad HOME, unmounted dir): must not wipe the index.
+        let stats = embed_memory_files(&store, &MemoryListing::default(), &e, false).unwrap();
+
+        assert_eq!(stats, EmbedStats::default());
+        assert_eq!(store.count().unwrap(), 1);
+    }
+
+    #[test]
+    fn failed_reembed_keeps_the_old_row() {
+        let f = fixture();
+        put(&f, "pattern_a.md", "alpha scraping");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        // File changes to something the embedder refuses: old working row must survive.
+        put(&f, "pattern_a.md", "alpha UNEMBEDDABLE");
+        let stats = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        assert_eq!(stats.failed, 1);
+        assert_eq!(stats.pruned, 0);
+        assert_eq!(store.count().unwrap(), 1);
+    }
+
+    #[test]
+    fn embedder_input_is_truncated_to_embed_chars() {
+        let f = fixture();
+        put(&f, "pattern_long.md", &"scraping ".repeat(1000));
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        assert!(e.longest() <= EMBED_CHARS, "embedder saw {} chars", e.longest());
+    }
+
+    #[test]
+    fn memory_doc_ref_roundtrips_identity_and_ignores_foreign_rows() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips_2026-06-09T10-00-00.md", "scraping");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let files = list_memory_listing(&dirs(&f));
+        embed_memory_files(&store, &files, &Fake::new(), false).unwrap();
+
+        let key = memory_row_key(&files.files[0].path);
+        let row = store.rows_with_vec(crate::vector::RowFilter::All).unwrap().remove(0);
+        let doc = memory_doc_ref(&key, row.tags.as_deref(), Some(MEMORY_SOURCE)).expect("memory row maps");
+        assert_eq!(
+            doc,
+            DocRef::MemoryFile {
+                path: files.files[0].path.clone(),
+                slug: "scraping-tips".to_string(),
+                mtype: "pattern".to_string(),
+                scope: "project".to_string(),
+            }
+        );
+        assert_eq!(memory_doc_ref("knowledge:url:x", None, Some("memory_entries")), None);
+    }
+
+    #[test]
+    fn snippet_skips_frontmatter_and_truncates() {
+        let s = memory_snippet("---\nname: x\ndescription: d\n---\nThe body text here.", 300);
+        assert_eq!(s, "The body text here.");
+        assert_eq!(memory_snippet("no frontmatter at all", 300), "no frontmatter at all");
+        assert!(memory_snippet(&"x".repeat(400), 300).chars().count() <= 301);
+    }
+
+    #[test]
+    fn vector_provider_returns_memory_file_docref_and_keeps_knowledge_entries() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        store.upsert("knowledge:url:p", "pricing page", None, Some("memory_entries"), 1, &unit(1)).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+
+        let provider = VectorProvider::new(&f.db, Arc::new(Fake::new())).with_memory_scope(MemoryScope::Include);
+        let scraping = provider.query("scraping question", 5);
+        assert!(matches!(scraping[0].doc, DocRef::MemoryFile { .. }), "got {:?}", scraping[0].doc);
+        let pricing = provider.query("pricing question", 5);
+        assert!(matches!(pricing[0].doc, DocRef::KnowledgeEntry { .. }), "got {:?}", pricing[0].doc);
+    }
+
+    #[test]
+    fn default_provider_excludes_memory_files_so_knowledge_search_stays_knowledge_only() {
+        // `brana knowledge search` documents "the vector store holds only knowledge: entries".
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        store.upsert("knowledge:url:p", "pricing page", None, Some("memory_entries"), 1, &unit(1)).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+
+        let hits = VectorProvider::new(&f.db, Arc::new(Fake::new())).query("scraping question", 5);
+
+        assert!(
+            hits.iter().all(|h| matches!(h.doc, DocRef::KnowledgeEntry { .. })),
+            "memory-file rows leaked into the default provider: {hits:?}"
+        );
+        assert_eq!(hits.len(), 1);
+    }
+
+    /// Embeds "mixed" text halfway between axis 0 and axis 2 (cosine 0.5 with a
+    /// "scraping" query), everything else as `Fake` does.
+    struct FakeMixed(Fake);
+    impl Embedder for FakeMixed {
+        fn embed(&self, text: &str) -> Option<Vec<f32>> {
+            if text.contains("mixed") {
+                let mut v = vec![0.0_f32; EMBED_DIM];
+                v[0] = 0.5;
+                v[2] = 0.866_025_4;
+                return Some(v);
+            }
+            self.0.embed(text)
+        }
+    }
+
+    #[test]
+    fn memory_files_crowded_out_of_a_shared_pool_surface_through_their_own_leg() {
+        // Measured on the live store: the answer memory file ranked 1st among memory files
+        // but 42nd among all rows, behind ~6,600 knowledge entries, so the shared vector
+        // leg's candidate pool (20) never reached it. A dedicated memory leg ranks them apart.
+        let f = fixture();
+        put(&f, "pattern_notes.md", "mixed notes zzz");
+        let d = dirs(&f);
+        reindex_fts_dirs(&d, &f.fts).unwrap();
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        for i in 0..30 {
+            store
+                .upsert(&format!("knowledge:url:{i}"), "closer knowledge row", None, Some("memory_entries"), 1, &unit(0))
+                .unwrap();
+        }
+        embed_memory_files(&store, &list_memory_listing(&d), &FakeMixed(Fake::new()), false).unwrap();
+        let q = "scraping q";
+
+        // Shared leg: the file is below 30 closer rows, outside the 20-candidate pool.
+        let fts = Arc::new(FTS5Provider::new(f.fts.clone())) as Arc<dyn SearchProvider>;
+        let shared = Arc::new(
+            VectorProvider::new(&f.db, Arc::new(FakeMixed(Fake::new()))).with_memory_scope(MemoryScope::Include),
+        ) as Arc<dyn SearchProvider>;
+        let crowded = HybridProvider::new(fts.clone(), shared).query(q, 5);
+        assert!(
+            !crowded.iter().any(|h| matches!(h.doc, DocRef::MemoryFile { .. })),
+            "precondition: the shared pool must crowd the memory file out: {crowded:?}"
+        );
+
+        // The production wiring: knowledge-only plus memory-only legs, fused three ways.
+        let fused = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(FakeMixed(Fake::new())), crate::search::RecallScope::All).query(q, 5);
+        assert!(
+            fused.iter().any(|h| matches!(&h.doc, DocRef::MemoryFile { slug, .. } if slug == "notes")),
+            "memory leg must surface the file: {fused:?}"
+        );
+    }
+
+    #[test]
+    fn memory_only_scope_returns_just_memory_files() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        store.upsert("knowledge:url:p", "scraping knowledge row", None, Some("memory_entries"), 1, &unit(0)).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+
+        let hits = VectorProvider::new(&f.db, Arc::new(Fake::new()))
+            .with_memory_scope(MemoryScope::Only)
+            .query("scraping question", 5);
+
+        assert_eq!(hits.len(), 1);
+        assert!(matches!(hits[0].doc, DocRef::MemoryFile { .. }));
+    }
+
+    #[test]
+    fn cached_embedder_embeds_a_shared_query_once_across_threads() {
+        let inner = Arc::new(Fake::new());
+        let cached = Arc::new(CachedEmbedder::new(inner.clone()));
+        let handles: Vec<_> = (0..4)
+            .map(|_| {
+                let c = cached.clone();
+                std::thread::spawn(move || c.embed("scraping question"))
+            })
+            .collect();
+        for h in handles {
+            assert!(h.join().unwrap().is_some());
+        }
+        assert_eq!(inner.calls(), 1, "four legs, one embedding");
+
+        cached.embed("pricing question");
+        assert_eq!(inner.calls(), 2, "a different text is embedded afresh");
+    }
+
+    #[test]
+    fn hybrid_fuses_fts_and_vector_signals_for_the_same_memory_file() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips for crawlers");
+        put(&f, "pattern_other.md", "gardening notes about pricing of seeds");
+        let d = dirs(&f);
+        reindex_fts_dirs(&d, &f.fts).unwrap();
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&d), &Fake::new(), false).unwrap();
+
+        let fts = Arc::new(FTS5Provider::new(f.fts.clone())) as Arc<dyn SearchProvider>;
+        let vec = Arc::new(VectorProvider::new(&f.db, Arc::new(Fake::new())).with_memory_scope(MemoryScope::Include))
+            as Arc<dyn SearchProvider>;
+        let fts_alone = fts.query("scraping", 5);
+        let hybrid = HybridProvider::new(fts, vec).query("scraping", 5);
+
+        let top = &hybrid[0];
+        assert!(matches!(&top.doc, DocRef::MemoryFile { slug, .. } if slug == "scraping-tips"));
+        // One doc found by both legs must accumulate: strictly more than a single-leg RRF score.
+        let single_leg = 1.0 / (20.0 + 1.0);
+        assert!(top.rrf_score > single_leg + 1e-9, "no fusion: {} vs {}", top.rrf_score, single_leg);
+        assert_eq!(fts_alone.len(), 1);
+    }
+
+    #[test]
+    fn vector_leg_finds_a_paraphrase_that_keyword_search_misses() {
+        // Query shares no token with the file, only the embedding axis ("scraping" vs "crawler").
+        let f = fixture();
+        put(&f, "pattern_crawler.md", "notes on the crawler and scraping");
+        let d = dirs(&f);
+        reindex_fts_dirs(&d, &f.fts).unwrap();
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&d), &Fake::new(), false).unwrap();
+
+        let fts = Arc::new(FTS5Provider::new(f.fts.clone())) as Arc<dyn SearchProvider>;
+        let vec = Arc::new(VectorProvider::new(&f.db, Arc::new(Fake::new())).with_memory_scope(MemoryScope::Include))
+            as Arc<dyn SearchProvider>;
+        assert!(fts.query("harvest extraction", 5).is_empty(), "keyword leg must miss");
+        let hybrid = HybridProvider::new(fts, Arc::new(VectorProviderScraping(vec))).query("harvest extraction", 5);
+        assert!(matches!(&hybrid[0].doc, DocRef::MemoryFile { slug, .. } if slug == "crawler"));
+    }
+
+    /// Steers the query embedding toward axis 0 regardless of text: models a paraphrase
+    /// that is semantically near the file but lexically disjoint.
+    struct VectorProviderScraping(Arc<dyn SearchProvider>);
+    impl SearchProvider for VectorProviderScraping {
+        fn query(&self, _q: &str, top_k: usize) -> Vec<crate::search::SearchHit> {
+            self.0.query("scraping paraphrase", top_k)
+        }
+    }
+
+    // ── t-3510 gate repair: F5 (partial scan), F3 (version, --force), F2 (ghost rows) ──
+
+    /// Root ignores mode bits, so permission tests are vacuous as root (same guard
+    /// as brana-cli knowledge.rs).
+    fn running_as_root() -> bool {
+        unsafe extern "C" {
+            fn geteuid() -> u32;
+        }
+        unsafe { geteuid() == 0 }
+    }
+
+    fn unreadable(dir: &std::path::Path) {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(dir, fs::Permissions::from_mode(0o000)).unwrap();
+    }
+
+    fn readable(dir: &std::path::Path) {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(dir, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[test]
+    fn rows_under_an_unreadable_dir_are_not_pruned() {
+        if running_as_root() {
+            return;
+        }
+        // F5: one project dir unreadable while others list fine must not wipe its rows.
+        let f = fixture();
+        let other = f._tmp.path().join("other-memory");
+        fs::create_dir_all(&other).unwrap();
+        put(&f, "pattern_a.md", "alpha scraping");
+        fs::write(other.join("pattern_b.md"), "beta pricing").unwrap();
+        let d = vec![("project".to_string(), f.mem.clone()), ("project".to_string(), other.clone())];
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&d), &e, false).unwrap();
+        assert_eq!(store.count().unwrap(), 2);
+
+        unreadable(&other);
+        let listing = list_memory_listing(&d);
+        let stats = embed_memory_files(&store, &listing, &e, false).unwrap();
+        readable(&other);
+
+        assert_eq!(listing.failed_dirs, vec![other.clone()], "the unreadable dir is reported, not treated as empty");
+        assert_eq!(stats.pruned, 0, "rows under a dir that failed to list must survive");
+        assert_eq!(store.count().unwrap(), 2);
+    }
+
+    #[test]
+    fn rows_under_a_listed_dir_are_still_pruned_when_their_file_is_gone() {
+        // F5 must-fire counterpart: a dir that listed completely prunes its deleted files.
+        let f = fixture();
+        put(&f, "pattern_a.md", "alpha scraping");
+        put(&f, "pattern_b.md", "beta pricing");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        fs::remove_file(f.mem.join("pattern_a.md")).unwrap();
+        fs::remove_file(f.mem.join("pattern_b.md")).unwrap();
+        let stats = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        assert_eq!(stats.pruned, 2, "an existing, readable, now-empty dir prunes its rows");
+        assert_eq!(store.count().unwrap(), 0);
+    }
+
+    #[test]
+    fn row_from_an_older_embedding_version_is_reembedded() {
+        // F3: same content but no current version marker must not be skipped as unchanged.
+        let f = fixture();
+        put(&f, "pattern_a.md", "alpha scraping");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let key = memory_row_key(&f.mem.join("pattern_a.md"));
+        store
+            .upsert(&key, "alpha scraping", Some("memory-file,scope:project"), Some(MEMORY_SOURCE), 1, &unit(2))
+            .unwrap();
+        let e = Fake::new();
+
+        let stats = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        assert_eq!(stats.embedded, 1, "old-version row re-embedded");
+        assert_eq!(stats.unchanged, 0);
+        assert_eq!(e.calls(), 1);
+        let second = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+        assert_eq!(second.unchanged, 1, "current-version row is skipped next time");
+        assert!(EMBED_VERSION.starts_with("emb:"), "version marker is a tag: {EMBED_VERSION}");
+    }
+
+    #[test]
+    fn embed_version_matches_the_embedding_constants() {
+        assert_eq!(EMBED_VERSION, format!("emb:minilm-l6-{EMBED_DIM}:{EMBED_CHARS}"), "bump EMBED_VERSION with the constants");
+    }
+
+    #[test]
+    fn rows_under_a_missing_dir_are_kept() {
+        // A dir that vanished (unmounted, moved) prunes nothing; F2 hides its rows instead.
+        let f = fixture();
+        let other = f._tmp.path().join("other-memory");
+        fs::create_dir_all(&other).unwrap();
+        fs::write(other.join("pattern_b.md"), "beta pricing").unwrap();
+        let d = vec![("project".to_string(), other.clone())];
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&d), &e, false).unwrap();
+
+        fs::remove_dir_all(&other).unwrap();
+        let stats = embed_memory_files(&store, &list_memory_listing(&d), &e, false).unwrap();
+
+        assert_eq!(stats.pruned, 0);
+        assert_eq!(store.count().unwrap(), 1);
+    }
+
+    #[test]
+    fn force_reembeds_unchanged_files() {
+        // F3: --force re-embeds even current rows.
+        let f = fixture();
+        put(&f, "pattern_a.md", "alpha scraping");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        let stats = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, true).unwrap();
+
+        assert_eq!(stats.embedded, 1);
+        assert_eq!(stats.unchanged, 0);
+        assert_eq!(e.calls(), 2);
+    }
+
+    #[test]
+    fn vector_leg_drops_rows_whose_file_was_deleted() {
+        // F2: a ghost row (file deleted, embed-memory not rerun) never surfaces.
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+        fs::remove_file(f.mem.join("pattern_scraping-tips.md")).unwrap();
+
+        let hits = VectorProvider::new(&f.db, Arc::new(Fake::new()))
+            .with_memory_scope(MemoryScope::Only)
+            .query("scraping question", 5);
+
+        assert!(hits.is_empty(), "ghost memory row surfaced: {hits:?}");
+        assert_eq!(store.count().unwrap(), 1, "the row itself stays until embed-memory prunes it");
+    }
+
+    struct NoEmbedder;
+    impl Embedder for NoEmbedder {
+        fn embed(&self, _text: &str) -> Option<Vec<f32>> {
+            None
+        }
+    }
+
+    #[test]
+    fn recall_provider_fails_open_to_keywords_when_the_embedder_returns_nothing() {
+        // t-3510 gate F7: ruflo missing or crashing must leave keyword recall working.
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let d = dirs(&f);
+        reindex_fts_dirs(&d, &f.fts).unwrap();
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&d), &Fake::new(), false).unwrap();
+
+        let hits = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(NoEmbedder), crate::search::RecallScope::All).query("scraping", 5);
+
+        assert_eq!(hits.len(), 1, "keyword leg alone: {hits:?}");
+        assert!(matches!(&hits[0].doc, DocRef::MemoryFile { slug, .. } if slug == "scraping-tips"));
+    }
+
+    #[test]
+    fn cached_embedder_caches_a_failed_embedding_within_one_provider() {
+        let inner = Arc::new(Fake::new());
+        let cached = CachedEmbedder::new(inner.clone());
+        assert!(cached.embed("UNEMBEDDABLE text").is_none());
+        assert!(cached.embed("UNEMBEDDABLE text").is_none());
+        assert_eq!(inner.calls(), 1, "a None result is not retried within one query");
+    }
+
+    // ── t-3535: vector leg status and recall scope ───────────────────────────
+
+    #[test]
+    fn vector_try_query_errors_on_a_missing_store_or_embedder() {
+        let f = fixture();
+        let missing = VectorProvider::new(f.db.clone(), Arc::new(Fake::new()));
+        assert!(missing.try_query("scraping", 5).is_err(), "missing store is an error");
+
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+
+        let no_embedder = VectorProvider::new(f.db.clone(), Arc::new(NoEmbedder)).with_memory_scope(MemoryScope::Only);
+        assert!(no_embedder.try_query("scraping", 5).is_err(), "no query vector is an error");
+
+        let ok = VectorProvider::new(f.db.clone(), Arc::new(Fake::new()))
+            .with_memory_scope(MemoryScope::Only)
+            .with_threshold(crate::vector::RECALL_VECTOR_THRESHOLD);
+        assert_eq!(ok.try_query("scraping", 5).unwrap().len(), 1);
+        assert!(ok.try_query("pricing", 5).unwrap().is_empty(), "no row above threshold is ok-empty");
+    }
+
+    struct TwoProjects {
+        _tmp: TempDir,
+        global: std::path::PathBuf,
+        fts: std::path::PathBuf,
+        db: std::path::PathBuf,
+    }
+
+    /// Global memory and another project's memory both hold a note about scraping,
+    /// in the FTS index and as embedded vectors.
+    fn two_projects() -> TwoProjects {
+        let tmp = tempdir().unwrap();
+        let global = tmp.path().join(".claude/memory");
+        let other = tmp.path().join(".claude/projects/-w-client/memory");
+        fs::create_dir_all(&global).unwrap();
+        fs::create_dir_all(&other).unwrap();
+        fs::write(global.join("pattern_mine-scraping.md"), "web scraping tips").unwrap();
+        fs::write(other.join("pattern_client-scraping.md"), "client scraping secrets").unwrap();
+        let d = vec![("global".to_string(), global.clone()), ("project".to_string(), other)];
+        let fts = tmp.path().join("index.db");
+        let db = tmp.path().join("knowledge.db");
+        reindex_fts_dirs(&d, &fts).unwrap();
+        let store = KnowledgeStore::open(&db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&d), &Fake::new(), false).unwrap();
+        TwoProjects { _tmp: tmp, global, fts, db }
+    }
+
+    fn slugs(hits: &[crate::search::SearchHit]) -> Vec<String> {
+        let mut out: Vec<String> = hits
+            .iter()
+            .filter_map(|h| match &h.doc {
+                DocRef::MemoryFile { slug, .. } => Some(slug.clone()),
+                _ => None,
+            })
+            .collect();
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn vector_scope_excludes_an_other_project_memory_row() {
+        let t = two_projects();
+        let leg = |scope| {
+            VectorProvider::new(t.db.clone(), Arc::new(Fake::new()))
+                .with_memory_scope(MemoryScope::Only)
+                .with_recall_scope(scope)
+                .query("scraping", 5)
+        };
+
+        assert_eq!(slugs(&leg(crate::search::RecallScope::All)), vec!["client-scraping", "mine-scraping"]);
+        assert_eq!(slugs(&leg(crate::search::RecallScope::Dirs(vec![t.global.clone()]))), vec!["mine-scraping"]);
+    }
+
+    #[test]
+    fn recall_provider_project_scope_excludes_other_project_rows_from_both_legs() {
+        // Must-fire for both legs at once: either leg leaking the client note puts it
+        // in the fused result.
+        let t = two_projects();
+        let run = |scope| {
+            crate::vector::recall_provider(&t.fts, &t.db, Arc::new(Fake::new()), scope).query("scraping", 10)
+        };
+
+        assert_eq!(slugs(&run(crate::search::RecallScope::All)), vec!["client-scraping", "mine-scraping"]);
+        assert_eq!(
+            slugs(&run(crate::search::RecallScope::Dirs(vec![t.global.clone()]))),
+            vec!["mine-scraping"]
+        );
+    }
+
+    fn insert_undecodable_row(db: &std::path::Path, key: &str) {
+        // `vec` stored as TEXT: the row exists but cannot be read as a vector row.
+        rusqlite::Connection::open(db)
+            .unwrap()
+            .execute(
+                "INSERT INTO knowledge (key, content, tags, source, created_at, vec)
+                 VALUES (?1, 'bad row', NULL, 'memory-file', 1, 'not-a-blob')",
+                [key],
+            )
+            .unwrap();
+    }
+
+    #[test]
+    fn vector_one_undecodable_row_is_skipped_not_a_leg_failure() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+        insert_undecodable_row(&f.db, &format!("memory-file:{}", f.mem.join("pattern_bad.md").display()));
+
+        let leg = VectorProvider::new(f.db.clone(), Arc::new(Fake::new())).with_memory_scope(MemoryScope::Only);
+
+        assert_eq!(leg.try_query("scraping", 5).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn vector_a_store_whose_rows_are_all_unreadable_is_an_error() {
+        let f = fixture();
+        KnowledgeStore::open(&f.db).unwrap();
+        insert_undecodable_row(&f.db, "memory-file:/x/pattern_bad.md");
+
+        let leg = VectorProvider::new(f.db.clone(), Arc::new(Fake::new())).with_memory_scope(MemoryScope::Only);
+
+        assert!(leg.try_query("scraping", 5).is_err());
+    }
+
+    #[test]
+    fn recall_provider_status_through_the_real_legs() {
+        use crate::search::{HybridStatus, LegStatus, RecallScope};
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        reindex_fts_dirs(&dirs(&f), &f.fts).unwrap();
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+        store.upsert("knowledge:url:scraping", "scraping guide", None, None, 1, &unit(0)).unwrap();
+        let run = |embedder: Arc<dyn Embedder>, fts: &std::path::Path, q: &str| {
+            crate::vector::recall_provider(fts, &f.db, embedder, RecallScope::All).query_with_status(q, 5).1
+        };
+
+        assert_eq!(
+            run(Arc::new(Fake::new()), &f.fts, "scraping"),
+            HybridStatus { keyword: LegStatus::Ok, semantic: LegStatus::Ok, extras: vec![LegStatus::Ok] }
+        );
+        assert_eq!(
+            run(Arc::new(Fake::new()), &f.fts, "pricing"),
+            HybridStatus { keyword: LegStatus::Empty, semantic: LegStatus::Empty, extras: vec![LegStatus::Empty] }
+        );
+        assert_eq!(
+            run(Arc::new(NoEmbedder), &f.mem.join("no-index.db"), "scraping"),
+            HybridStatus { keyword: LegStatus::Error, semantic: LegStatus::Error, extras: vec![LegStatus::Error] }
+        );
+    }
+
+    #[test]
+    fn current_project_scope_end_to_end_from_the_indexed_folders() {
+        // The scope is derived from the project root exactly as the bundle will derive
+        // it, and the folders are the ones `memory_dirs_in` hands the indexer.
+        let tmp = tempdir().unwrap();
+        let home = tmp.path();
+        let mine = home.join(".claude/projects/-w-my-repo/memory");
+        let other = home.join(".claude/projects/-w-client/memory");
+        let global = home.join(".claude/memory");
+        for (dir, name) in [(&mine, "pattern_mine"), (&other, "pattern_client"), (&global, "pattern_shared")] {
+            fs::create_dir_all(dir).unwrap();
+            fs::write(dir.join(format!("{name}-scraping.md")), "scraping notes").unwrap();
+        }
+        let d = crate::memory::memory_dirs_in(home).unwrap();
+        let fts = home.join("index.db");
+        let db = home.join("knowledge.db");
+        reindex_fts_dirs(&d, &fts).unwrap();
+        let store = KnowledgeStore::open(&db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&d), &Fake::new(), false).unwrap();
+
+        let scope = crate::search::RecallScope::project_in(home, Some(std::path::Path::new("/w/my_repo")));
+        let hits = crate::vector::recall_provider(&fts, &db, Arc::new(Fake::new()), scope).query("scraping", 10);
+
+        assert_eq!(slugs(&hits), vec!["mine-scraping", "shared-scraping"]);
+    }
+
+    // ── t-3536: unembedded count for the bundle's freshness fields ───────────
+
+    #[test]
+    fn unembedded_counts_notes_without_a_current_vector() {
+        let f = fixture();
+        put(&f, "pattern_scraping-tips.md", "web scraping tips");
+        put(&f, "pattern_pricing.md", "pricing notes");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &Fake::new(), false).unwrap();
+        let files = |f: &Fixture| list_memory_listing(&dirs(f)).files;
+
+        let wait = std::time::Duration::from_millis(200);
+        let set_mtime = |p: &std::path::Path, offset_s: i64| {
+            let now = std::time::SystemTime::now();
+            let t = if offset_s >= 0 {
+                now + std::time::Duration::from_secs(offset_s as u64)
+            } else {
+                now - std::time::Duration::from_secs((-offset_s) as u64)
+            };
+            fs::File::options().write(true).open(p).unwrap().set_modified(t).unwrap();
+        };
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 0);
+
+        put(&f, "pattern_new.md", "not embedded yet");
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 1, "no vector row");
+
+        // Same rule as the embedder: content and version tag, not mtime.
+        let pricing = f.mem.join("pattern_pricing.md");
+        set_mtime(&pricing, 60);
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 1, "touched, same text: current");
+
+        put(&f, "pattern_pricing.md", "pricing notes, edited");
+        set_mtime(&pricing, -3600);
+        assert_eq!(unembedded_count(&f.db, &files(&f), wait).unwrap(), 2, "edited with an old mtime: stale");
+
+        assert_eq!(
+            unembedded_count(&f.mem.join("no-store.db"), &files(&f), wait).unwrap(),
+            3,
+            "no store: nothing is embedded"
+        );
+    }
+
+    #[test]
+    fn recall_provider_keeps_keyword_knowledge_and_memory_legs_and_bundle_provider_two() {
+        // Pins the composition after the shared-leg refactor (t-3537): plain recall, MCP
+        // recall and the session-start hook all go through recall_provider.
+        use crate::search::RecallScope;
+        let f = fixture();
+        let plain = crate::vector::recall_provider(&f.fts, &f.db, Arc::new(Fake::new()), RecallScope::All);
+        let bundle = crate::vector::bundle_provider(&f.fts, &f.db, Arc::new(Fake::new()), RecallScope::All);
+
+        assert_eq!(plain.query_with_status("scraping", 5).1.extras.len(), 1, "memory-vector extra leg");
+        assert_eq!(bundle.query_with_status("scraping", 5).1.extras.len(), 0, "no knowledge-entry leg");
+    }
+}

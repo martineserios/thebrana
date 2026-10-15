@@ -11,11 +11,12 @@
 ```bash
 cd ~/enter_thebrana/thebrana
 
-# 1. Build the CLI
+# 1. Build the CLI and the MCP server (atomic install: never a bare cp onto a running binary)
 OPENSSL_INCLUDE_DIR=/usr/include/openssl OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu \
-  CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli \
+  CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli -p brana-mcp \
   --manifest-path system/cli/rust/Cargo.toml
-cp system/cli/rust/target/release/brana ~/.local/bin/brana
+mkdir -p ~/.local/bin
+for b in brana brana-mcp; do cp "system/cli/rust/target/release/$b" ~/.local/bin/"$b.new" && mv -f ~/.local/bin/"$b.new" ~/.local/bin/"$b"; done
 
 # 2. Deploy the identity layer + register the plugin
 ./bootstrap.sh

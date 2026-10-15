@@ -230,6 +230,15 @@ judge_allowlist_violations() {
 > so the test always exercises the shipped source. Do not remove or rename them,
 > and keep the fences inside the markers.
 
+## Decision (t-3504): INCONCLUSIVE and the ladder
+
+Decision (t-3504): INCONCLUSIVE does not arm RECONSIDER_SEV4 (or any rung signal): chose "no arming" because INCONCLUSIVE already blocks CLOSE and routes to the human valve with "gather the named evidence" recommended, and the evidence gap is closed by measurement, not by more reviewers — pending human confirmation (merging t-3504 records it; ADR-081 amendment item 6).
+Why not arm: `RECONSIDER_SEV4` means a sev >= 4 finding stood on verified evidence; INCONCLUSIVE means the finding is *undecided*. Once the named evidence exists the gate re-runs (iteration 2), and if the premise is refuted the verdict is RECONSIDER and the ordinary `RECONSIDER_SEV4` signal arms rung 2 on the next beat — the escalation is deferred to when it is decidable, not lost.
+The cost of the choice: the unverified-premise class (CALIBRATION rows 4/5) gets no extra panel while it is undecided. That is accepted because a larger panel cannot produce a measurement that was never taken.
+Revisit: owner the human at each tier-2 ship's Step 4 (not yet automated — `/brana:review monthly` is the business P&L review, the wrong home; wiring the count is a follow-up, not claimed here), threshold two tasks closed by INCONCLUSIVE → Override within 30 days, by 2026-11-15; if it trips, arm a rung-2 re-run on the Override path instead of the first run.
+Count: completed tasks whose notes carry an `Evaluator: INCONCLUSIVE` or `Challenger: INCONCLUSIVE` line and whose context records an Override — `brana backlog search "INCONCLUSIVE" --task-type task` then read each hit's notes and context (a hit with a later PASS/PROCEED line is not an override). Evaluator overrides count; they never feed `RECONSIDER_SEV4`, so a trip means "the unverified-premise class is being waved through", not "a rung was missed". The evidence channel and headless Abandon both remove Override events, so a quiet count is weak evidence either way — read it with that in mind.
+The decision is also recorded in ADR-081 (Amendment 2026-10-14, t-3504).
+
 ## Brief router
 
 Two finder briefs per rung-2 firing, selected by the beat's `nature_class`:

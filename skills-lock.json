@@ -1,17 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "code-review": {
-      "source": "mattpocock/skills",
-      "sourceType": "github",
-      "skillPath": "skills/engineering/code-review/SKILL.md",
-      "pinnedRef": "v1.2.3",
-      "computedHash": "c5e79e535abbb3e6da33bc44f870a558a3abc5152c678a64501b1130b5488fd5",
-      "files": [
-        "SKILL.md",
-        "agents/openai.yaml"
-      ]
-    },
     "cold-start-problem": {
       "source": "wondelai/skills",
       "sourceType": "github",
@@ -42,18 +31,6 @@
         "resources/evaluators/rubric_decision_matrix.json",
         "resources/methodology.md",
         "resources/template.md"
-      ]
-    },
-    "diagnosing-bugs": {
-      "source": "mattpocock/skills",
-      "sourceType": "github",
-      "skillPath": "skills/engineering/diagnosing-bugs/SKILL.md",
-      "pinnedRef": "v1.2.3",
-      "computedHash": "577089e7d9a46e9b6744bd33f30acf8487a1376f52f18700ff7863070b880da9",
-      "files": [
-        "SKILL.md",
-        "agents/openai.yaml",
-        "scripts/hitl-loop.template.sh"
       ]
     },
     "domain-driven-design": {
@@ -218,18 +195,6 @@
       "files": [
         "SKILL.md",
         "references/guest-insights.md"
-      ]
-    },
-    "wizard": {
-      "source": "mattpocock/skills",
-      "sourceType": "github",
-      "skillPath": "skills/engineering/wizard/SKILL.md",
-      "pinnedRef": "v1.2.3",
-      "computedHash": "bfe21d44ccc37d4f7ce4000ca1bb74fc1d5685afb95b80ea7d8b687d2fd15bc3",
-      "files": [
-        "SKILL.md",
-        "agents/openai.yaml",
-        "template.sh"
       ]
     }
   }

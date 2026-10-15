@@ -34,7 +34,7 @@ exit 0
 EOS
 chmod +x "$SHIM/claude"
 newhome() { H="$(mktemp -d "$T/home.XXXXXX")"; mkdir -p "$H/.claude/plugins"; : > "$H/argv.log"; }
-seed_installed() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"x","version":"%s"}]}}\n' "$1" > "$H/.claude/plugins/installed_plugins.json"; }
+seed_installed() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"/nonexistent/brana-test-plugin","version":"%s"}]}}\n' "$1" > "$H/.claude/plugins/installed_plugins.json"; }
 boot() { # boot --check [withclaude|noclaude] — the full script, dry run
     local mode="$1" cl="${2:-withclaude}" p="$NOCLAUDE_PATH"
     [ "$cl" = withclaude ] && p="$SHIM:$p"
@@ -161,14 +161,23 @@ echo "--- 7i installed-mods guard (t-3493: a mod in the plugin cache that calls 
 FN2="$(awk '/^mods_installed_guard\(\) \{/{f=1} f{print} f&&/^\}/{f=0}' "$ROOT/bootstrap.sh")"
 assert "mods_installed_guard extracts from bootstrap.sh" yes "$(has 'mods_installed_guard()' "$FN2")"
 BILL="$ROOT/tests/fixtures/mods/captures/t-3493-model-billing/mod"
-seed_billing() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"x","version":"0.1.0"}],"probe@other":[{"scope":"user","installPath":"%s","version":"1.0.0"}]}}\n' "$BILL" > "$H/.claude/plugins/installed_plugins.json"; }
+seed_billing() { printf '{"version":2,"plugins":{"cockpit-shared@brana":[{"scope":"user","installPath":"/nonexistent/brana-test-plugin","version":"0.1.0"}],"probe@other":[{"scope":"user","installPath":"%s","version":"1.0.0"}]}}\n' "$BILL" > "$H/.claude/plugins/installed_plugins.json"; }
 newhome; seed_billing; rc="$(boot --check noclaude)"
 assert "--check: an installed mod calling \$.model -> exits non-zero" yes "$( [ "$rc" != 0 ] && echo yes || echo no)"
 assert "...naming the mod" yes "$(has 'probe@other' "$(out)")"
 assert "...and the offending file:line" yes "$(has 'register.ts:' "$(out)")"
+assert "...and its remedy is the uninstall (a mod violates)" yes "$(has 'uninstall it' "$(out)")"
 # a checker that dies (exit 2, no violations printed) must still be a hit — the guard never fails open
 newhome; printf '[]' > "$H/.claude/plugins/installed_plugins.json"; rc="$(boot --check noclaude)"
 assert "--check: an unreadable registry -> exits non-zero (fails closed)" yes "$( [ "$rc" != 0 ] && echo yes || echo no)"
+newhome; printf '[]' > "$H/.claude/plugins/installed_plugins.json"; rc="$(boot --check noclaude)"
+assert "--check: a registry that could not be scanned says so (t-3505: exit 2 is not a mod violating)" yes "$(has 'could not be scanned' "$(out)")"
+assert "...and does NOT tell the operator to uninstall a mod for it" no "$(has 'uninstall it' "$(out)")"
+assert "...pointing at the registry / python3 instead" yes "$(has 'python3' "$(out)")"
+GOODM="$ROOT/tests/fixtures/mods/good-minimal"
+newhome; printf '{"version":2,"plugins":{"good@other":[{"scope":"user","installPath":"%s","version":"1.0.0"}]}}\n' "$GOODM" > "$H/.claude/plugins/installed_plugins.json"; rc="$(boot --check noclaude)"
+assert "--check: a clean function-hook mod with claude absent prints the skipped-engine WARN (loud on exit 0, t-3505)" yes "$(has 'WARN: engine half skipped' "$(out)")"
+assert "...and that WARN is not a guard hit (the mods step is not refused for it)" no "$(has 'mods step refused' "$(out)")"
 newhome; seed_installed 0.1.0; rc="$(boot --check noclaude)"
 assert "--check: registry without function-hook mods -> exit 0" 0 "$rc"
 deploy2() { local p="$NOCLAUDE_PATH"; [ "${1:-withclaude}" = withclaude ] && p="$SHIM:$p"
@@ -190,5 +199,15 @@ newhome; printf '{"version":2,"plugins":{}}\n' > "$H/.claude/plugins/installed_p
 DIED="$( ( set -euo pipefail; TARGET_DIR="$H/.claude"; SCRIPT_DIR="$FAKE"; eval "$FN2"; mods_installed_guard; echo "AFTER hit=[$MODS_GUARD_HIT]" ) 2>&1 )"
 assert "the guard returns (does not abort) and records the checker's last line as the hit" yes "$(has 'AFTER hit=[mods-check: python3 required]' "$DIED")"
 assert "...and still prints the guard header" yes "$(has 'Installed mods guard:' "$DIED")"
+
+echo "--- t-3505: bootstrap deploys the tracked acknowledgement list; 7i never inherits a static-only switch"
+# (a real deploy is refused from a feature branch by the from-main guard; a --check run executes the same sync block for real)
+newhome; rc="$(boot --check noclaude)"
+assert "a real bootstrap --check into a temp HOME reports the tracked list as a new file to deploy to <target>/config/" yes "$(has '+ config/mods-acknowledged.txt (new)' "$(out)")"
+newhome; mkdir -p "$H/.claude/config"; cp "$ROOT/system/config/mods-acknowledged.txt" "$H/.claude/config/"; rc="$(boot --check noclaude)"
+assert "...and as unchanged once the deployed copy matches" yes "$(has '= config/mods-acknowledged.txt (unchanged)' "$(out)")"
+printf 'tampered\n' >> "$H/.claude/config/mods-acknowledged.txt"; rc="$(boot --check noclaude)"
+assert "...a tampered deployed copy is reported as changed (drift is visible; the next deploy overwrites it)" yes "$(has '~ config/mods-acknowledged.txt (changed)' "$(out)")"
+assert "7i pins MODS_INSTALLED_STATIC_ONLY empty (a project env block must not turn the engine half off)" yes "$(has 'MODS_INSTALLED_STATIC_ONLY= bash' "$FN2")"
 
 echo; echo "Results: $PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

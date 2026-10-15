@@ -18,6 +18,9 @@ permissions:
 
 jobs:
   drift:
+    # Floats on ubuntu-latest on purpose (t-3484): this is the latest-claude canary. Note
+    # that from 2026-10-19 it is the only job running mods-check.sh on Ubuntu 26 while the
+    # required validate job runs it on 24.04 — an OS-caused red here is not a claude break.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -44,6 +47,13 @@ jobs:
         run: |
           if ! bash system/scripts/mods-check.sh --refusal-canary; then
             echo "::error::the latest claude accepts a non-literal \$ spelling — ADR-096 Law 3's literal grep is no longer a sufficient guard (t-3493); re-prove before bumping the pin"
+            exit 1
+          fi
+
+      - name: No-exec canary — the latest engine's plugin validate must still never execute module code
+        run: |
+          if ! bash system/scripts/mods-check.sh --noexec-canary; then
+            echo "::error::plugin validate no longer behaves as compile-and-analyse only (or could not be probed) — the installed-mods scan runs it on untrusted third-party code at every bootstrap/validate (t-3505); re-decide before bumping the pin"
             exit 1
           fi
 

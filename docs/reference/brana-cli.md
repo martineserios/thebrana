@@ -648,6 +648,127 @@ it never contends with the drain cron's whole-invocation `lock_pipeline()`.
 
 ---
 
+## brana recall
+
+```
+brana recall <query> [--top N] [--json] [--db PATH] [--scope all|project]
+brana recall --bundle <task-id> [--shadow] [--json] [--db PATH]
+```
+
+Hybrid recall (ADR-058): keyword search over the curated memory notes, semantic
+search over the knowledge store, and a semantic list of memory notes (t-3510),
+fused with reciprocal rank fusion. CLI and the MCP `recall` tool build the same
+provider (`brana_core::vector::recall_provider`).
+
+- **`--scope all`** (default): memory notes from every project folder.
+- **`--scope project`**: only notes directly in this project's memory folder
+  (resolved from the main checkout, so every worktree gets the same project,
+  both folder-name encodings) and in global `~/.claude/memory`. Sub-folders such
+  as `archive/` are out. If the project cannot be resolved, only global memory
+  is searched. Knowledge-store entries are not filtered. The filter runs inside
+  each search, before the top-N cut (t-3535).
+- MCP `recall` always uses `all`.
+
+### `--bundle <task-id>` (t-3537, ADR-099)
+
+Computes the **recall bundle** for a task: at most 8 typed pointers (a note's file stem plus its
+`description` line, never the body), scoped to this project plus global memory.
+
+- **Query:** the task's subject and tags only (the pre-registered gate's query; description,
+  context and notes are not read).
+- **Legs:** keyword search and semantic search over embedded memory notes; knowledge-store rows
+  (links, feeds) are left out in v1. `legs` reports each as `ok`, `empty`, `timeout` or `error`.
+- **Freshness:** before querying it refreshes the keyword index for the scope's folders (budget
+  400 ms): new, edited and deleted notes are picked up. The `freshness` block reports what it
+  found and did, plus `unembedded` (notes without a current vector until `embed-memory` runs).
+  Plain `brana recall` and MCP `recall` never write to the index.
+- **Stages:** scope; type (`metadata.type`, top-level `type`, filename prefix, else `note`);
+  supersession (`status: superseded` and `supersedes` targets are dropped; an older dated twin or
+  a prose "superseded by [[x]]" is down-weighted and flagged `derived-superseded:…`); at most 3
+  per type; at most 8 in all. Logs and state files without frontmatter or a type prefix
+  (`sessions.md`, `session-handoff.md`, `event-log.md`) are not memory entries and are skipped,
+  counted in `skipped_non_entries`.
+- **Output:** a typed list grouped by type, or with `--json` the object in
+  `docs/architecture/features/recall-bundle.md` §Bundle assembly.
+- **Fail-open:** a missing task, tasks file, index or embedder gives an empty or partial bundle and
+  exit 0 (the reason is on stderr and in `legs`).
+- **Usage log (t-3517):** every `--bundle` call appends one ids-only `offered` row to the project's
+  recall-usage log (below), including empty and degraded bundles. A failed append is a stderr
+  line, never an error.
+- **`--shadow`:** compute and log the bundle (`shown: false`) and print nothing. `/brana:build`
+  LOAD runs it silently so the bundle can be measured before any worker sees it. Without
+  `--shadow` the row is `shown: true`, which a later exit step expects an outcome for.
+- `--bundle` cannot be combined with a query.
+
+## brana memory usage
+
+```
+brana memory usage <task-id> --used <refs> [--ignored <refs>]   # record an outcome
+brana memory usage <task-id> --no-answer
+brana memory usage <task-id> --check
+brana memory usage --report [--json]
+```
+
+The recall usage log (ADR-099 §5-6): `~/.claude/projects/<main-checkout>/brana/recall-usage.jsonl`,
+one file per project, mode 0600, appended through a single writer (`brana_core::usage_log`).
+Rows hold ids only (note names, types, ranks, flags, leg states, counts): no query text, no
+gists, no note bodies. The file sits in a `brana/` subfolder so transcript scanners do not see it,
+and it is never backed up or synced.
+
+- **Task id:** must look like a task id (`t-123`); anything else is refused and never written.
+- **Outcome** (`--used`, `--ignored`, `--no-answer`): binds to the task's latest *shown* offered
+  row (the one `--check` watches); a bundle that was not shown is never answered, and answering
+  twice fails. Refs are comma-separated note names and must be among that row's pointers (anything
+  else is rejected and nothing is written). `--used ""` records "used none". `opened` is derived
+  from the session transcript captured at LOAD, or `unavailable`; it is advisory only.
+- **`--check`:** exit 2 if the latest *shown* offered row of the task has no outcome, else 0. The
+  message names the command to run. Older unresolved shown rows are listed as orphans and never
+  block. Shadow rows never block.
+- **`--report`:** counts over the project log: offered rows (shown/shadow), outcomes, bundle size,
+  empty bundles, legs that were not `ok`.
+- Both project-folder name encodings are read (a root containing `_` can exist under either).
+
+---
+
+## brana knowledge embed-memory
+
+```
+brana knowledge embed-memory [--force] [--json] [--dest PATH]
+```
+
+Embed the curated memory files (`~/.claude/memory/*.md` and
+`~/.claude/projects/*/memory/*.md`, top level only, `MEMORY.md` excluded) into
+the vector store (`~/.claude/memory/knowledge.db`, default `--dest`), so
+`brana recall` finds them by meaning as well as by keyword (t-3510). Rows are
+keyed `memory-file:<absolute path>` with `source = memory-file`; recall ranks them
+in their own list and fuses it with the keyword and knowledge lists through RRF.
+
+- **Incremental.** A file whose stored text is unchanged and whose row carries
+  the current embedding version tag (`emb:minilm-l6-384:1500`) is skipped.
+  Changed files are re-embedded. The first full run over about 1,100 files takes
+  about an hour (one ruflo ONNX call per file); later runs embed only what
+  changed.
+- **`--force`** re-embeds every file. Use it after an embedder or model change.
+- **Pruning.** Rows whose file is gone are deleted only for folders that listed
+  completely. A folder that is missing or unreadable prunes nothing; each one is
+  named on stderr and listed in `--json` (`failed_dirs`, `missing_dirs`). The
+  command still exits 0, because the other folders were embedded.
+- **First run after upgrading** to the version-tagged format re-embeds every
+  existing row once (rows written before the `emb:` tag existed lack it).
+- **Fail-open.** If ruflo returns nothing for every file the command exits
+  non-zero with a clear message; recall keeps working on keywords alone.
+- **When to run.** After memory files change. It is not scheduled yet (t-3511);
+  until then, recall hides hits whose file no longer exists, so a stale row never
+  surfaces a deleted note.
+- **Known limitation.** Text that is purely a number (for example a query of
+  `2026`) cannot be embedded through the ruflo CLI; that call fails open to the
+  keyword leg. The in-process embedder spike (t-3522) is expected to remove
+  this class if it is adopted.
+
+`--json` prints `{dest, scanned, embedded, unchanged, pruned, failed, failed_dirs, missing_dirs}`.
+
+---
+
 ## brana knowledge project-vectors
 
 Embed one curated descriptor per portfolio project into the `project_vectors`

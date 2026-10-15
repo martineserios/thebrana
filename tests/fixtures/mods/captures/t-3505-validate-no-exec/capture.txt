@@ -1,0 +1,36 @@
+# t-3505 probe — does `claude plugin validate` execute module code?  (captured 2026-10-14)
+# Engine: claude 2.1.300. Re-proven per engine version by
+#   mods-check.sh --noexec-canary   (weekly, .github/workflows/mods-drift.yml)
+#
+# Method: each variant is tests/fixtures/mods/good-minimal + its vendored hooks/_shared (copied from
+# mods/_shared/hooks) with ONE extra top-level statement appended to hooks/register.ts. Each is run
+#   claude plugin validate --json <dir> </dev/null
+# and the marker file the statement would write is looked for afterwards.
+#
+# variant      appended top-level statement                                         validate  marker written
+# control      // no side effect                                                     success   n/a
+# bunwrite     Bun.write('<dir>/MARK-bunwrite', 'ran');                              success   NO
+# tla          await Bun.write('<dir>/MARK-tla', 'ran');                             success   NO
+# globalthis   (globalThis as any).Bun.write('<dir>/MARK-global', 'ran');            success   NO
+# iife         (0, eval)('...'); Bun.file('<dir>/MARK-iife').writer().write('ran');  success   NO
+#
+# Why this is not vacuous: every side-effect variant PASSED validation (success true, exit 0), so
+# the engine got as far as accepting the module — and still left no marker. The engine compiles the
+# module (a dynamic `import("node:fs")` was refused with "compiled line 13 ..." — a static
+# analysis error, first probe, not kept as a variant) and lists its `calls:`; it does not evaluate it.
+#
+# Not covered: `claude plugin test` DOES run a module's tests (bun) and is only ever pointed at this
+# repo's own mods (Check 77b), never at installed third-party code. A future engine that evaluates
+# modules during validate flips the canary red and stops the installed-mods scan from calling validate.
+
+# --- second round (challenger probe request, same day, claude 2.1.300) ---
+# variant      appended / added                                                    validate   marker written
+# helper       `import './helper'` + hooks/helper.ts doing a top-level Bun.write    success    NO
+# bunfig       bunfig.toml (preload = ["./pre.ts"]) beside the plugin and in hooks/ success    NO
+# delayed      setTimeout(() => Bun.write('<dir>/MARK-delayed', 'ran'), 3000)       success    NO  (a timer, not a detached process; checked 6 s later)
+# macro        import { m } from './macro' with { type: 'macro' }                  REFUSED    NO  (static: "macro: ...")
+# bare         import 'zz-t3505-nonexistent-package'                               REFUSED    NO  (static: "cannot import ...")
+# The first three PASSED validation, so they are not vacuous. The last two never reach evaluation: the
+# engine refuses them statically, which is itself the answer to "does a missing import trigger an install".
+# Not probed: whether validate reads enablement (it runs on a copy of every registry entry regardless).
+# bunfig note: a bunfig.toml preload only matters if the engine runs bun with the plugin directory as its cwd — the probe cannot tell; it shows no marker.

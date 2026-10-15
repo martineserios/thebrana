@@ -4482,6 +4482,68 @@ pub fn cmd_vector_sync(
     Ok(())
 }
 
+// --- embed-memory (t-3510) ---------------------------------------------------
+
+/// `brana knowledge embed-memory` — embed the curated memory files into
+/// `knowledge.db` so `brana recall` matches them by meaning as well as keyword.
+///
+/// Incremental and re-runnable: unchanged files are skipped without calling the
+/// embedder, changed files are re-embedded, rows for deleted files are pruned.
+/// Embedding shells out to ruflo's ONNX MiniLM (~1s per file), so the first run
+/// over a few hundred files takes minutes and later runs seconds.
+///
+/// Like `vector-sync`, this never takes the pipeline lock: it only writes
+/// `memory-file` rows, which no other pass reads or rewrites.
+pub fn cmd_embed_memory(dest: Option<PathBuf>, force: bool, json: bool) -> Result<()> {
+    let dest = dest.unwrap_or_else(brana_core::vector::knowledge_db_path);
+    let store = brana_core::vector::KnowledgeStore::open(&dest)?;
+    let listing = brana_core::memory::list_memory_listing(&brana_core::memory::memory_dirs()?);
+    for dir in &listing.failed_dirs {
+        eprintln!("embed-memory: could not list {} — its rows are kept, not pruned", dir.display());
+    }
+    for dir in &listing.missing_dirs {
+        eprintln!("embed-memory: {} does not exist — its rows are kept, not pruned", dir.display());
+    }
+    let stats = brana_core::memory_vectors::embed_memory_files(
+        &store,
+        &listing,
+        &brana_core::vector::RufloEmbedder,
+        force,
+    )?;
+
+    // Nothing embedded and nothing already current while files exist: the embedder
+    // itself is unavailable. Say so rather than report a wall of per-file failures.
+    if stats.scanned > 0 && stats.embedded == 0 && stats.unchanged == 0 && stats.failed > 0 {
+        bail!(
+            "embed-memory: the ruflo embedder returned nothing for all {} file(s) — is `ruflo` installed and runnable? (recall keeps working on keywords alone)",
+            stats.failed
+        );
+    }
+
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "dest": dest,
+                "scanned": stats.scanned,
+                "embedded": stats.embedded,
+                "unchanged": stats.unchanged,
+                "pruned": stats.pruned,
+                "failed": stats.failed,
+                "failed_dirs": listing.failed_dirs,
+                "missing_dirs": listing.missing_dirs,
+            })
+        );
+    } else {
+        println!(
+            "embed-memory: scanned {} memory file(s) → embedded {}, unchanged {}, pruned {}, failed {}. Store: {}",
+            stats.scanned, stats.embedded, stats.unchanged, stats.pruned, stats.failed,
+            dest.display()
+        );
+    }
+    Ok(())
+}
+
 // --- relevant (t-3313) ------------------------------------------------------
 
 /// Render a stored `created_at` as a bare date. `vector-sync` copies the value

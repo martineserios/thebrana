@@ -194,12 +194,21 @@ brana backlog set {task_id} notes --append "Challenger: {verdict} ({date}), {N} 
 ```
 `{verdict}` is exactly `PROCEED`, `PROCEED WITH CHANGES`, `RECONSIDER`, or `INCONCLUSIVE` — no
 other wording. Findings themselves (the numbered list) may still be surfaced as additional
-notes text alongside this line; the verdict line's exact wording is the contract. For
-INCONCLUSIVE the line carries the gap instead of a severity:
-`"Challenger: INCONCLUSIVE ({date}), {N} finding(s), missing evidence: {list}"`.
+notes text alongside this line; the verdict line's exact wording is the contract. The
+machine-read line carries **only structured fields** (verdict, date, count, severity).
+LLM-composed free text goes on a **separate prefix** the parser never reads, as its own
+`notes --append` (t-3504). For INCONCLUSIVE, write the gap line and the verdict line as two appends. Write the gap line first, then the verdict line — a crash between them leaves an orphan gap (inert), never a verdict without its gap:
+```bash
+brana backlog set {task_id} notes --append "Challenger-gap: {list}"
+brana backlog set {task_id} notes --append "Challenger: INCONCLUSIVE ({date}), {N} finding(s)"
+```
+The gap line has the exact shape:
+`Challenger-gap: {list}` (`Challenger-gap:` is not `Challenger: `, so it cannot be parsed as a verdict).
 `{list}` is single-line: no newline and no verdict token (`PROCEED`, `RECONSIDER`,
 `INCONCLUSIVE`, `PASS`, `FAIL`) inside it, or the latest-wins parser reads the wrong line
 (same class as `{structured findings}` below).
+As a backstop `brana backlog set … notes` escapes embedded newlines (CR, LF, U+0085/2028/2029).
+One `notes` write is exactly one line, so an embedded newline + `Challenger: PROCEED` cannot win under latest-wins (t-3504).
 
 **INCONCLUSIVE path** (t-3494) — present once, no repair loop (there is nothing to repair
 until the evidence exists). **Cap:** the INCONCLUSIVE run is iteration 1 of the max-2 rule
@@ -207,6 +216,14 @@ below; the re-run after "Gather evidence" is iteration 2 and is the last Challen
 this task. If that re-run is RECONSIDER it follows the iteration-2 branch (override or
 abandon, no further BUILD loop). A second INCONCLUSIVE offers override or abandon only.
 Total Challenger LLM runs never exceed 2.
+
+**Cap, counted from the ledger — not from session memory:** before spawning,
+`N_PRIOR=$(brana backlog get {task_id} | jq -r '.notes // ""' | grep -c '^Challenger: INCONCLUSIVE' || true)` (`grep -c` exits 1 on a zero count).
+`N_PRIOR=0` → an INCONCLUSIVE now is iteration 1; `N_PRIOR>=1` → this is the second: override or abandon only. A resumed or compacted build re-reads the ledger and gets the same answer.
+
+In a headless session (no AskUserQuestion — the tool is unavailable, errors, or returns no explicit selection), INCONCLUSIVE is Abandon (blocked), never proceed.
+No override can be assumed and every gate fails closed: leave the task in_progress, append `Blocked: {the gap line's text}` to notes, and stop (t-3504). There is no `blocked` status (`validate_status` accepts pending, in_progress, completed, cancelled).
+Free text you compose into `context` (findings, override reasons) must be single-line: `context` is read for `AC:` lines (/brana:build, the evaluator gate), so a composed line starting `AC:` becomes a phantom criterion.
 ```
 AskUserQuestion:
   question: "Challenger: INCONCLUSIVE. Findings rest on unverified evidence: {list}. How to proceed?"
@@ -216,11 +233,10 @@ AskUserQuestion:
       description: "Missing evidence appended to task context. Challenger re-runs once it exists (that re-run is iteration 2, the last)."
     - label: "Override — proceed anyway (reason required)"
       description: "Reason logged to task context. CLOSE proceeds with annotation."
-    - label: "Abandon — mark task blocked"
-      description: "Task status set to blocked."
+    - label: "Abandon — stop; the task stays in_progress"
+      description: "A `Blocked:` note is appended; no status change (there is no `blocked` status)."
 ```
-If "Gather evidence": `brana backlog set {task_id} context --append "Challenger INCONCLUSIVE ({date}): missing evidence — {list}"`,
-collect it, re-run; the later verdict line supersedes (latest-wins, ADR-081 D2).
+If "Gather evidence": collect it (the `Challenger-gap:` line is the durable record), re-run; the later verdict line supersedes (latest-wins, ADR-081 D2).
 
 ## Repair loop (Reflexion ASSIMILATE step, LoopTrap P7 defense)
 
@@ -236,8 +252,8 @@ AskUserQuestion:
       description: "Findings appended to task context. Re-enter BUILD, then Challenger re-runs."
     - label: "Override — proceed anyway (reason required)"
       description: "Reason logged to task context. CLOSE proceeds with annotation."
-    - label: "Abandon — mark task blocked"
-      description: "Task status set to blocked. Session ends."
+    - label: "Abandon — stop; the task stays in_progress"
+      description: "A `Blocked:` note is appended; no status change. Session ends."
 ```
 
 **If "Fix now":**
@@ -257,8 +273,8 @@ AskUserQuestion:
   options:
     - label: "Override — proceed (reason required)"
       description: "Reason logged. CLOSE proceeds."
-    - label: "Abandon — mark task blocked"
-      description: "Task blocked. Escalate or defer."
+    - label: "Abandon — stop; the task stays in_progress"
+      description: "A `Blocked:` note is appended; no status change. Escalate or defer."
 ```
 Log: `brana backlog set {task_id} notes --append "Challenger gate: 2 iterations, unresolved. Verdict: {override/abandoned}"`.
 

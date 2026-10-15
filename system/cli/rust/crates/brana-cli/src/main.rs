@@ -33,8 +33,8 @@ fn main() {
 
     match args.command {
         Commands::Version => run_or_exit(commands::misc::cmd_version()),
-        Commands::Transcribe { file, model, frames, every } => {
-            run_or_exit(commands::misc::cmd_transcribe(&file, model, frames, every))
+        Commands::Transcribe { file, model, frames, every, scene } => {
+            run_or_exit(commands::misc::cmd_transcribe(&file, model, frames, every, scene))
         }
         Commands::Files { cmd } => run_or_exit(commands::files::cmd_files(cmd)),
         Commands::Doctor { validate } => commands::doctor::cmd_doctor(&theme, validate),
@@ -156,6 +156,16 @@ fn main() {
             Some(HandoffCmd::Path) => run_or_exit(commands::handoff::cmd_handoff_path()),
         },
         Commands::Memory { cmd } => match cmd {
+            MemoryCmd::Usage { task, used, ignored, no_answer, check, report, json } => {
+                match commands::memory::cmd_memory_usage(task.as_deref(), used, ignored, no_answer, check, report, json) {
+                    Ok(0) => {}
+                    Ok(code) => std::process::exit(code),
+                    Err(e) => {
+                        eprintln!("{e:#}");
+                        std::process::exit(1);
+                    }
+                }
+            }
             MemoryCmd::Write { memory_type, scope, slug, content } => {
                 run_or_exit(commands::memory::cmd_memory_write(&memory_type, &scope, &slug, &content))
             }
@@ -293,6 +303,9 @@ fn main() {
             KnowledgeCmd::VectorSync { source, dest, tag_cap, json } => {
                 run_or_exit(commands::knowledge::cmd_vector_sync(source, dest, tag_cap, json))
             }
+            KnowledgeCmd::EmbedMemory { dest, force, json } => {
+                run_or_exit(commands::knowledge::cmd_embed_memory(dest, force, json))
+            }
             KnowledgeCmd::Relevant { project, min_score, dest, json } => {
                 run_or_exit(commands::knowledge::cmd_relevant(&project, min_score, dest, json))
             }
@@ -341,8 +354,11 @@ fn main() {
                 run_or_exit(commands::time::cmd_close(&task_id, partial))
             }
         }
-        Commands::Recall { query, top, json, db } => {
-            run_or_exit(commands::recall::cmd_recall(&query, top, json, db))
+        Commands::Recall { query, bundle, shadow, top, json, db, scope } => {
+            run_or_exit(match (bundle, query) {
+                (Some(task), _) => commands::recall::cmd_recall_bundle(&task, json, db, shadow),
+                (None, query) => commands::recall::cmd_recall(&query.unwrap_or_default(), top, json, db, scope),
+            })
         }
     }
 }

@@ -87,6 +87,7 @@ elif what == 'bump-fails':
     i = next((k for k, s in enumerate(steps) if 'mods-check.sh --engine' in (s.get('run') or '')), -1)
     j = next((k for k, s in enumerate(steps) if 'not in SUPPORTED' in (s.get('run') or '')), -1)
     print('yes' if 0 <= i < j and 'exit 1' in steps[j]['run'] and 'exit 1' in steps[i]['run'] else f'no ({i},{j})')
+elif what == 'noexec': print('yes' if 'mods-check.sh --noexec-canary' in runs and 'exit 1' in next((x.get('run') or '' for j in wf['jobs'].values() for x in j['steps'] if 'mods-check.sh --noexec-canary' in (x.get('run') or '')), '') else 'no')
 elif what == 'perms': print('yes' if (wf.get('permissions') or {}).get('contents') == 'read' else 'no')
 PY
 }
@@ -94,6 +95,7 @@ assert "runs on a schedule (cron)" yes "$(D schedule)"
 assert "can be dispatched by hand" yes "$(D dispatch)"
 assert "installs the LATEST claude" yes "$(D latest)"
 assert "runs mods-check.sh --engine" yes "$(D engine)"
+assert "runs mods-check.sh --noexec-canary and fails the job when validate executes module code (t-3505)" yes "$(D noexec)"
 assert "prints the installed version" yes "$(D version-printed)"
 assert "compares the installed version with probe.ts SUPPORTED (the bump signal)" yes "$(D supported-compared)"
 assert "least privilege: contents read" yes "$(D perms)"

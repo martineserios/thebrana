@@ -3005,11 +3005,17 @@ if [ ! -f "$C77_SCRIPT" ]; then
     fail "Check 77c: $C77_SCRIPT is missing — the mods enforcement harness cannot run (t-3493)"
 else
     C77C_STATIC=""; { $RUN_FAST || $RUN_ASSUMPTIONS_ONLY || $RUN_SEMANTIC_ONLY || $RUN_SCALE_TRIGGERS; } && C77C_STATIC=1
-    if C77C_OUT=$(MODS_INSTALLED_STATIC_ONLY="$C77C_STATIC" bash "$C77_SCRIPT" --installed "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" 2>&1); then
+    C77C_RC=0; C77C_OUT=$(MODS_INSTALLED_STATIC_ONLY="$C77C_STATIC" bash "$C77_SCRIPT" --installed "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" 2>&1) || C77C_RC=$?
+    if [ "$C77C_RC" -eq 0 ]; then
+        while IFS= read -r C77C_W; do warn "Check 77c: ${C77C_W#WARN: }"; done < <(printf '%s\n' "$C77C_OUT" | grep '^WARN:' | grep -v '^WARN:   ' || true)
         pass "Check 77c: $(printf '%s\n' "$C77C_OUT" | tail -1)"
-    else
+    elif [ "$C77C_RC" -eq 1 ]; then
         printf '%s\n' "$C77C_OUT" | sed 's/^/  /'
-        fail "Check 77c: an installed mod matches a Law 3 rule (\$.model/\$.http/bracket/Reflect/destructure/fetch), is refused by the engine at load, or the registry is unreadable — uninstall the mod: claude plugin uninstall <name> (t-3493)"
+        fail "Check 77c: an installed mod matches a Law 3 rule (\$.model/\$.http/bracket/Reflect/destructure/fetch) or is refused by the engine at load — uninstall the mod: claude plugin uninstall <name>; a plugin that cannot be uninstalled (managed settings) is acknowledged in system/config/mods-acknowledged.txt (t-3493, t-3505)"
+    else
+        # every code but 0/1 — 2 is the checker's own could-not-scan, 124/126/127/137 a crash or timeout: none is a verdict on a mod
+        printf '%s\n' "$C77C_OUT" | sed 's/^/  /'
+        fail "Check 77c: the installed-mods scan could not scan (exit $C77C_RC: python3 missing, plugins/installed_plugins.json unreadable or mis-shaped, an unreadable module or a failed engine report) — fix the scanner or the registry file; this is NOT a finding about any mod (t-3505)"
     fi
 fi
 echo ""
@@ -3058,6 +3064,28 @@ if $RUN_GOLDEN; then
         warn "Check 73: golden-path-diff.sh not found at $SCRIPT_DIR/system/scripts/ (skipped)"
     fi
     echo ""
+fi
+
+# Check 78: ADR-084 vendored band retired, quarantined skills are not Skill-tool dependencies (t-3503, ADR-098).
+# `disable-model-invocation: true` blocks the Skill tool (ADR-076 #3); a skill with that flag
+# and a Skill() caller is unreachable by construction (the band was, for six weeks).
+echo ""
+echo "Check 78: band retired + no quarantined Skill-tool dependency (t-3503)..."
+C78_TEST="$SCRIPT_DIR/system/scripts/tests/test-band-retired.sh"
+if [ ! -f "$C78_TEST" ]; then
+    fail "Check 78: test not found at $C78_TEST — this is the only required-CI path for the band-retirement and quarantined-dependency assertions"
+else
+    if C78_OUT=$(bash "$C78_TEST" 2>&1); then
+        C78_RC=0
+    else
+        C78_RC=$?
+    fi
+    echo "$C78_OUT" | sed 's/^/  /'
+    if [ "$C78_RC" -eq 0 ]; then
+        pass "Check 78: band retired; no quarantined skill is a Skill-tool dependency ✓"
+    else
+        fail "Check 78: a skill with disable-model-invocation is still the literal quoted target of a Skill() call in system/**/*.md, or retired band files are back (ADR-098; dynamic Skill() calls are out of this check's scope)"
+    fi
 fi
 
 # Summary

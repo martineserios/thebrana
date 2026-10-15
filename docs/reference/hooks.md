@@ -41,6 +41,7 @@
 | PreToolUse | `Bash` | `rtk" hook claude` | 5000ms |
 | SessionEnd | `` | `session-end.sh` | 10000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
+| SessionStart | `` | `mods-installed-check.sh` | 10000ms |
 | SessionStart | `` | `cc-changelog-check.sh` | — |
 | Stop | `` | `goal-completion.sh"; [ -f "$f" ] && bash "$f" || echo "{\"continue\": true}"'` | 8000ms |
 | StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
@@ -154,6 +155,12 @@ PostToolUse hook — sync MEMORY.md after a memory file is written.
 ### `memory-write-gate.sh`
 
 PreToolUse: Advisory gate on direct Write/Edit to typed memory files.
+
+**Gate:** Advisory
+
+### `mods-installed-check.sh`
+
+mods-installed-check.sh — SessionStart trigger for the installed-mods Law 3 scan (t-3502).
 
 **Gate:** Advisory
 
