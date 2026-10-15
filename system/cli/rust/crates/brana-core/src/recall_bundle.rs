@@ -1,5 +1,474 @@
 //! The recall bundle (t-3537, ADR-099): at most 8 typed pointers for one task.
 //! Design: docs/architecture/features/recall-bundle.md §"Bundle assembly".
+//!
+//! `compute_bundle` refreshes the index, queries the two memory legs and runs the pure
+//! stages in [`assemble`]. A pointer is a note's file stem plus its `description` line,
+//! never the body. Everything fails open: a bundle can be empty or partial, and the
+//! result says which legs and checks degraded.
+
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
+
+use serde::Serialize;
+
+use crate::memory::{
+    FreshnessReport, MemoryFileRef, list_memory_listing, memory_file_identity, memory_file_stamp,
+    refresh_fts_dirs,
+};
+use crate::search::{DocRef, HybridProvider, LegStatus, RecallScope, SearchHit};
+
+/// Pointers in a bundle at most.
+pub const MAX_POINTERS: usize = 8;
+/// Pointers of one type at most (v1; tuning only through the gates).
+pub const MAX_PER_TYPE: usize = 3;
+/// Characters in a gist at most.
+pub const GIST_MAX_CHARS: usize = 160;
+/// Characters in the query at most.
+pub const QUERY_MAX_CHARS: usize = 500;
+/// Candidates fetched from each leg.
+const CANDIDATE_POOL: usize = 40;
+/// Weight of a note with a derived supersession signal.
+const DERIVED_SUPERSEDED_WEIGHT: f64 = 0.5;
+
+// ── input ────────────────────────────────────────────────────────────────────
+
+/// What the bundle needs to know about a task. Description, context and notes are
+/// deliberately absent: the v1 query is subject + tags only (gates-v1), so a ticket's
+/// own pointer text cannot leak into retrieval.
+#[derive(Debug, Clone)]
+pub struct BundleTask {
+    pub id: String,
+    pub subject: String,
+    pub tags: Vec<String>,
+}
+
+/// The v1 query: the subject, then the tags, space-separated, capped.
+pub fn build_query(task: &BundleTask) -> String {
+    let mut parts: Vec<&str> = vec![task.subject.trim()];
+    parts.extend(task.tags.iter().map(|t| t.trim()));
+    let joined = parts.into_iter().filter(|p| !p.is_empty()).collect::<Vec<_>>().join(" ");
+    joined.chars().take(QUERY_MAX_CHARS).collect::<String>().trim_end().to_string()
+}
+
+// ── note parsing ─────────────────────────────────────────────────────────────
+
+/// The few frontmatter fields (and one body signal) the bundle reads from a note.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NoteMeta {
+    /// `metadata.type`, else the top-level `type`.
+    pub type_: Option<String>,
+    pub description: Option<String>,
+    pub status: Option<String>,
+    /// `to:` of every `type: supersedes` relation.
+    pub supersedes: Vec<String>,
+    /// Targets of `superseded by [[x]]` in the body.
+    pub superseded_by: Vec<String>,
+}
+
+fn unquote(v: &str) -> &str {
+    let v = v.trim();
+    for q in ['"', '\''] {
+        if v.len() >= 2 && v.starts_with(q) && v.ends_with(q) {
+            return &v[1..v.len() - 1];
+        }
+    }
+    v
+}
+
+/// Parse a note's frontmatter and body. A note that does not open with a `---` line has
+/// no frontmatter, so no field is read from it; the body signal is still read.
+pub fn parse_note(content: &str) -> NoteMeta {
+    let mut meta = NoteMeta::default();
+    let mut lines = content.lines().peekable();
+    let mut body_start = 0usize;
+    if lines.peek().map(|l| l.trim()) == Some("---") {
+        lines.next();
+        let mut consumed = 1usize;
+        let mut top_type: Option<String> = None;
+        let mut meta_type: Option<String> = None;
+        let mut section = String::new();
+        let mut rel_type: Option<String> = None;
+        let mut pending_fold: Option<String> = None; // description: > / |
+        let mut closed = false;
+        for line in lines.by_ref() {
+            consumed += 1;
+            if line.trim() == "---" {
+                closed = true;
+                break;
+            }
+            let indented = line.starts_with(' ') || line.starts_with('\t');
+            if let Some(buf) = pending_fold.as_mut() {
+                if indented || line.trim().is_empty() {
+                    if !line.trim().is_empty() {
+                        if !buf.is_empty() {
+                            buf.push(' ');
+                        }
+                        buf.push_str(line.trim());
+                    }
+                    continue;
+                }
+                meta.description = Some(std::mem::take(buf));
+                pending_fold = None;
+            }
+            let t = line.trim();
+            if !indented {
+                section.clear();
+                rel_type = None;
+                let Some((k, v)) = t.split_once(':') else { continue };
+                let v = v.trim();
+                match k.trim() {
+                    "type" if !v.is_empty() => top_type = Some(unquote(v).to_string()),
+                    "status" if !v.is_empty() => meta.status = Some(unquote(v).to_string()),
+                    "description" if v == ">" || v == "|" || v == ">-" || v == "|-" => {
+                        pending_fold = Some(String::new())
+                    }
+                    "description" if !v.is_empty() => meta.description = Some(unquote(v).to_string()),
+                    "metadata" | "relations" => section = k.trim().to_string(),
+                    _ => {}
+                }
+                continue;
+            }
+            match section.as_str() {
+                "metadata" => {
+                    if let Some(v) = t.strip_prefix("type:") {
+                        let v = unquote(v);
+                        if !v.is_empty() {
+                            meta_type = Some(v.to_string());
+                        }
+                    }
+                }
+                "relations" => {
+                    let item = t.strip_prefix('-').map(str::trim).unwrap_or(t);
+                    if let Some(v) = item.strip_prefix("type:") {
+                        rel_type = Some(unquote(v).to_string());
+                    } else if let Some(v) = item.strip_prefix("to:")
+                        && rel_type.as_deref() == Some("supersedes")
+                    {
+                        meta.supersedes.push(unquote(v).to_string());
+                    }
+                }
+                _ => {}
+            }
+        }
+        if let Some(buf) = pending_fold.take()
+            && !buf.is_empty()
+        {
+            meta.description = Some(buf);
+        }
+        meta.type_ = meta_type.or(top_type);
+        // An unclosed block has no body to speak of.
+        body_start = if closed { consumed } else { usize::MAX };
+        if !closed {
+            meta.type_ = None;
+        }
+    }
+    if body_start != usize::MAX {
+        let body: String = content.lines().skip(body_start).collect::<Vec<_>>().join("\n");
+        meta.superseded_by = superseded_by_targets(&body);
+    }
+    meta
+}
+
+/// Targets of `superseded by [[x]]` (case-insensitive), at most 3, in order.
+fn superseded_by_targets(body: &str) -> Vec<String> {
+    const NEEDLE: &str = "superseded by";
+    // ASCII-only folding keeps byte offsets identical to `body`.
+    let lower = body.to_ascii_lowercase();
+    let mut out: Vec<String> = Vec::new();
+    let mut from = 0usize;
+    while let Some(i) = lower[from..].find(NEEDLE) {
+        let after = from + i + NEEDLE.len();
+        let rest = body.get(after..).unwrap_or("").trim_start();
+        if let Some(inner) = rest.strip_prefix("[[")
+            && let Some(end) = inner.find("]]")
+        {
+            let t = inner[..end].trim().to_string();
+            if !t.is_empty() && !out.contains(&t) {
+                out.push(t);
+            }
+        }
+        from = after;
+        if out.len() >= 3 {
+            break;
+        }
+    }
+    out
+}
+
+/// One line, whitespace collapsed, at most [`GIST_MAX_CHARS`] characters (159 + `…`).
+pub fn make_gist(description: Option<&str>) -> Option<String> {
+    let collapsed = description?.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.is_empty() {
+        return None;
+    }
+    if collapsed.chars().count() <= GIST_MAX_CHARS {
+        return Some(collapsed);
+    }
+    let mut cut: String = collapsed.chars().take(GIST_MAX_CHARS - 1).collect();
+    cut.push('…');
+    Some(cut)
+}
+
+// ── stages ───────────────────────────────────────────────────────────────────
+
+/// A retrieved note, read and parsed, before the stages.
+#[derive(Debug, Clone)]
+pub struct Candidate {
+    pub path: PathBuf,
+    /// The file stem: the pointer's `ref`.
+    pub stem: String,
+    pub slug: String,
+    /// The type from the filename prefix (`""` when there is none).
+    pub file_type: String,
+    pub rrf: f64,
+    pub meta: NoteMeta,
+}
+
+/// One entry of a bundle.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Pointer {
+    #[serde(rename = "type")]
+    pub ptype: String,
+    #[serde(rename = "ref")]
+    pub ref_: String,
+    pub gist: Option<String>,
+    pub rank: usize,
+    pub flags: Vec<String>,
+}
+
+/// `(file type, slug)` → `(newest stamp, that file's stem)`, over the scope's folders.
+pub type NewestStamps = HashMap<(String, String), (String, String)>;
+
+/// The newest dated file per `(type, slug)` among `files` (undated files have no stamp).
+pub fn newest_stamps(files: &[MemoryFileRef]) -> NewestStamps {
+    let mut out: NewestStamps = HashMap::new();
+    for f in files {
+        let Some(stem) = f.path.file_stem().and_then(|s| s.to_str()) else { continue };
+        let Some(stamp) = memory_file_stamp(stem) else { continue };
+        let key = (f.mtype.clone(), f.slug.clone());
+        if out.get(&key).is_none_or(|(s, _)| stamp > s.as_str()) {
+            out.insert(key, (stamp.to_string(), stem.to_string()));
+        }
+    }
+    out
+}
+
+/// A `supersedes`/`superseded by` reference reduced to a bare name: last path segment,
+/// no `.md`, no `[[ ]]`.
+fn bare_name(r: &str) -> String {
+    let r = r.trim().trim_start_matches("[[").trim_end_matches("]]").trim();
+    let last = r.rsplit('/').next().unwrap_or(r);
+    last.strip_suffix(".md").unwrap_or(last).to_string()
+}
+
+/// The stages of ADR-099 on already-read candidates: scope, type, supersession, order,
+/// quota and cut, gist. Pure.
+pub fn assemble(cands: Vec<Candidate>, scope: &RecallScope, newest: &NewestStamps) -> Vec<Pointer> {
+    // 1 scope
+    let cands: Vec<Candidate> = cands.into_iter().filter(|c| scope.allows(&c.path)).collect();
+
+    // 3 supersession, authoritative part: the ADR-057 status and supersedes-targets
+    let targets: HashSet<String> =
+        cands.iter().flat_map(|c| c.meta.supersedes.iter().map(|t| bare_name(t))).collect();
+    let cands: Vec<Candidate> = cands
+        .into_iter()
+        .filter(|c| {
+            let dead = c.meta.status.as_deref().is_some_and(|s| s.trim().eq_ignore_ascii_case("superseded"));
+            let targeted = targets.contains(&c.stem) || targets.contains(&c.slug);
+            !dead && !targeted
+        })
+        .collect();
+
+    // 3 supersession, derived part: down-weight and flag, never drop
+    let mut scored: Vec<(f64, Candidate, Vec<String>)> = cands
+        .into_iter()
+        .map(|c| {
+            let mut flags: Vec<String> = Vec::new();
+            if let Some(stamp) = memory_file_stamp(&c.stem)
+                && let Some((newest_stamp, newer_stem)) = newest.get(&(c.file_type.clone(), c.slug.clone()))
+                && stamp < newest_stamp.as_str()
+            {
+                flags.push(format!("derived-superseded:{newer_stem}"));
+            }
+            for by in &c.meta.superseded_by {
+                flags.push(format!("derived-superseded:{}", bare_name(by)));
+            }
+            let weight = if flags.is_empty() { 1.0 } else { DERIVED_SUPERSEDED_WEIGHT };
+            (c.rrf * weight, c, flags)
+        })
+        .collect();
+
+    // 4 order
+    scored.sort_by(|a, b| {
+        b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.1.stem.cmp(&b.1.stem))
+    });
+
+    // 2 type, 5 quota and cut, 6 gist
+    let mut per_type: HashMap<String, usize> = HashMap::new();
+    let mut out: Vec<Pointer> = Vec::new();
+    for (_, c, flags) in scored {
+        if out.len() >= MAX_POINTERS {
+            break;
+        }
+        let ptype = c
+            .meta
+            .type_
+            .clone()
+            .or_else(|| (!c.file_type.is_empty()).then(|| c.file_type.clone()))
+            .unwrap_or_else(|| "note".to_string());
+        let n = per_type.entry(ptype.clone()).or_insert(0);
+        if *n >= MAX_PER_TYPE {
+            continue;
+        }
+        *n += 1;
+        out.push(Pointer {
+            ptype,
+            ref_: c.stem,
+            gist: make_gist(c.meta.description.as_deref()),
+            rank: out.len() + 1,
+            flags,
+        });
+    }
+    out
+}
+
+// ── orchestration ────────────────────────────────────────────────────────────
+
+/// Everything `compute_bundle` needs from its surroundings; the CLI builds it from the
+/// real paths, tests from fixtures and stub legs.
+pub struct BundleEnv<'a> {
+    pub scope: RecallScope,
+    /// The project folder name (`-home-…-repo`), for the output only.
+    pub project: Option<String>,
+    /// The scope's `(label, folder)` pairs, for the freshness check and twin detection.
+    pub dirs: Vec<(String, PathBuf)>,
+    pub knowledge_db: PathBuf,
+    pub fts_db: PathBuf,
+    pub provider: &'a HybridProvider,
+    pub refresh_budget: Duration,
+    pub unembedded_wait: Duration,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BundleScope {
+    pub project: Option<String>,
+    pub global: bool,
+}
+
+/// Per-leg outcome in the bundle's own words: `fts` is the keyword leg, `vector` the
+/// memory-vector leg.
+#[derive(Debug, Clone, Serialize)]
+pub struct BundleLegs {
+    pub fts: LegStatus,
+    pub vector: LegStatus,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BundleFreshness {
+    #[serde(flatten)]
+    pub report: FreshnessReport,
+    /// In-scope notes without a current vector; `None` when it could not be counted.
+    pub unembedded: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Bundle {
+    pub task: String,
+    pub scope: BundleScope,
+    pub shown: bool,
+    pub legs: BundleLegs,
+    pub pointers: Vec<Pointer>,
+    /// Candidates that could not be read as text and were left out.
+    pub skipped_unreadable: usize,
+    pub elapsed_ms: u64,
+    pub freshness: BundleFreshness,
+}
+
+/// Refresh the index, query the legs, read the candidates, run the stages. Never fails:
+/// every problem shows up in `legs`, `freshness` or `skipped_unreadable`.
+pub fn compute_bundle(task: &BundleTask, env: &BundleEnv) -> Bundle {
+    let started = Instant::now();
+
+    let report = refresh_fts_dirs(&env.dirs, &env.fts_db, env.refresh_budget);
+
+    let query = build_query(task);
+    let (hits, status) = env.provider.query_with_status(&query, CANDIDATE_POOL);
+
+    let listing = list_memory_listing(&env.dirs);
+    let newest = newest_stamps(&listing.files);
+
+    let (cands, skipped_unreadable) = read_candidates(hits);
+    let pointers = assemble(cands, &env.scope, &newest);
+
+    let unembedded =
+        crate::memory_vectors::unembedded_count(&env.knowledge_db, &listing.files, env.unembedded_wait).ok();
+
+    Bundle {
+        task: task.id.clone(),
+        scope: BundleScope { project: env.project.clone(), global: true },
+        shown: true,
+        legs: BundleLegs { fts: status.keyword, vector: status.semantic },
+        pointers,
+        skipped_unreadable,
+        elapsed_ms: started.elapsed().as_millis() as u64,
+        freshness: BundleFreshness { report, unembedded },
+    }
+}
+
+/// Memory-file hits only (knowledge-store rows are out in v1), each read once. A note
+/// that cannot be read as text is counted, never treated as empty.
+fn read_candidates(hits: Vec<SearchHit>) -> (Vec<Candidate>, usize) {
+    let mut seen: HashSet<PathBuf> = HashSet::new();
+    let mut out = Vec::new();
+    let mut skipped = 0usize;
+    for h in hits {
+        let DocRef::MemoryFile { path, .. } = h.doc else { continue };
+        if !seen.insert(path.clone()) {
+            continue;
+        }
+        let Some(stem) = path.file_stem().and_then(|s| s.to_str()).map(str::to_string) else { continue };
+        let Ok(content) = fs::read_to_string(&path) else {
+            skipped += 1;
+            continue;
+        };
+        let (file_type, slug) = memory_file_identity(&stem);
+        out.push(Candidate { meta: parse_note(&content), path, stem, slug, file_type, rrf: h.rrf_score });
+    }
+    (out, skipped)
+}
+
+/// The human format: one line per pointer, grouped by type, flagged notes marked.
+pub fn format_human(b: &Bundle) -> String {
+    let mut out = format!(
+        "Recall bundle for {} — {} pointer(s) (fts {}, vector {})\n",
+        b.task,
+        b.pointers.len(),
+        b.legs.fts.as_str(),
+        b.legs.vector.as_str()
+    );
+    let mut types: Vec<&str> = Vec::new();
+    for p in &b.pointers {
+        if !types.contains(&p.ptype.as_str()) {
+            types.push(&p.ptype);
+        }
+    }
+    for t in types {
+        out.push_str(&format!("{t}\n"));
+        for p in b.pointers.iter().filter(|p| p.ptype == t) {
+            out.push_str(&format!("  {}. {}", p.rank, p.ref_));
+            if let Some(g) = &p.gist {
+                out.push_str(&format!(" — {g}"));
+            }
+            if !p.flags.is_empty() {
+                out.push_str(&format!("  [{}]", p.flags.join(", ")));
+            }
+            out.push('\n');
+        }
+    }
+    out
+}
 
 #[cfg(test)]
 mod tests {
@@ -110,6 +579,31 @@ mod tests {
         assert_eq!(body.superseded_by, vec!["pattern_new"]);
         let fm_only = parse_note("---\nname: superseded by [[pattern_new]]\n---\nclean body");
         assert!(fm_only.superseded_by.is_empty());
+    }
+
+    #[test]
+    fn has_frontmatter_tells_notes_from_logs() {
+        assert!(parse_note("---\nname: x\n---\nbody").has_frontmatter);
+        assert!(!parse_note("# a log\nplain text").has_frontmatter);
+        assert!(!parse_note("").has_frontmatter);
+    }
+
+    #[test]
+    fn a_memory_entry_has_a_type_or_a_frontmatter_block() {
+        let none = parse_note("plain");
+        let fm = parse_note("---\nname: x\n---\n");
+        let typed = parse_note("---\ntype: pattern\n---\n");
+        assert!(!is_memory_entry("", &none), "no prefix, no frontmatter: a log");
+        assert!(is_memory_entry("pattern", &none), "prefix types it even without frontmatter");
+        assert!(is_memory_entry("", &fm), "frontmatter without a type: still a note");
+        assert!(is_memory_entry("", &typed));
+    }
+
+    #[test]
+    fn prose_superseded_by_survives_characters_whose_lowercase_changes_length() {
+        // 'İ' lowercases to two chars; offsets from a lowercased copy would drift.
+        let body = parse_note("---\nname: x\n---\nİİİ Ünïcode… Superseded By [[Pattern_New]] done");
+        assert_eq!(body.superseded_by, vec!["Pattern_New"]);
     }
 
     // ── gist ─────────────────────────────────────────────────────────────────
@@ -415,6 +909,7 @@ mod tests {
         assert!(v["freshness"]["outcome"].is_object() || v["freshness"]["outcome"].is_string());
         assert!(v["freshness"].get("unembedded").is_some());
         assert!(v.get("elapsed_ms").is_some() && v.get("skipped_unreadable").is_some());
+        assert_eq!(v["skipped_non_entries"], 0);
         assert!(!v.to_string().contains("SENTINEL-BODY-TEXT"), "pointer, not paste");
     }
 
@@ -491,6 +986,26 @@ mod tests {
 
         assert_eq!(refs(&b.pointers), vec!["pattern_good"]);
         assert_eq!(b.skipped_unreadable, 1);
+    }
+
+    #[test]
+    fn logs_and_state_files_are_left_out_and_counted_user_decision() {
+        let w = world();
+        write_note(&w.global, "pattern_real.md", "a real note", "scraping");
+        // No frontmatter and no type prefix: a log, however well it matches.
+        fs::write(w.global.join("sessions.md"), "scraping scraping scraping scraping").unwrap();
+        // No type prefix but a frontmatter block: still a note, typed "note".
+        write_note(&w.global, "untyped-note.md", "has frontmatter", "scraping");
+        reindex_fts_dirs(&w.dirs, &w.fts).unwrap();
+        let provider = crate::vector::bundle_provider(&w.fts, &w.db, Arc::new(ConstEmbedder), w.scope.clone());
+
+        let b = compute_bundle(&task("scraping"), &env(&w, &provider));
+
+        let mut got = refs(&b.pointers);
+        got.sort();
+        assert_eq!(got, vec!["pattern_real", "untyped-note"]);
+        assert_eq!(b.skipped_non_entries, 1);
+        assert_eq!(b.pointers.iter().find(|p| p.ref_ == "untyped-note").unwrap().ptype, "note");
     }
 
     #[test]

@@ -344,8 +344,11 @@ fn main() {
                 run_or_exit(commands::time::cmd_close(&task_id, partial))
             }
         }
-        Commands::Recall { query, top, json, db, scope } => {
-            run_or_exit(commands::recall::cmd_recall(&query, top, json, db, scope))
+        Commands::Recall { query, bundle, top, json, db, scope } => {
+            run_or_exit(match (bundle, query) {
+                (Some(task), _) => commands::recall::cmd_recall_bundle(&task, json, db),
+                (None, query) => commands::recall::cmd_recall(&query.unwrap_or_default(), top, json, db, scope),
+            })
         }
     }
 }

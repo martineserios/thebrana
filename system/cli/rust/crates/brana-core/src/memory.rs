@@ -263,6 +263,14 @@ fn slug_from_rest(rest: &str) -> &str {
     rest
 }
 
+/// The `YYYY-MM-DDTHH-MM-SS` stamp of a dated memory file stem
+/// (`feedback_x_2026-08-24T12-37-56`), or `None` for an undated one (t-3537).
+pub fn memory_file_stamp(stem: &str) -> Option<&str> {
+    let (_, rest) = stem.split_once('_')?;
+    let pos = rest.rfind('_')?;
+    is_timestamp(&rest[pos + 1..]).then(|| &rest[pos + 1..])
+}
+
 /// Does the rest part contain a timestamp suffix?
 fn is_dated_filename(rest: &str) -> bool {
     if let Some(pos) = rest.rfind('_') {

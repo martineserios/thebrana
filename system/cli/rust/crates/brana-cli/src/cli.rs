@@ -301,8 +301,14 @@ pub enum Commands {
     },
     /// Hybrid recall — FTS5 + ruflo parallel search, merged via RRF (ADR-058)
     Recall {
-        /// Query string
-        query: String,
+        /// Query string (omit with --bundle)
+        #[arg(required_unless_present = "bundle", conflicts_with = "bundle")]
+        query: Option<String>,
+        /// Compute the recall bundle for a task instead: at most 8 typed pointers
+        /// (note + one-line description), scoped to this project plus global memory,
+        /// with superseded notes dropped. The query is the task's subject and tags.
+        #[arg(long, value_name = "TASK_ID")]
+        bundle: Option<String>,
         /// Maximum results to return
         #[arg(long, default_value = "10")]
         top: usize,

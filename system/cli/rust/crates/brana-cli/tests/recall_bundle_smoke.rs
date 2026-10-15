@@ -14,7 +14,16 @@ fn brana() -> Command {
 
 /// Independent oracle for brana-core `util::encode_project_dir` (not a call into it).
 fn encode(p: &Path) -> String {
-    p.to_string_lossy().replace('/', "-").replace('_', "-")
+    p.to_string_lossy().replace(['/', '_'], "-")
+}
+
+/// Write a note dated a minute ago: a note modified within 2 s of an index build is
+/// recorded as suspect and re-read once (t-3536), which would blur the counts below.
+fn write_note(dir: &Path, name: &str, desc: &str, body: &str) {
+    let path = dir.join(name);
+    std::fs::write(&path, format!("---\ndescription: {desc}\n---\n{body}")).unwrap();
+    let t = std::time::SystemTime::now() - std::time::Duration::from_secs(60);
+    std::fs::File::options().write(true).open(&path).unwrap().set_modified(t).unwrap();
 }
 
 struct Fx {
@@ -34,11 +43,13 @@ impl Fx {
             std::fs::create_dir_all(d).unwrap();
         }
         let note = |dir: &Path, name: &str, desc: &str, body: &str| {
-            std::fs::write(dir.join(name), format!("---\ndescription: {desc}\n---\n{body}")).unwrap();
+            write_note(dir, name, desc, body);
         };
         note(&global, "pattern_scraping-tips.md", "global scraping tips", "scraping tips");
         note(&mine, "feedback_scraping-rules.md", "project scraping rules", "scraping rules");
         note(&client, "pattern_acme-scraping.md", "ACME CONFIDENTIAL", "scraping scraping scraping");
+        // A log, not a note: no frontmatter, no type prefix.
+        std::fs::write(global.join("sessions.md"), "scraping scraping scraping scraping scraping").unwrap();
         let tasks = project.child("tasks.json");
         tasks
             .write_str(r#"{"project":"fx","tasks":[{"id":"t-1","subject":"improve scraping","tags":["scraping"],"status":"pending"}]}"#)
@@ -78,6 +89,8 @@ fn bundle_prints_at_most_eight_pointers_and_no_other_clients_notes() {
     assert!(refs.contains(&"pattern_scraping-tips"), "{refs:?}");
     assert!(refs.contains(&"feedback_scraping-rules"), "{refs:?}");
     assert!(!refs.iter().any(|r| r.contains("acme")), "{refs:?}");
+    assert!(!refs.contains(&"sessions"), "a log is not a memory entry: {refs:?}");
+    assert_eq!(v["skipped_non_entries"], 1);
     assert!(!v.to_string().contains("ACME CONFIDENTIAL"));
 }
 
@@ -97,7 +110,7 @@ fn bundle_refreshes_a_stale_index_before_querying() {
     let fx = Fx::new();
     fx.reindex();
     let mine = fx.home.path().join(".claude/projects").join(encode(fx.project.path())).join("memory");
-    std::fs::write(mine.join("pattern_fresh-scraping.md"), "---\ndescription: written after the index\n---\nscraping").unwrap();
+    write_note(&mine, "pattern_fresh-scraping.md", "written after the index", "scraping");
     let v = bundle_json(&fx, "t-1");
     let refs: Vec<&str> = v["pointers"].as_array().unwrap().iter().map(|p| p["ref"].as_str().unwrap()).collect();
     assert!(refs.contains(&"pattern_fresh-scraping"), "{refs:?}");

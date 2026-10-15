@@ -785,20 +785,44 @@ pub fn recall_provider(
     embedder: Arc<dyn Embedder>,
     scope: RecallScope,
 ) -> crate::search::HybridProvider {
-    use crate::search::{FTS5Provider, HybridProvider};
+    use crate::search::HybridProvider;
     let knowledge_db = knowledge_db.into();
     let shared: Arc<dyn Embedder> = Arc::new(CachedEmbedder::new(embedder));
     let knowledge = VectorProvider::new(knowledge_db.clone(), Arc::clone(&shared))
         .with_threshold(RECALL_VECTOR_THRESHOLD);
-    let memory = VectorProvider::new(knowledge_db, shared)
+    let (keyword, memory) = scoped_memory_legs(fts_db.into(), knowledge_db, shared, scope);
+    HybridProvider::new(Arc::new(keyword), Arc::new(knowledge)).with_extra(Arc::new(memory))
+}
+
+/// The two legs that return curated memory files, each limited to `scope`: keyword
+/// search over the FTS index and semantic search over the embedded memory files.
+/// Shared by [`recall_provider`] and [`bundle_provider`] so they cannot drift (t-3537).
+fn scoped_memory_legs(
+    fts_db: PathBuf,
+    knowledge_db: PathBuf,
+    embedder: Arc<dyn Embedder>,
+    scope: RecallScope,
+) -> (crate::search::FTS5Provider, VectorProvider) {
+    let memory = VectorProvider::new(knowledge_db, embedder)
         .with_threshold(RECALL_VECTOR_THRESHOLD)
         .with_memory_scope(MemoryScope::Only)
         .with_recall_scope(scope.clone());
-    HybridProvider::new(
-        Arc::new(FTS5Provider::new(fts_db.into()).with_scope(scope)),
-        Arc::new(knowledge),
-    )
-    .with_extra(Arc::new(memory))
+    (crate::search::FTS5Provider::new(fts_db).with_scope(scope), memory)
+}
+
+/// The recall bundle's provider (t-3537): the scoped keyword leg plus the scoped
+/// memory-vector leg. The knowledge-entry leg is not run, because knowledge-store rows
+/// (links, feeds) carry no path and are left out of the bundle in v1. Status keys are
+/// `keyword` (the bundle's `fts`) and `semantic` (its `vector`).
+pub fn bundle_provider(
+    fts_db: impl Into<PathBuf>,
+    knowledge_db: impl Into<PathBuf>,
+    embedder: Arc<dyn Embedder>,
+    scope: RecallScope,
+) -> crate::search::HybridProvider {
+    let shared: Arc<dyn Embedder> = Arc::new(CachedEmbedder::new(embedder));
+    let (keyword, memory) = scoped_memory_legs(fts_db.into(), knowledge_db.into(), shared, scope);
+    crate::search::HybridProvider::new(Arc::new(keyword), Arc::new(memory))
 }
 
 /// Truncate at a char boundary, appending `…` when shortened.

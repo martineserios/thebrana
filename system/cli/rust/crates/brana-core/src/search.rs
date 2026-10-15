@@ -75,6 +75,18 @@ pub enum LegStatus {
     Error,
 }
 
+impl LegStatus {
+    /// The lowercase spelling used in JSON and human output.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Ok => "ok",
+            Self::Empty => "empty",
+            Self::Timeout => "timeout",
+            Self::Error => "error",
+        }
+    }
+}
+
 /// Per-leg outcome of a [`HybridProvider`] query, in dispatch order.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HybridStatus {
