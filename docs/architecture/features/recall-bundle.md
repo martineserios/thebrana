@@ -380,7 +380,8 @@ t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshne
 - **Gap:** `index.db` is rebuilt weekly (scheduler `reindex-patterns`, Sunday) as a full
   drop-and-rebuild, and memory-file vectors exist only after `embed-memory`. Notes written since
   are missing from the bundle.
-- **Check:** before querying, compare the newest in-scope `*.md` mtime with the index build time
+- **Check** (superseded by §Index freshness — design below: per-file state, not build time):
+  before querying, compare the newest in-scope `*.md` mtime with the index build time
   (stored in `index.db` metadata). Upsert only the newer files into FTS (a new incremental path in
   `brana-core/src/memory.rs`; today's reindex only rebuilds everything). The check counts toward
   the fail-open budget; on timeout the bundle proceeds on the stale index and says so.
@@ -424,8 +425,31 @@ t-3516 is built in three slices: t-3535 (this foundation), t-3536 (index freshne
 - **Report fields** (as the check found the index, before any refresh): `index_age_s` (since
   `refreshed_at`; absent for an index built before this change), `stale_notes`, `deleted_notes`,
   `unreadable`, `refreshed_notes`, `outcome` (`fresh | refreshed | stale`
-  plus a reason). `unembedded` comes from `memory_vectors::unembedded_count`: in-scope notes with
-  no vector row, a row without the current `EMBED_VERSION` tag, or a row older than the file.
+  plus a reason: `timeout | busy | unreadable | error`). `unembedded` comes from
+  `memory_vectors::unembedded_count` (below).
+- **Deleted** means the full rebuild's rule: an indexed note directly inside a folder that
+  listed completely whose path is no longer a listed note (gone, renamed, or taken over by
+  something that is not a note). Only files are notes; a folder named `x.md` is not one.
+- **Racily clean:** a note modified within 2 s of the moment its state is recorded is recorded
+  as suspect and re-read once on the next check, so a same-size rewrite inside one filesystem
+  clock tick is not missed (git's approach).
+- **Lock waits are re-armed from the remaining budget before every statement**; the commit alone
+  gets a fixed 200 ms grace so written notes are not thrown away while a reader finishes. That
+  grace is the most a refresh can overrun its budget.
+- **Unreadable notes are found before the write lock**, so a note that stays unreadable never
+  makes a refresh lock the index for nothing; the progress guarantee counts the first *readable*
+  note.
+- **`index_age_s`** is the time since the last write to the index by any scope (a refresh for
+  another project, or a partial commit, resets it). `stale_notes` is the signal for "this scope
+  was out of date".
+- **Folder spelling:** `dirs` must be spelled exactly as the indexer spells them
+  (`memory::memory_dirs_in` / `RecallScope::project_in` both derive from `home()`); a differently
+  spelled folder (a symlinked home) would see every note as new.
+- **Symlinked notes** are followed, as in the rebuild and `embed-memory`; the refresh only makes
+  their text reach the bundle sooner (per call, not per week). Changing that is a policy
+  decision, not part of this slice.
+- **`unembedded_count`** uses the embedder's own rule (same text and current `EMBED_VERSION`;
+  shared function), not mtime, and takes the caller's lock wait.
 - **Indexes from older binaries** have no `memory_files`: the first refresh treats every in-scope
   note as stale and re-indexes it once. Deleted-note detection reads `memory_fts` paths, so it
   works on old indexes too.

@@ -1872,4 +1872,51 @@ mod freshness_tests {
         assert!(listing.files.iter().all(|x| !x.path.ends_with("pattern_folder.md")));
         assert!(reindex_fts_dirs(&f.dirs, &f.db).is_ok(), "a folder is not an unreadable note");
     }
+
+    #[test]
+    fn a_missing_index_is_reported_stale_and_never_created() {
+        let f = fx();
+        let missing = f._tmp.path().join("no-index.db");
+
+        let r = refresh_fts_dirs(&f.dirs, &missing, BUDGET);
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Error));
+        assert!(!missing.exists());
+    }
+
+    #[test]
+    fn a_writer_blocking_only_the_write_phase_falls_back_within_the_budget() {
+        // RESERVED lets readers in, so the check phase runs and the wait happens
+        // at BEGIN IMMEDIATE.
+        let f = fx();
+        write_note(&f.dir.join("pattern_new.md"), "zebra crossing");
+        let other = Connection::open(&f.db).unwrap();
+        other.execute_batch("BEGIN IMMEDIATE").unwrap();
+
+        let started = std::time::Instant::now();
+        let r = refresh_fts_dirs(&f.dirs, &f.db, Duration::from_millis(300));
+        let waited = started.elapsed();
+        other.execute_batch("ROLLBACK").unwrap();
+
+        assert_eq!(r.outcome, FreshnessOutcome::Stale(StaleReason::Busy));
+        assert_eq!(r.stale_notes, 1, "the check phase ran");
+        assert!(waited < Duration::from_millis(800), "waited {waited:?}, budget was 300 ms");
+        assert!(found(&f.db, "zebra").is_empty());
+    }
+
+    #[test]
+    fn a_note_that_is_not_text_keeps_its_old_row_without_permission_tricks() {
+        // Root-independent unreadable note: invalid UTF-8 fails read_to_string.
+        let f = fx();
+        let old = f.dir.join("pattern_old.md");
+        fs::write(&old, [0xff_u8, 0xfe, 0xfd]).unwrap();
+        set_mtime(&old, -30);
+        write_note(&f.dir.join("pattern_new.md"), "zebra crossing");
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert_eq!((r.unreadable, r.outcome), (1, FreshnessOutcome::Refreshed));
+        assert_eq!(found(&f.db, "alpha"), vec!["old"], "old row kept");
+        assert_eq!(found(&f.db, "zebra"), vec!["new"]);
+    }
 }
