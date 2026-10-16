@@ -535,6 +535,9 @@ pub struct MemoryListing {
     pub complete_dirs: Vec<PathBuf>,
     pub failed_dirs: Vec<PathBuf>,
     pub missing_dirs: Vec<PathBuf>,
+    /// Symlinks that resolve outside their own folder: never listed as notes, so nothing
+    /// they point at is indexed, and any row they already have is pruned (t-3542).
+    pub refused_links: Vec<PathBuf>,
 }
 
 /// List the `*.md` files (excluding `MEMORY.md`) of each `(scope, dir)` pair, sorted
@@ -569,6 +572,18 @@ pub fn list_memory_listing(dirs: &[(String, PathBuf)]) -> MemoryListing {
         // A path whose type cannot be checked stays in, so the failure surfaces as
         // an unreadable note instead of the note silently vanishing.
         paths.retain(|p| fs::metadata(p).map(|m| m.is_file()).unwrap_or(true));
+        // Scope is enforced here, where notes enter every index (keyword, freshness, vectors):
+        // a symlink that resolves outside its own folder is not a note of this folder, so text
+        // reached through it is never indexed and a reader added later cannot leak it (t-3542).
+        // A link that cannot be resolved stays in, to surface as an unreadable note.
+        paths.retain(|p| {
+            if link_leaves_folder(p, dir) {
+                listing.refused_links.push(p.clone());
+                false
+            } else {
+                true
+            }
+        });
         paths.sort();
         for path in paths {
             let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
@@ -582,6 +597,17 @@ pub fn list_memory_listing(dirs: &[(String, PathBuf)]) -> MemoryListing {
         }
     }
     listing
+}
+
+/// Whether `path` is a symlink that resolves, but not to a file directly inside `dir`
+/// (compared after resolving `dir` too, so a folder reached through a link works).
+fn link_leaves_folder(path: &Path, dir: &Path) -> bool {
+    if !fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink()) {
+        return false;
+    }
+    let Ok(real) = fs::canonicalize(path) else { return false };
+    let Ok(real_dir) = fs::canonicalize(dir) else { return false };
+    !(real.is_file() && real.parent() == Some(real_dir.as_path()))
 }
 
 /// The files of [`list_memory_listing`], for callers that only read (recall, tests).
@@ -905,6 +931,8 @@ fn refresh_inner(
     // path taken over by something that is not a note counts too. A missing or
     // unlistable folder prunes nothing.
     let mut deleted: Vec<String> = Vec::new();
+    let refused: std::collections::HashSet<String> =
+        listing.refused_links.iter().map(|p| p.to_string_lossy().into_owned()).collect();
     for dir in &listing.complete_dirs {
         let prefix = format!("{}/", dir.to_string_lossy().trim_end_matches('/'));
         arm(&conn)?;
@@ -922,6 +950,7 @@ fn refresh_inner(
             // Not listed AND confirmed: gone, or no longer a file. A path a racing
             // directory read missed, or one that cannot be checked, is kept.
             let not_a_note = match fs::metadata(&path) {
+                _ if refused.contains(&path) => true,
                 Ok(m) => !m.is_file(),
                 Err(e) => e.kind() == std::io::ErrorKind::NotFound,
             };
@@ -1889,6 +1918,59 @@ mod freshness_tests {
         let listing = list_memory_listing(&f.dirs);
         assert!(listing.files.iter().all(|x| !x.path.ends_with("pattern_folder.md")));
         assert!(reindex_fts_dirs(&f.dirs, &f.db).is_ok(), "a folder is not an unreadable note");
+    }
+
+    // ── scope is enforced where notes enter the index (t-3542) ──────────────────
+
+    /// A second folder outside the indexed set, holding a note that must stay out.
+    fn outside_note(f: &Fx, text: &str) -> PathBuf {
+        let other = f._tmp.path().join("client-memory");
+        fs::create_dir_all(&other).unwrap();
+        let secret = other.join("pattern_secret.md");
+        write_note(&secret, text);
+        secret
+    }
+
+    #[test]
+    fn the_listing_refuses_a_symlink_that_leaves_its_folder_and_keeps_an_alias_inside_it() {
+        let f = fx();
+        let secret = outside_note(&f, "client confidential");
+        std::os::unix::fs::symlink(&secret, f.dir.join("pattern_link.md")).unwrap();
+        std::os::unix::fs::symlink(f.dir.join("pattern_old.md"), f.dir.join("pattern_alias.md")).unwrap();
+
+        let listing = list_memory_listing(&f.dirs);
+
+        let names: Vec<String> = listing.files.iter().map(|x| x.path.file_name().unwrap().to_string_lossy().into_owned()).collect();
+        assert!(!names.contains(&"pattern_link.md".to_string()), "{names:?}");
+        assert!(names.contains(&"pattern_alias.md".to_string()), "an alias inside the folder is a note: {names:?}");
+        assert_eq!(listing.refused_links, vec![f.dir.join("pattern_link.md")]);
+    }
+
+    #[test]
+    fn a_full_rebuild_never_indexes_text_reached_through_an_outside_link() {
+        let f = fx();
+        let secret = outside_note(&f, "zebra client confidential");
+        std::os::unix::fs::symlink(&secret, f.dir.join("pattern_link.md")).unwrap();
+
+        reindex_fts_dirs(&f.dirs, &f.db).unwrap();
+
+        assert!(found(&f.db, "confidential").is_empty(), "out-of-folder text must not be in the index");
+    }
+
+    #[test]
+    fn a_refresh_drops_the_row_of_a_note_that_became_an_outside_link() {
+        // The index was built when pattern_old.md was a plain note (or by an older build that
+        // followed links). Once the path is a link out of the folder, its row must go.
+        let f = fx();
+        let secret = outside_note(&f, "zebra client confidential");
+        fs::remove_file(f.dir.join("pattern_old.md")).unwrap();
+        std::os::unix::fs::symlink(&secret, f.dir.join("pattern_old.md")).unwrap();
+
+        let r = refresh_fts_dirs(&f.dirs, &f.db, BUDGET);
+
+        assert!(found(&f.db, "confidential").is_empty(), "the linked text was indexed: {r:?}");
+        assert!(found(&f.db, "alpha").is_empty(), "the old row for that path is gone: {r:?}");
+        assert_eq!(r.deleted_notes, 1, "{r:?}");
     }
 
     #[test]

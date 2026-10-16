@@ -140,7 +140,13 @@ impl RecallScope {
     /// Whether a memory note at `path` is in scope: it sits directly in a scope folder and,
     /// if it is a symlink, resolves to a file directly in a scope folder too. Without the
     /// second half a link planted in global memory could surface another project's note
-    /// (t-3537 gate). A link that cannot be resolved is not shown to be in scope.
+    /// (t-3537 gate). Anything that cannot be shown to be a plain note in scope is refused:
+    /// a path that cannot be checked, a link that cannot be resolved, a folder, a FIFO (t-3542).
+    ///
+    /// Limits, stated rather than hidden: a hard link is another name for the same file, so a
+    /// hard link planted in a scope folder to an out-of-scope file reads as in scope (the
+    /// filesystem offers no check; the folders are user-private, ADR-095). The scope folders
+    /// themselves are trusted by name. There is a window between this check and the open.
     pub fn allows(&self, path: &Path) -> bool {
         match self {
             Self::All => true,
@@ -148,9 +154,12 @@ impl RecallScope {
                 if !path.parent().is_some_and(|p| dirs.iter().any(|d| d == p)) {
                     return false;
                 }
+                // Only a plain note is in scope: a path that cannot be checked (the callers open
+                // what this passes), a folder or a FIFO (opening one blocks) is refused.
                 match std::fs::symlink_metadata(path) {
                     Ok(m) if m.file_type().is_symlink() => resolves_into(path, dirs),
-                    _ => true,
+                    Ok(m) => m.is_file(),
+                    Err(_) => false,
                 }
             }
         }
@@ -1000,16 +1009,23 @@ mod tests {
 
     #[test]
     fn recall_scope_project_allows_global_and_current_project_top_level_only() {
-        let home = std::path::Path::new("/h");
+        // Real files: `allows` refuses a path it cannot check (t-3542).
+        let tmp = tempdir().unwrap();
+        let home = tmp.path();
         let scope = RecallScope::project_in(home, Some(std::path::Path::new("/w/my_repo")));
-        let p = |s: &str| PathBuf::from(s);
+        let mk = |rel: &str| {
+            let p = home.join(rel);
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+            fs::write(&p, "x").unwrap();
+            p
+        };
 
-        assert!(scope.allows(&p("/h/.claude/memory/pattern_a.md")), "global");
-        assert!(scope.allows(&p("/h/.claude/projects/-w-my-repo/memory/x.md")), "current encoding");
-        assert!(scope.allows(&p("/h/.claude/projects/-w-my_repo/memory/x.md")), "legacy encoding");
-        assert!(!scope.allows(&p("/h/.claude/projects/-w-client/memory/x.md")), "other project");
-        assert!(!scope.allows(&p("/h/.claude/memory/archive/x.md")), "archived subfolder");
-        assert!(RecallScope::All.allows(&p("/h/.claude/projects/-w-client/memory/x.md")));
+        assert!(scope.allows(&mk(".claude/memory/pattern_a.md")), "global");
+        assert!(scope.allows(&mk(".claude/projects/-w-my-repo/memory/x.md")), "current encoding");
+        assert!(scope.allows(&mk(".claude/projects/-w-my_repo/memory/x.md")), "legacy encoding");
+        assert!(!scope.allows(&mk(".claude/projects/-w-client/memory/x.md")), "other project");
+        assert!(!scope.allows(&mk(".claude/memory/archive/x.md")), "archived subfolder");
+        assert!(RecallScope::All.allows(&home.join(".claude/projects/-w-client/memory/x.md")));
     }
 
     #[test]
@@ -1111,6 +1127,30 @@ mod tests {
         let scope = RecallScope::Dirs(vec![via.clone()]);
 
         assert!(scope.allows(&via.join("pattern_l.md")), "link resolves into the same real folder");
+    }
+
+    #[test]
+    fn allows_refuses_a_path_it_cannot_check_and_anything_that_is_not_a_plain_file() {
+        let tmp = tempdir().unwrap();
+        let mine = tmp.path().join("mine");
+        fs::create_dir_all(&mine).unwrap();
+        let scope = RecallScope::Dirs(vec![mine.clone()]);
+
+        // A path whose type cannot be checked is not shown to be in scope (the bundle opens
+        // what `allows` passes, so "unknown" must mean no).
+        assert!(!scope.allows(&mine.join("pattern_missing.md")), "lstat fails: refuse");
+
+        // A folder named like a note, and a FIFO (opening it blocks forever), are not notes.
+        fs::create_dir(mine.join("pattern_folder.md")).unwrap();
+        assert!(!scope.allows(&mine.join("pattern_folder.md")), "a directory is not a note");
+        let fifo = mine.join("pattern_fifo.md");
+        let ok = std::process::Command::new("mkfifo").arg(&fifo).status().map(|s| s.success()).unwrap_or(false);
+        if ok {
+            assert!(!scope.allows(&fifo), "a FIFO is not a note");
+        }
+
+        fs::write(mine.join("pattern_real.md"), "x").unwrap();
+        assert!(scope.allows(&mine.join("pattern_real.md")), "a plain note is still allowed");
     }
 
     #[test]

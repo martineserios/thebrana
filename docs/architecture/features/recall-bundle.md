@@ -559,11 +559,19 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
   - An undated note is never flagged against a dated twin ("older dated twin" needs a date).
   - Folder comparison is exact and case-sensitive; on a case-insensitive filesystem a differently
     cased path fails closed (notes dropped), never open.
-  - The scope proof is per reader (keyword leg, vector leg, bundle), each calling
-    `RecallScope::allows`; the indexers follow symlinks, so out-of-scope text can sit in the
-    index even though no scoped reader returns it. `allows` treats an unreadable lstat as in
-    scope, a directory-level symlink or a hard link is not covered, and there is a window between
-    the check and the open. Tracked in the follow-up task for scope-proof hardening.
+- **Scope is enforced where notes enter the index (t-3542).** `list_memory_listing`, the one listing
+  behind the keyword rebuild, the freshness refresh and `embed-memory`, refuses a symlink that
+  resolves outside its own folder (it is reported in `refused_links`, never indexed or embedded,
+  and any row it already has is pruned by the next refresh or embed). An alias to a file in the
+  same folder is still a note. So text reached through an outside link is not in the index, and a
+  reader added later cannot leak it. The per-reader proof (`RecallScope::allows`, used by the
+  keyword leg, the vector leg and the bundle) stays as a second line.
+  - `allows` refuses what it cannot show to be a plain in-scope note: a path whose type cannot be
+    checked (lstat error), a folder, a FIFO (opening one blocks), a dangling or looping link.
+  - **Stated limits:** a hard link in a scope folder to an out-of-scope file reads as in scope
+    (the filesystem offers no check; the folders are user-private, ADR-095); the scope folders
+    themselves are trusted by name, so a scope folder that is itself a link to another project's
+    folder is not caught; a path can change between the check and the open.
 
 ## Usage log — design (t-3517, 2026-10-15)
 
