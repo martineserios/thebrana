@@ -595,7 +595,8 @@ Shipped: `brana-core/src/usage_log.rs` (the only writer), `brana recall --bundle
   pointer to `{ref, type, rank, flags}` (the gist is dropped; a `type` that is not a short
   lowercase word is logged as `note`) and copies the `freshness` block (counts and a state
   word). The task must look like a task id (`t-123`); a free-text argument is refused, so it
-  cannot reach the file. The session is stored as the transcript file's stem, reduced to
+  cannot reach the file. A pointer flag is logged only in the shape `derived-superseded:<plain
+  name>`; any other flag is logged as `other` (t-3543). The session is stored as the transcript file's stem, reduced to
   `[A-Za-z0-9_-]` on write and again on read.
 - **No row for an unknown task:** a task that is not in the backlog gets an empty bundle on
   stdout but no row (a shown row for it would wait for an outcome nobody can give).
