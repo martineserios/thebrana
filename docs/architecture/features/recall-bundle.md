@@ -566,12 +566,25 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
   same folder is still a note. So text reached through an outside link is not in the index, and a
   reader added later cannot leak it. The per-reader proof (`RecallScope::allows`, used by the
   keyword leg, the vector leg and the bundle) stays as a second line.
+  - **Fails closed:** a link that cannot be resolved (dangling, a loop) is refused, because the
+    indexers read through the link's name and one that later resolves outside would be read. A
+    dangling link is still counted as unreadable by the freshness report.
+  - **Decision, cross-folder aliases:** a link from one scope folder to a note in another scope
+    folder (a project alias of a global note) is not indexed; the target is indexed under its own
+    path, so the alias would duplicate it. `allows` accepts such an alias (it resolves into a scope
+    folder), so the two layers differ on purpose; no leak either way.
+  - **Coverage:** the proof applies to `--bundle` and `--scope project`. Plain `brana recall`
+    defaults to `--scope all` and MCP recall is hardcoded `all`; both never call `allows`, but the
+    index no longer holds out-of-folder text reached through links.
+  - Vector rows of a link refused later go at the next `embed-memory` run, and only for folders
+    that listed completely.
   - `allows` refuses what it cannot show to be a plain in-scope note: a path whose type cannot be
     checked (lstat error), a folder, a FIFO (opening one blocks), a dangling or looping link.
   - **Stated limits:** a hard link in a scope folder to an out-of-scope file reads as in scope
     (the filesystem offers no check; the folders are user-private, ADR-095); the scope folders
     themselves are trusted by name, so a scope folder that is itself a link to another project's
-    folder is not caught; a path can change between the check and the open.
+    folder is not caught; a path can change between the check and the open, at the reader and at
+    the index (the indexers read through the verified link's name).
 
 ## Usage log — design (t-3517, 2026-10-15)
 

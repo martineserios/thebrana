@@ -575,7 +575,9 @@ pub fn list_memory_listing(dirs: &[(String, PathBuf)]) -> MemoryListing {
         // Scope is enforced here, where notes enter every index (keyword, freshness, vectors):
         // a symlink that resolves outside its own folder is not a note of this folder, so text
         // reached through it is never indexed and a reader added later cannot leak it (t-3542).
-        // A link that cannot be resolved stays in, to surface as an unreadable note.
+        // A link that cannot be resolved is refused too: it cannot be shown to stay inside. An
+        // alias of a note in ANOTHER scope folder is refused as well: the target is indexed
+        // under its own path, so the alias would only duplicate it.
         paths.retain(|p| {
             if link_leaves_folder(p, dir) {
                 listing.refused_links.push(p.clone());
@@ -599,14 +601,17 @@ pub fn list_memory_listing(dirs: &[(String, PathBuf)]) -> MemoryListing {
     listing
 }
 
-/// Whether `path` is a symlink that resolves, but not to a file directly inside `dir`
-/// (compared after resolving `dir` too, so a folder reached through a link works).
+/// Whether `path` is a symlink that does not provably end at a file directly inside `dir`
+/// (compared after resolving `dir` too, so a folder reached through a link works): it leaves,
+/// or it cannot be resolved.
 fn link_leaves_folder(path: &Path, dir: &Path) -> bool {
     if !fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink()) {
         return false;
     }
-    let Ok(real) = fs::canonicalize(path) else { return false };
-    let Ok(real_dir) = fs::canonicalize(dir) else { return false };
+    // Fail closed: a link or folder that cannot be resolved cannot be shown to stay inside, and
+    // the indexers read through the link's name, so a dangling link that later resolves outside
+    // would otherwise be read (t-3542 gate).
+    let (Ok(real), Ok(real_dir)) = (fs::canonicalize(path), fs::canonicalize(dir)) else { return true };
     !(real.is_file() && real.parent() == Some(real_dir.as_path()))
 }
 
@@ -904,6 +909,8 @@ fn refresh_inner(
     }
 
     let listing = list_memory_listing(dirs);
+    // A link that points nowhere is not read, but it is never ignored either.
+    report.unreadable += listing.refused_links.iter().filter(|p| fs::canonicalize(p).is_err()).count();
     let taken_ns = now_ns();
     // Each path once, even when a folder is listed twice.
     let mut listed: std::collections::HashSet<String> = std::collections::HashSet::new();
@@ -1971,6 +1978,40 @@ mod freshness_tests {
         assert!(found(&f.db, "confidential").is_empty(), "the linked text was indexed: {r:?}");
         assert!(found(&f.db, "alpha").is_empty(), "the old row for that path is gone: {r:?}");
         assert_eq!(r.deleted_notes, 1, "{r:?}");
+    }
+
+    #[test]
+    fn a_dangling_link_is_never_read_even_if_its_target_appears_outside_later() {
+        // Fail closed: the indexers read through the link's name, so a link that cannot be
+        // resolved now must not be kept "to surface later" (t-3542 gate).
+        let f = fx();
+        let outside = f._tmp.path().join("client-memory");
+        fs::create_dir_all(&outside).unwrap();
+        std::os::unix::fs::symlink(outside.join("pattern_late.md"), f.dir.join("pattern_late.md")).unwrap();
+        let listing = list_memory_listing(&f.dirs);
+        assert!(listing.files.iter().all(|x| !x.path.ends_with("pattern_late.md")));
+        assert_eq!(listing.refused_links, vec![f.dir.join("pattern_late.md")]);
+
+        write_note(&outside.join("pattern_late.md"), "zebra client confidential");
+        reindex_fts_dirs(&f.dirs, &f.db).unwrap();
+        assert!(found(&f.db, "confidential").is_empty());
+    }
+
+    #[test]
+    fn an_alias_of_a_note_in_another_scope_folder_is_not_indexed_a_second_time() {
+        // Decision (t-3542): the indexer keeps only links that stay inside their own folder.
+        // The target is indexed under its own path, so a cross-folder alias would only duplicate it.
+        let f = fx();
+        let project = f._tmp.path().join("project-memory");
+        fs::create_dir_all(&project).unwrap();
+        std::os::unix::fs::symlink(f.dir.join("pattern_old.md"), project.join("pattern_alias.md")).unwrap();
+        let dirs = vec![("global".to_string(), f.dir.clone()), ("project".to_string(), project.clone())];
+
+        let listing = list_memory_listing(&dirs);
+
+        let names: Vec<String> = listing.files.iter().map(|x| x.path.file_name().unwrap().to_string_lossy().into_owned()).collect();
+        assert_eq!(names, vec!["pattern_old.md".to_string()], "{names:?}");
+        assert_eq!(listing.refused_links, vec![project.join("pattern_alias.md")]);
     }
 
     #[test]

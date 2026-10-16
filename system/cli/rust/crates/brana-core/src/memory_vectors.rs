@@ -341,6 +341,29 @@ mod tests {
     }
 
     #[test]
+    fn a_note_that_became_an_outside_link_is_pruned_and_never_embedded_again() {
+        // Scope at the source (t-3542): a link that leaves its folder is not a note, so its row
+        // goes on the next embed even though the link still resolves to a readable file.
+        let f = fixture();
+        put(&f, "pattern_a.md", "alpha scraping");
+        put(&f, "pattern_b.md", "beta pricing");
+        let store = KnowledgeStore::open(&f.db).unwrap();
+        let e = Fake::new();
+        embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+        assert_eq!(store.count().unwrap(), 2);
+
+        let outside = f.mem.parent().unwrap().join("client-notes");
+        fs::create_dir_all(&outside).unwrap();
+        fs::write(outside.join("secret.md"), "client confidential").unwrap();
+        fs::remove_file(f.mem.join("pattern_b.md")).unwrap();
+        std::os::unix::fs::symlink(outside.join("secret.md"), f.mem.join("pattern_b.md")).unwrap();
+        let stats = embed_memory_files(&store, &list_memory_listing(&dirs(&f)), &e, false).unwrap();
+
+        assert_eq!(stats.pruned, 1, "{stats:?}");
+        assert_eq!(store.count().unwrap(), 1, "only pattern_a remains");
+    }
+
+    #[test]
     fn unembeddable_file_is_counted_failed_and_leaves_no_row() {
         let f = fixture();
         put(&f, "pattern_bad.md", "UNEMBEDDABLE");
