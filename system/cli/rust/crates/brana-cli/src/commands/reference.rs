@@ -358,7 +358,11 @@ fn generate_hooks(root: &Path) -> Result<String> {
         out.push_str("| Event | Matcher | Script | Timeout |\n");
         out.push_str("|-------|---------|--------|--------|\n");
         if let Some(hooks) = data["hooks"].as_object() {
-            for (event_type, entries) in hooks {
+            // Sorted by name, not map order: serde_json's order depends on whether any crate in
+            // the build enables `preserve_order`, and the generated doc must not (t-3546).
+            let mut events: Vec<(&String, &Value)> = hooks.iter().collect();
+            events.sort_by(|a, b| a.0.cmp(b.0));
+            for (event_type, entries) in events {
                 if let Some(arr) = entries.as_array() {
                     for entry in arr {
                         let matcher = entry["matcher"].as_str().unwrap_or("—");
@@ -827,6 +831,25 @@ mod tests {
             output.contains("config-change-guard.sh"),
             "nested hooks.json must surface the script name"
         );
+    }
+
+    #[test]
+    fn test_generate_hooks_orders_events_by_name_whatever_the_build_features() {
+        // serde_json keeps file order when any crate in the build enables `preserve_order` (a
+        // workspace build with brana-mcp does), and sorts otherwise (brana-cli alone, as CI builds
+        // it). The generated table must not depend on that (t-3546).
+        let hooks_json = r#"{
+            "hooks": {
+                "PreToolUse": [{"matcher": "Bash", "hooks": [{"command": "b.sh", "timeout": 1}]}],
+                "ConfigChange": [{"matcher": "*", "hooks": [{"command": "a.sh", "timeout": 1}]}],
+                "PostToolUse": [{"matcher": "Bash", "hooks": [{"command": "c.sh", "timeout": 1}]}]
+            }
+        }"#;
+        let root = make_hooks_root(hooks_json);
+        let output = generate_hooks(root.path()).unwrap();
+        let at = |needle: &str| output.find(needle).unwrap_or_else(|| panic!("{needle} missing"));
+        assert!(at("| ConfigChange |") < at("| PostToolUse |"), "{output}");
+        assert!(at("| PostToolUse |") < at("| PreToolUse |"), "{output}");
     }
 
     #[test]
