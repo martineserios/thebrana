@@ -310,9 +310,8 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
                 "$PROJECT build patterns corrections learnings" \
                 --top 5 --json </dev/null 2>/dev/null) || RECALL_RAW=""
             if [ -n "$RECALL_RAW" ]; then
-                RECALL_LINES=$(echo "$RECALL_RAW" | jq -r \
-                    '.[] | (.doc.MemoryFile.slug // .doc.KnowledgeEntry.key // "?") as $k |
-                     "- \($k): \(.snippet | gsub("\n"; " ") | .[0:120])"' \
+                # Untrusted note text is cleaned by lib/recall-clean.jq (t-3540).
+                RECALL_LINES=$(echo "$RECALL_RAW" | jq -r -f "$SCRIPT_DIR/lib/recall-clean.jq" \
                     2>/dev/null) || RECALL_LINES=""
                 [ -n "$RECALL_LINES" ] && echo "$RECALL_LINES" | _ss_put hybrid-recall
             fi

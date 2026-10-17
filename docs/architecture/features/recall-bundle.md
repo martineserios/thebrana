@@ -550,6 +550,9 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
 - **Invisible text:** besides control characters and bidi overrides, output drops zero-width
   characters, the soft hyphen, line and paragraph separators and the Unicode tag block
   (U+E0000–E007F, a known channel for hiding text in a model's context).
+  Plain `brana recall` human output uses the same filter (`printable_line`, one line per hit), and
+  the session-start hook applies the equivalent `gsub` to the `--json` text it injects (t-3540);
+  `--json` itself is unchanged, the serialiser escapes.
 - **Known limits, kept on purpose:**
   - The assistant's project-folder naming folds `/` and `_` to `-`, so two projects whose paths
     differ only by `_` versus `-` share one memory folder and therefore one scope. That comes from
