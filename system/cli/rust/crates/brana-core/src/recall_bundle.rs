@@ -528,6 +528,17 @@ fn is_unsafe_char(c: char) -> bool {
         )
 }
 
+/// `s` as one printable line: every unsafe character dropped, whitespace (line breaks
+/// included) collapsed to single spaces. For text from note files and index rows, which is
+/// untrusted: plain recall prints it to a terminal and the session-start hook injects it.
+pub fn printable_line(s: &str) -> String {
+    let safe: String = s
+        .chars()
+        .filter_map(|c| if c.is_whitespace() { Some(' ') } else if is_unsafe_char(c) { None } else { Some(c) })
+        .collect();
+    safe.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 /// `s` with every unsafe character and every line break removed, for single-line output.
 fn clean(s: &str) -> String {
     s.chars().filter(|c| !is_unsafe_char(*c) && !c.is_control()).collect()
