@@ -236,7 +236,7 @@ if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         # CLI emits ONNX/INFO noise before the JSON object — keep JSON only.
         CF_JSON=$(echo "$CF_OUTPUT" | sed -n '/^{/,$p')
         # Format as readable lines; output shape is {results: [{key, score, preview}]}
-        CONTEXT=$(echo "$CF_JSON" | jq -r '.results[]? | "- \(.key) (score \(.score * 100 | floor / 100)): \(.preview)"' 2>/dev/null) || CONTEXT=""
+        CONTEXT=$(echo "$CF_JSON" | jq -r -L "$SCRIPT_DIR/lib" -f "$SCRIPT_DIR/lib/cf-context.jq" 2>/dev/null) || CONTEXT=""
         if [ $CF_EXIT -eq 124 ]; then
             echo "TIMEOUT" | _ss_put cf-warning
         elif [ -z "$CF_JSON" ]; then
@@ -245,7 +245,7 @@ if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         fi
         echo "$CONTEXT" | _ss_put cf-context
         # Extract corrections from same result (correction-keyed entries)
-        CP_LINES=$(echo "$CF_JSON" | jq -r '.results[]? | select(.key | test("correction"; "i")) | (.key + ": " + .preview)' 2>/dev/null | head -3) || CP_LINES=""
+        CP_LINES=$(echo "$CF_JSON" | jq -r -L "$SCRIPT_DIR/lib" -f "$SCRIPT_DIR/lib/cf-corrections.jq" 2>/dev/null | head -3) || CP_LINES=""
         if [ -n "$CP_LINES" ]; then
             echo "$CP_LINES" | _ss_put corrections
         fi
@@ -311,7 +311,7 @@ if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
                 --top 5 --json </dev/null 2>/dev/null) || RECALL_RAW=""
             if [ -n "$RECALL_RAW" ]; then
                 # Untrusted note text is cleaned by lib/recall-clean.jq (t-3540).
-                RECALL_LINES=$(echo "$RECALL_RAW" | jq -r -f "$SCRIPT_DIR/lib/recall-clean.jq" \
+                RECALL_LINES=$(echo "$RECALL_RAW" | jq -r -L "$SCRIPT_DIR/lib" -f "$SCRIPT_DIR/lib/recall-clean.jq" \
                     2>/dev/null) || RECALL_LINES=""
                 [ -n "$RECALL_LINES" ] && echo "$RECALL_LINES" | _ss_put hybrid-recall
             fi
@@ -805,7 +805,7 @@ if [ -z "$CONTEXT" ]; then
     MEMORY_HIT=""
     for memfile in "$HOME"/.claude/projects/*/memory/MEMORY.md; do
         if [ -f "$memfile" ]; then
-            MATCH=$(grep -i "$PROJECT" "$memfile" 2>/dev/null | head -5 || true)
+            MATCH=$(grep -i "$PROJECT" "$memfile" 2>/dev/null | head -5 | jq -Rr -L "$SCRIPT_DIR/lib" 'include "clean"; clean' 2>/dev/null || true)
             if [ -n "$MATCH" ]; then
                 MEMORY_HIT="$MEMORY_HIT$MATCH"$'\n'
             fi
