@@ -62,7 +62,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, run remote agents on cron. Use whe |
 | `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when de |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context recov |
-| `/brana:terminal-diagrams` | domain | Reference for drawing any diagram as plain monospace terminal text — box-drawing |
+| `/brana:terminal-diagrams` | domain | Draw and check terminal diagrams: flow, sequence, state, data flow, swimlane, de |
 | `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumptio |
 | `/brana:web-design-guidelines` | domain | Review UI code for Web Interface Guidelines compliance. Use when asked to \"revi |
 
@@ -197,7 +197,7 @@ Use when the user wants to design, redesign, shape, critique, audit, polish, cla
 
 ### `/brana:terminal-diagrams`
 
-Reference for drawing any diagram as plain monospace terminal text — box-drawing/ASCII, no external renderer. Read when work-preferences.md's trigger fires.
+Draw and check terminal diagrams: flow, sequence, state, data flow, swimlane, decision table, ER, dependency. Read when work-preferences.md's trigger fires.
 
 **Allowed tools:** Read
 

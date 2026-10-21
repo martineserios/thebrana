@@ -29,4 +29,4 @@ New capabilities embed as steps in existing frequently-used commands, not standa
 
 ## Terminal diagrams
 
-Structural answers (architecture, flow, hierarchy, comparison) get an inline box-drawing diagram, not prose alone — see system/skills/terminal-diagrams/SKILL.md.
+Answers about flow, sequence, state, data movement, ownership, structure or comparison get an inline terminal diagram — see system/skills/terminal-diagrams/SKILL.md.
