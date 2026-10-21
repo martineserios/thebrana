@@ -95,6 +95,29 @@ assert "feature spec exists" "true" "$([ -f "$SPEC" ] && echo true || echo false
 assert_contains "spec references t-2991" "t-2991" "$SPEC"
 assert_contains "spec documents the budget fix" "context-budget.sh" "$SPEC"
 
+# ── Test 7 (t-4): v2 — chooser, diagram-type cookbook, checker, escalation ──
+echo "Test 7: v2 coverage"
+assert_contains "question→diagram chooser" "## Choose the diagram" "$SKILL"
+for kind in "Sequence" "State machine" "Data flow" "Swimlane" "Decision table" "Causal loop" "Entity-relationship" "Dependency graph"; do
+    assert_contains "cookbook covers $kind" "### .*$kind" "$SKILL"
+done
+assert_contains "checker referenced" "check.py" "$SKILL"
+assert "check.py exists" "true" "$([ -f "$REPO_ROOT/system/skills/terminal-diagrams/check.py" ] && echo true || echo false)"
+assert_contains "escalation to artifact-diagramming" "artifact-diagramming" "$SKILL"
+CHECK_OUT="$(python3 "$REPO_ROOT/system/skills/terminal-diagrams/check.py" "$SKILL" 2>&1)"
+assert "every diagram in SKILL.md passes check.py" "0" "$?"
+[ -n "$CHECK_OUT" ] && echo "$CHECK_OUT" | head -5
+assert "no duplicated trailing lines" "1" "$(grep -c "faster than the prose it replaces" "$SKILL")"
+
+# ── Test 8 (t-4): examples are project- and domain-agnostic ──
+echo "Test 8: no project or domain specifics in examples"
+# Generic leak shapes only; private names never live in this public repo. Add them locally
+# via BRANA_PRIVATE_TERMS="term1|term2" (extended regex, case-insensitive).
+LEAK_RE='\bt-[0-9]{2,}\b|clients/|epic-[a-z]'
+[ -n "${BRANA_PRIVATE_TERMS:-}" ] && LEAK_RE="$LEAK_RE|$BRANA_PRIVATE_TERMS"
+LEAKS=$(grep -ciE "$LEAK_RE" "$SKILL" || true)
+assert "no task IDs, client paths or private terms in SKILL.md" "0" "${LEAKS:-0}"
+
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1
