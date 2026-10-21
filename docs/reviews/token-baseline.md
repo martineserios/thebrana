@@ -281,13 +281,22 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - **This monitor session**: offline
 - **Status**: ✅ weekly-review firing on schedule
 
-## 2026-10-03 to 2026-10-06 (Today)
+## 2026-10-03 to 2026-10-06
 - **Triggers fired in last 24h**: none (next expected weekly-review Thu 2026-10-09)
 - **New commits from agents (24h)**: 0
 - **New review files (today)**: none
 - **Recent trigger activity**: weekly-review on 2026-10-02, knowledge-review on 2026-10-01
 - **This monitor session**: haiku (minimal cost)
 - **Status**: ✅ Both triggers confirmed firing on normal cadence
+
+## 2026-10-21 (Today)
+- **Triggers fired in last 24h**: none (last weekly-review Thu 2026-10-16 at 20:03 UTC)
+- **New commits from agents (24h)**: 0
+- **New review files (today)**: none
+- **Trigger activity (past 7 days)**: weekly-review on 2026-10-16 (5 days ago, Thursday cadence maintained)
+- **Next expected triggers**: weekly-review Thu 2026-10-23, knowledge-review 2026-11-01
+- **This monitor session**: haiku (minimal cost)
+- **Status**: ✅ All triggers operating on normal schedule
 
 ---
 
