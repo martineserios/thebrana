@@ -109,3 +109,28 @@ either and are unchanged.
 The follow-up task t-3527 (filed on the wrong premise that ruflo resolution caused every drop) was
 cancelled. The real defects are covered elsewhere: silent drops by per-leg status (t-3516), and the
 small latency headroom by the in-process embedder spike (t-3522).
+
+## Addendum 2026-10-15: baseline re-run after t-3510 shipped
+
+Required by the section above. Same scorer and gold set, installed brana 0.2.0 built from `main`
+(`a96fca15`: memory-file vector leg, per-leg status, `embed-memory` run first: 1,125 of 1,126 notes
+embedded). Plain `brana recall <query> --top 20`, 5 runs. Thresholds above are unchanged.
+
+| Set | hit@5 per run | hit@8 per run | hit@8 mean | MRR per run | MRR mean | recall@8 mean |
+|---|---|---|---|---|---|---|
+| pointed (n=43) | 0.465, 0.465, 0.512, 0.442, 0.419 | 0.581, 0.558, 0.581, 0.558, 0.558 | **0.567** | 0.316, 0.330, 0.307, 0.323, 0.294 | **0.314** | 0.518 |
+| read (n=6) | 0.167 in every run | 0.167 in every run | 0.167 | 0.083 in every run | 0.083 | 0.167 |
+
+- **The plain-recall baseline more than doubled** against the 2026-10-14 reference (hit@8 0.261 →
+  0.567, MRR 0.184 → 0.314), because memory files now match by meaning as well as by keyword.
+  The spread is tighter (hit@8 0.558–0.581).
+- **What this does to the shadow gates:** the thresholds are absolute and stay as registered, but
+  "PROCEED, lift" (≥ 0.30) is now below plain recall's own score, so passing it no longer shows the
+  bundle beats plain recall. The t-3518 report must show the bundle's mean next to this baseline
+  (0.567 / 0.314), and a bundle at or below it cannot claim an offline lift. Changing the
+  threshold itself needs a `gates-v2.md` with the reason stated.
+- Informational smoke on 2026-10-15 (keyword legs only, a copy of the live index): bundle hit@8
+  0.581 against plain recall's 0.14–0.16 at that time. That comparison is superseded by this
+  addendum and was not a gate run.
+- The 43 gated tasks are the same; no per-leg degradation was observed (no call at the 2 s deadline
+  in the recall-eval run made just before).

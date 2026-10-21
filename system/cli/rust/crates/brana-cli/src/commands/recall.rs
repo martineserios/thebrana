@@ -42,19 +42,30 @@ pub fn cmd_recall(
         return Ok(());
     }
 
-    for h in &hits {
+    print!("{}", format_hits(&hits));
+    Ok(())
+}
+
+/// Human output of plain recall. Slugs, keys and snippets come from note files and index
+/// rows (untrusted): each is printed as one printable line, so an escape sequence or bidi
+/// override in a note never reaches the terminal or the session-start context (t-3540).
+fn format_hits(hits: &[brana_core::search::SearchHit]) -> String {
+    use brana_core::recall_bundle::printable_line as p;
+    use std::fmt::Write;
+    let mut out = String::new();
+    for h in hits {
         match &h.doc {
             DocRef::MemoryFile { slug, mtype, scope, .. } => {
-                let mtype = if mtype.is_empty() { "?" } else { &mtype };
-                println!("  [{mtype}] {slug} ({scope})  score={:.3}", h.rrf_score);
+                let mtype = if mtype.is_empty() { "?".to_string() } else { p(mtype) };
+                let _ = writeln!(out, "  [{mtype}] {} ({})  score={:.3}", p(slug), p(scope), h.rrf_score);
             }
             DocRef::KnowledgeEntry { key, namespace } => {
-                println!("  [knowledge:{namespace}] {key}  score={:.3}", h.rrf_score);
+                let _ = writeln!(out, "  [knowledge:{}] {}  score={:.3}", p(namespace), p(key), h.rrf_score);
             }
         }
-        println!("    {}", h.snippet);
+        let _ = writeln!(out, "    {}", p(&h.snippet));
     }
-    Ok(())
+    out
 }
 
 /// Time the freshness refresh may take before the bundle proceeds on a stale index.
@@ -177,4 +188,41 @@ fn load_bundle_task(task_id: &str) -> std::result::Result<brana_core::recall_bun
             .map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect())
             .unwrap_or_default(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use brana_core::search::SearchHit;
+
+    fn hit(doc: DocRef, snippet: &str) -> SearchHit {
+        SearchHit { doc, snippet: snippet.to_string(), rrf_score: 0.5 }
+    }
+
+    #[test]
+    fn human_output_drops_control_and_invisible_characters() {
+        let hits = vec![
+            hit(
+                DocRef::MemoryFile {
+                    slug: "a\u{1b}[31mred".into(),
+                    mtype: "pat\u{202e}tern".into(),
+                    scope: "pro\u{200b}ject".into(),
+                    path: std::path::PathBuf::new(),
+                },
+                "line one\u{7}\nline\u{1b}]0;title\u{7} two\u{E0041}\u{2066}x",
+            ),
+            hit(
+                DocRef::KnowledgeEntry { key: "k\u{1b}[2J".into(), namespace: "n\u{85}s".into() },
+                "ok",
+            ),
+        ];
+        let out = format_hits(&hits);
+        for c in out.chars() {
+            assert!(c == '\n' || !c.is_control(), "control char {c:?} in {out:?}");
+        }
+        assert!(!out.contains('\u{202e}') && !out.contains('\u{200b}') && !out.contains('\u{E0041}') && !out.contains('\u{2066}'));
+        assert!(out.contains("[pattern] a[31mred (project)"), "{out}");
+        assert!(out.contains("line one line]0;title twox"), "{out}");
+        assert_eq!(out.lines().count(), 4, "one header + one snippet line per hit: {out}");
+    }
 }

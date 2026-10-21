@@ -528,6 +528,17 @@ fn is_unsafe_char(c: char) -> bool {
         )
 }
 
+/// `s` as one printable line: every unsafe character dropped, whitespace (line breaks
+/// included) collapsed to single spaces. For text from note files and index rows, which is
+/// untrusted: plain recall prints it to a terminal and the session-start hook injects it.
+pub fn printable_line(s: &str) -> String {
+    let safe: String = s
+        .chars()
+        .filter_map(|c| if c.is_whitespace() { Some(' ') } else if is_unsafe_char(c) { None } else { Some(c) })
+        .collect();
+    safe.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 /// `s` with every unsafe character and every line break removed, for single-line output.
 fn clean(s: &str) -> String {
     s.chars().filter(|c| !is_unsafe_char(*c) && !c.is_control()).collect()
@@ -899,10 +910,23 @@ mod tests {
         NoteMeta::default()
     }
 
+    /// A real scope folder for the pure-stage tests: `allows` refuses a path it cannot check,
+    /// so the fixture notes must exist on disk (t-3542).
+    fn mem_dir() -> &'static PathBuf {
+        static DIR: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+        DIR.get_or_init(|| {
+            let d = tempfile::tempdir().unwrap().keep();
+            std::fs::create_dir_all(d.join("archive")).unwrap();
+            d
+        })
+    }
+
     fn cand(stem: &str, rrf: f64, m: NoteMeta) -> Candidate {
         let (file_type, slug) = crate::memory::memory_file_identity(stem);
+        let path = mem_dir().join(format!("{stem}.md"));
+        std::fs::write(&path, "").unwrap();
         Candidate {
-            path: PathBuf::from(format!("/h/.claude/memory/{stem}.md")),
+            path,
             stem: stem.to_string(),
             slug,
             file_type,
@@ -912,7 +936,7 @@ mod tests {
     }
 
     fn scope() -> RecallScope {
-        RecallScope::Dirs(vec![PathBuf::from("/h/.claude/memory")])
+        RecallScope::Dirs(vec![mem_dir().clone()])
     }
 
     fn refs(p: &[Pointer]) -> Vec<&str> {
@@ -1298,9 +1322,13 @@ mod tests {
     #[test]
     fn scope_excludes_other_project_and_archived_notes_must_fire() {
         let mut other = cand("pattern_client-secret", 0.9, meta());
-        other.path = PathBuf::from("/h/.claude/projects/-w-client/memory/pattern_client-secret.md");
+        let client = mem_dir().parent().unwrap().join("client-memory-fixture");
+        std::fs::create_dir_all(&client).unwrap();
+        other.path = client.join("pattern_client-secret.md");
+        std::fs::write(&other.path, "").unwrap();
         let mut archived = cand("pattern_archived", 0.8, meta());
-        archived.path = PathBuf::from("/h/.claude/memory/archive/pattern_archived.md");
+        archived.path = mem_dir().join("archive/pattern_archived.md");
+        std::fs::write(&archived.path, "").unwrap();
         let mine = cand("pattern_mine", 0.1, meta());
 
         let out = assemble(vec![other, archived, mine], &scope(), &HashMap::new());

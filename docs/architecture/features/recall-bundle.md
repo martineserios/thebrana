@@ -550,6 +550,11 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
 - **Invisible text:** besides control characters and bidi overrides, output drops zero-width
   characters, the soft hyphen, line and paragraph separators and the Unicode tag block
   (U+E0000–E007F, a known channel for hiding text in a model's context).
+  Plain `brana recall` human output uses the same filter (`printable_line`, one line per hit), and
+  the session-start hook cleans every note-derived stream it injects with `system/hooks/lib/clean.jq`
+  (hybrid recall, ruflo pattern hits, corrections and the MEMORY.md fallback; t-3540, t-3547). It is a
+  separate implementation from `printable_line`, so the two can drift;
+  `--json` itself is unchanged, the serialiser escapes.
 - **Known limits, kept on purpose:**
   - The assistant's project-folder naming folds `/` and `_` to `-`, so two projects whose paths
     differ only by `_` versus `-` share one memory folder and therefore one scope. That comes from
@@ -559,11 +564,32 @@ measured query and the 0.261 baseline used it; AC keywords may come back as a se
   - An undated note is never flagged against a dated twin ("older dated twin" needs a date).
   - Folder comparison is exact and case-sensitive; on a case-insensitive filesystem a differently
     cased path fails closed (notes dropped), never open.
-  - The scope proof is per reader (keyword leg, vector leg, bundle), each calling
-    `RecallScope::allows`; the indexers follow symlinks, so out-of-scope text can sit in the
-    index even though no scoped reader returns it. `allows` treats an unreadable lstat as in
-    scope, a directory-level symlink or a hard link is not covered, and there is a window between
-    the check and the open. Tracked in the follow-up task for scope-proof hardening.
+- **Scope is enforced where notes enter the index (t-3542).** `list_memory_listing`, the one listing
+  behind the keyword rebuild, the freshness refresh and `embed-memory`, refuses a symlink that
+  resolves outside its own folder (it is reported in `refused_links`, never indexed or embedded,
+  and any row it already has is pruned by the next refresh or embed). An alias to a file in the
+  same folder is still a note. So text reached through an outside link is not in the index, and a
+  reader added later cannot leak it. The per-reader proof (`RecallScope::allows`, used by the
+  keyword leg, the vector leg and the bundle) stays as a second line.
+  - **Fails closed:** a link that cannot be resolved (dangling, a loop) is refused, because the
+    indexers read through the link's name and one that later resolves outside would be read. A
+    dangling link is still counted as unreadable by the freshness report.
+  - **Decision, cross-folder aliases:** a link from one scope folder to a note in another scope
+    folder (a project alias of a global note) is not indexed; the target is indexed under its own
+    path, so the alias would duplicate it. `allows` accepts such an alias (it resolves into a scope
+    folder), so the two layers differ on purpose; no leak either way.
+  - **Coverage:** the proof applies to `--bundle` and `--scope project`. Plain `brana recall`
+    defaults to `--scope all` and MCP recall is hardcoded `all`; both never call `allows`, but the
+    index no longer holds out-of-folder text reached through links.
+  - Vector rows of a link refused later go at the next `embed-memory` run, and only for folders
+    that listed completely.
+  - `allows` refuses what it cannot show to be a plain in-scope note: a path whose type cannot be
+    checked (lstat error), a folder, a FIFO (opening one blocks), a dangling or looping link.
+  - **Stated limits:** a hard link in a scope folder to an out-of-scope file reads as in scope
+    (the filesystem offers no check; the folders are user-private, ADR-095); the scope folders
+    themselves are trusted by name, so a scope folder that is itself a link to another project's
+    folder is not caught; a path can change between the check and the open, at the reader and at
+    the index (the indexers read through the verified link's name).
 
 ## Usage log — design (t-3517, 2026-10-15)
 
@@ -574,7 +600,8 @@ Shipped: `brana-core/src/usage_log.rs` (the only writer), `brana recall --bundle
   pointer to `{ref, type, rank, flags}` (the gist is dropped; a `type` that is not a short
   lowercase word is logged as `note`) and copies the `freshness` block (counts and a state
   word). The task must look like a task id (`t-123`); a free-text argument is refused, so it
-  cannot reach the file. The session is stored as the transcript file's stem, reduced to
+  cannot reach the file. A pointer flag is logged only in the shape `derived-superseded:<plain
+  name>`; any other flag is logged as `other` (t-3543). The session is stored as the transcript file's stem, reduced to
   `[A-Za-z0-9_-]` on write and again on read.
 - **No row for an unknown task:** a task that is not in the backlog gets an empty bundle on
   stdout but no row (a shown row for it would wait for an outcome nobody can give).
