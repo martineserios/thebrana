@@ -289,6 +289,30 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - **This monitor session**: haiku (minimal cost)
 - **Status**: ✅ Both triggers confirmed firing on normal cadence
 
+## 2026-10-09
+- **Triggers fired**: ✓ weekly-review (expected Thursday cadence)
+- **New commits from agents (24h)**: 1 (3925ea4 docs(review): weekly portfolio review 2026-10-09)
+- **New review files**: weekly-2026-10-09.md (6.6K markdown)
+- **Output size**: medium report (~1.1-1.3K tokens)
+- **This monitor session**: offline
+- **Status**: ✅ weekly-review firing on schedule
+
+## 2026-10-16
+- **Triggers fired**: ✓ weekly-review (expected Thursday cadence)
+- **New commits from agents (24h)**: 1 (ea741b1 docs(review): weekly portfolio review 2026-10-16)
+- **New review files**: weekly-2026-10-16.md (6.2K markdown)
+- **Output size**: medium report (~1K tokens)
+- **This monitor session**: offline
+- **Status**: ✅ weekly-review firing on schedule
+
+## 2026-10-23 (Today)
+- **Triggers fired in last 24h**: none (weekly-review expected today Thu, not yet fired at 15:10 UTC)
+- **New commits from agents (24h)**: 0 (last commit Oct 16)
+- **New review files (today)**: none (yet)
+- **Recent trigger activity**: weekly-review on 2026-10-16 (7 days ago, on schedule)
+- **This monitor session**: haiku (minimal cost)
+- **Status**: ⏳ Monitoring — weekly-review expected to fire later today
+
 ---
 
 ## Baseline Summary (193 days of observation, October cycle confirmed)
