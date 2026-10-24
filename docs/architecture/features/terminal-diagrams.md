@@ -171,3 +171,39 @@ max severity 3, both actionable ones fixed:**
 
 SIBLINGS confirmed by challenger: yes — both addressed above (idea-to-ship.md count; the
 acquire-skills trust-tier miscategorization).
+
+## v2 — chooser, cookbook, checker (t-4, 2026-10-21)
+
+Research (2026-10-21, `/brana:research`, search quota-limited, so several claims rest on
+general knowledge) found no third-party diagram skill worth adopting (low adoption, unvetted;
+no official one). The gap was in this skill: 4 diagram shapes, examples that were misaligned,
+no guide for picking a type, and no way to verify alignment. Decisions, confirmed by user:
+
+- **Extend in place, keep the name.** The rule already points here; no new skill.
+- **Question → diagram chooser** table, plus mechanism-first principles (label edges, avoid
+  crossings, one claim per figure, show every decision exit).
+- **Cookbook of 13 shapes**: flow, sequence, state machine, data flow, swimlane (plain lanes,
+  not BPMN), decision table (markdown table), causal loop, entity-relationship, dependency
+  graph, architecture (context/container), tree, comparison / 2×2, timeline.
+- **Project- and domain-agnostic examples.** No client, project or business-domain names; a
+  test (`tests/skills/test_terminal_diagrams_skill.sh` Test 8) guards against leaks. Found by
+  the Gate 3 security review: an earlier draft reused a client's real task IDs.
+- **`system/skills/terminal-diagrams/check.py`** (stdlib, next to SKILL.md): rejects
+  non-single-width glyphs (emoji, CJK, tabs, variation selectors, diagonals, block art),
+  lines over 100 columns, broken box edges and dangling corner/junction arms. Diagrams are
+  piped to it on stdin (no scratch file), only when Bash is available; the skill itself stays
+  `allowed-tools: Read`. Every SKILL.md example must pass it; checker behaviour is covered by
+  `tests/skills/test_diagram_check.sh`. All four v1 examples failed it.
+- **Escalation, superseding v1's Boundaries and Scope:** v1 said "never call the Artifact
+  tool" and put external tooling out of scope. v2 adds one bundled stdlib script (no
+  installs) and allows a rendered diagram via `artifact-diagramming` only when the user asks;
+  otherwise it offers one in a line. Never put confidential or client data on a hosted page
+  without asking. Mermaid in repo docs only after asking.
+- **Trigger broadened** (`work-preferences.md`): flow, sequence, state, data movement,
+  ownership, structure or comparison. Measured on origin/dev 2026-10-21: AUTHORED headroom
+  ~1000B, ROUTING headroom 189B.
+
+Not done (no evidence yet): the node-count ceiling and the trigger remain local heuristics
+with no research basis; revisit from usage. Known checker limits: East Asian "ambiguous"
+glyphs (box-drawing, arrows) are assumed 1 cell, which holds in most terminals but not in
+CJK-locale "ambiguous = wide" setups; plain `─`/`│` runs and arrow tips are not checked.
