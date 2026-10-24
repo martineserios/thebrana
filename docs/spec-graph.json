@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-06T05:15:47Z",
+  "generated": "2026-10-16T17:36:51Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -372,6 +372,11 @@
         "system/skills/brana:mcp-builder/SKILL.md"
       ]
     },
+    "brana-knowledge/dimensions/meta-whatsapp-business-tools-mcp.md": {
+      "title": "Meta WhatsApp Business Tools MCP",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/meta-whatsapp-template-classification.md": {
       "title": "standalone — superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
       "type": "Dimension",
@@ -439,6 +444,11 @@
     },
     "brana-knowledge/dimensions/whatsapp-groups-api.md": {
       "title": "WhatsApp Groups API",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/whatsapp-stack-by-project.md": {
+      "title": "WhatsApp Stack by Project",
       "type": "Dimension",
       "impl_files": []
     },
@@ -1229,6 +1239,13 @@
         "system/scripts/lib/cmd-allowlist.sh",
         "system/scripts/lib/",
         "system/hooks/lib/resolve-brana.sh",
+        "system/skills/ship/SKILL.md",
+        "system/skills/build/phases/build-loop.md",
+        "system/skills/_shared/judge-sizing.md",
+        "system/skills/_shared/executor-brief.md",
+        "system/skills/challenge/SKILL.md",
+        "system/agents/",
+        "system/loops/pipeline-digest.md",
         "system/scripts/ac-lint.sh"
       ]
     },
@@ -1332,7 +1349,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md": {
-      "title": "ADR-095: Keep brana memory current across machines, with trust profiles",
+      "title": "ADR-095: One owner machine, a company tabz Mac, and how brana memory is kept",
       "type": "ADR",
       "impl_files": [
         "system/state/patterns-export.json"
@@ -1342,7 +1359,39 @@
       "title": "ADR-096: The Brana's cockpit surface is Claude Code mods, under six laws",
       "type": "ADR",
       "impl_files": [
-        "system/"
+        "system/",
+        "system/config/mods-acknowledged.txt",
+        "system/config/"
+      ]
+    },
+    "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md": {
+      "title": "ADR-097: The upstream skill band is standing — default pin v1.3.1, admit `tdd`, take `pr` as a template, hold `retro`",
+      "type": "ADR",
+      "impl_files": [
+        "system/",
+        "system/skills/ship/",
+        "system/skills/_shared/",
+        "system/scripts/context-budget.sh",
+        "system/rules/rules-over-hooks-for-gates.md",
+        "system/skills/diagnose-hard-bug/SKILL.md",
+        "system/skills/two-axis-review/SKILL.md",
+        "system/skills/provisioning-wizard/SKILL.md"
+      ]
+    },
+    "docs/architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md": {
+      "title": "ADR-098: Retire the vendored upstream band; install Pocock's plugin as-is",
+      "type": "ADR",
+      "impl_files": [
+        "system/",
+        "system/scripts/context-budget.sh"
+      ]
+    },
+    "docs/architecture/decisions/ADR-099-recall-bundle-and-usage-log.md": {
+      "title": "ADR-099: Recall bundle at build LOAD, usage log at CLOSE",
+      "type": "ADR",
+      "impl_files": [
+        "system/skills/build/phases/load.md",
+        "system/rules/memory-decay-by-non-use.md"
       ]
     },
     "docs/architecture/developer-quickstart.md": {
@@ -1635,7 +1684,10 @@
         "system/scripts/mods-check.sh",
         "system/scripts/mods-sync-shared.sh",
         "system/scripts/marketplace-version-sync.sh",
-        "system/"
+        "system/",
+        "system/hooks/mods-installed-check.sh",
+        "system/hooks/tests/test-mods-installed-check.sh",
+        "system/config/mods-acknowledged.txt"
       ]
     },
     "docs/architecture/features/consensus-primitive.md": {
@@ -1930,6 +1982,16 @@
         "system/rules"
       ]
     },
+    "docs/architecture/features/pr-body-organ.md": {
+      "title": "Feature: PR-body template + `gh pr create` hook — evidence-first PR bodies at the merge valve",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/ship/SKILL.md",
+        "system/scripts/autonomous-runner.sh:439",
+        "system/skills/ship/",
+        "system/hooks/tests/test-pr-body-shape.sh"
+      ]
+    },
     "docs/architecture/features/private-state-sync.md": {
       "title": "Private state sync",
       "type": "Roadmap",
@@ -1962,6 +2024,33 @@
         "system/cron/close-extraction.sh",
         "system/cli/rust/crates/brana-core/src/queue.rs",
         "system/skills/reconcile/SKILL.md"
+      ]
+    },
+    "docs/architecture/features/recall-bundle.md": {
+      "title": "Feature: Recall bundle at build LOAD, usage log at CLOSE",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/build/phases/load.md",
+        "system/skills/build/phases/close.md",
+        "system/skills/build/phases/strategies.md",
+        "system/rules/memory-decay-by-non-use.md",
+        "system/cli/rust/crates/brana-core/src/search.rs",
+        "system/cli/rust/crates/brana-core/src/recall_bundle.rs",
+        "system/cli/rust/crates/brana-core/src/usage_log.rs",
+        "system/cli/rust/crates/brana-core/src/util.rs",
+        "system/cli/rust/crates/brana-cli/src/commands/time.rs",
+        "system/cli/rust/crates/brana-cli/src/commands/recall.rs",
+        "system/cli/rust/crates/brana-mcp/src/tools/recall.rs",
+        "system/cli/rust/crates/brana-core/src/vector.rs",
+        "system/cli/rust/crates/brana-cli/src/commands/handoff.rs",
+        "system/hooks/session-start.sh"
+      ]
+    },
+    "docs/architecture/features/recall-memory-file-vectors.md": {
+      "title": "Semantic leg for curated memory files in `brana recall`",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/recall-eval.sh"
       ]
     },
     "docs/architecture/features/reconcile-dim-could-adopt-scan.md": {
@@ -2193,6 +2282,21 @@
         "system/skills/backlog/phases/display-themes.md"
       ]
     },
+    "docs/architecture/features/tdd-organ-build-loop.md": {
+      "title": "Feature: `tdd` organ — vendored Pocock `tdd`, called from the build loop and `/brana:fix`",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/rules/sdd-tdd.md",
+        "system/skills/build/phases/build-loop.md",
+        "system/hooks/red-verification.sh",
+        "system/skills/_shared/delegation-tdd-checklist.md",
+        "system/",
+        "system/scripts/skills-lock-hash.sh",
+        "system/skills/tdd-organ/SKILL.md",
+        "system/scripts/tests/test-tdd-organ-resolves.sh",
+        "system/scripts/tests/test-tdd-organ-redirects.sh"
+      ]
+    },
     "docs/architecture/features/terminal-diagrams.md": {
       "title": "Feature: Terminal diagrams — proactive inline visual explanations",
       "type": "Roadmap",
@@ -2229,6 +2333,11 @@
       "impl_files": [
         "system/cli/rust/crates/brana-cli/src/transcribe.rs"
       ]
+    },
+    "docs/architecture/features/upstream-band-pin-bump.md": {
+      "title": "Feature: upstream band pin bump — the manual pump, v1.2.3 → v1.3.1",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/features/user-journey-gap-analysis.md": {
       "title": "User Journey Map & Gap Analysis",
@@ -3062,6 +3171,11 @@
         "system/skills/brana:mcp-builder/SKILL.md"
       ]
     },
+    "docs/dimensions/meta-whatsapp-business-tools-mcp.md": {
+      "title": "Meta WhatsApp Business Tools MCP",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/meta-whatsapp-template-classification.md": {
       "title": "standalone — superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
       "type": "Roadmap",
@@ -3132,6 +3246,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/whatsapp-stack-by-project.md": {
+      "title": "WhatsApp Stack by Project",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/ycloud-case-study.md": {
       "title": "YCloud — Case Study",
       "type": "Roadmap",
@@ -3162,7 +3281,8 @@
       "impl_files": [
         "system/cli/rust/crates/brana-cli/src/commands/skills.rs",
         "system/cli/themes.json",
-        "system/cli/rust"
+        "system/cli/rust",
+        "system/scripts/lib/suite-home.sh"
       ]
     },
     "docs/guide/commands/index.md": {
@@ -3313,6 +3433,11 @@
     },
     "docs/guide/features/session-scoped-epic-focus.md": {
       "title": "Backlog: Session-Scoped Epic Focus",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/guide/features/transcribe.md": {
+      "title": "brana transcribe — audio/video to text, with frames",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3971,6 +4096,13 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/pocock-v13-adoption.md": {
+      "title": "Adopt Pocock's implementation discipline, v1.3 round",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/pr-body/"
+      ]
+    },
     "docs/ideas/prompt-patterns-brana-enrichment.md": {
       "title": "Prompt Patterns → brana Enrichment",
       "type": "Roadmap",
@@ -4462,6 +4594,15 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/research/2026-10-07-pocock-recheck.md": {
+      "title": "Pocock quarterly recheck — skills v1.3, GLOSSARY rename, scope records",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/ship/SKILL.md:193-195",
+        "system/skills/diagnose-hard-bug/SKILL.md",
+        "system/"
+      ]
+    },
     "docs/research/agentic-engineering-2026-gap-analysis.md": {
       "title": "Gap Analysis: Agentic Engineering Feb–Jul 2026 vs brana",
       "type": "Roadmap",
@@ -4523,6 +4664,16 @@
     },
     "docs/research/primitive-taxonomy-prior-art.md": {
       "title": "Primitive Taxonomy Research: Agentic Framework Prior Art",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/recall-bundle/README.md": {
+      "title": "Recall bundle evaluation data (t-3515)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/recall-bundle/gates-v1.md": {
+      "title": "Recall bundle gates v1 (pre-registered)",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -4666,6 +4817,13 @@
         "system/state/stale-lifecycle-report.jsonl",
         "system/scripts/ruflo-mcp.sh",
         "system/scripts/stale-lifecycle.sh"
+      ]
+    },
+    "docs/reviews/weekly-2026-10-09.md": {
+      "title": "",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/state/stale-lifecycle-report.jsonl"
       ]
     },
     "docs/skills-system.md": {
@@ -7907,6 +8065,30 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/meta-whatsapp-business-tools-mcp.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/meta-whatsapp-business-tools-mcp.md",
+      "to": "dimensions/mcp-server-design-patterns.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/meta-whatsapp-business-tools-mcp.md",
+      "to": "dimensions/respond-io-case-study.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/meta-whatsapp-business-tools-mcp.md",
+      "to": "dimensions/whatsapp-bsp-architecture.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/omnichannel-ai-agent-frameworks.md",
       "to": "dimensions/39-kapso-ai-platform.md",
       "type": "informs",
@@ -7968,6 +8150,12 @@
     },
     {
       "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/meta-whatsapp-business-tools-mcp.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
       "to": "dimensions/meta-whatsapp-templates.md",
       "type": "informs",
       "computed": false
@@ -7975,6 +8163,12 @@
     {
       "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
       "to": "dimensions/smb-marketing-channels.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/whatsapp-stack-by-project.md",
       "type": "informs",
       "computed": false
     },
@@ -7998,6 +8192,18 @@
     },
     {
       "from": "brana-knowledge/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/whatsapp-bsp-architecture.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-stack-by-project.md",
+      "to": "dimensions/meta-whatsapp-business-tools-mcp.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-stack-by-project.md",
       "to": "dimensions/whatsapp-bsp-architecture.md",
       "type": "informs",
       "computed": false
@@ -8389,6 +8595,12 @@
     {
       "from": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
       "to": "docs/architecture/the-brana.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "docs/architecture/decisions/ADR-085-skills-as-stations-no-atom-schema.md",
       "type": "informs",
       "computed": false
     },
@@ -8957,6 +9169,30 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/meta-whatsapp-business-tools-mcp.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/meta-whatsapp-business-tools-mcp.md",
+      "to": "dimensions/mcp-server-design-patterns.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/meta-whatsapp-business-tools-mcp.md",
+      "to": "dimensions/respond-io-case-study.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/meta-whatsapp-business-tools-mcp.md",
+      "to": "dimensions/whatsapp-bsp-architecture.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/omnichannel-ai-agent-frameworks.md",
       "to": "dimensions/39-kapso-ai-platform.md",
       "type": "informs",
@@ -9018,6 +9254,12 @@
     },
     {
       "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/meta-whatsapp-business-tools-mcp.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
       "to": "dimensions/meta-whatsapp-templates.md",
       "type": "informs",
       "computed": false
@@ -9025,6 +9267,12 @@
     {
       "from": "docs/dimensions/whatsapp-bsp-architecture.md",
       "to": "dimensions/smb-marketing-channels.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/whatsapp-stack-by-project.md",
       "type": "informs",
       "computed": false
     },
@@ -9048,6 +9296,18 @@
     },
     {
       "from": "docs/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/whatsapp-bsp-architecture.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-stack-by-project.md",
+      "to": "dimensions/meta-whatsapp-business-tools-mcp.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-stack-by-project.md",
       "to": "dimensions/whatsapp-bsp-architecture.md",
       "type": "informs",
       "computed": false
@@ -9577,6 +9837,12 @@
     {
       "from": "brana-knowledge/dimensions/38-design-thinking.md",
       "to": "34-venture-operating-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/39-kapso-ai-platform.md",
+      "to": "meta-whatsapp-business-tools-mcp.md",
       "type": "references",
       "computed": false
     },
@@ -10283,6 +10549,12 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/respond-io-case-study.md",
+      "to": "meta-whatsapp-business-tools-mcp.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/ruvnet-case-study.md",
       "to": "22-testing.md",
       "type": "references",
@@ -10374,6 +10646,12 @@
     },
     {
       "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "meta-whatsapp-business-tools-mcp.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
       "to": "meta-whatsapp-templates.md",
       "type": "references",
       "computed": false
@@ -10386,7 +10664,25 @@
     },
     {
       "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "whatsapp-stack-by-project.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
       "to": "ycloud-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-stack-by-project.md",
+      "to": "meta-whatsapp-business-tools-mcp.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-stack-by-project.md",
+      "to": "whatsapp-bsp-architecture.md",
       "type": "references",
       "computed": false
     },
@@ -11790,6 +12086,24 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-099-recall-bundle-and-usage-log.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -12198,6 +12512,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/pr-body-organ.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/private-state-sync.md",
       "type": "references",
       "computed": false
@@ -12217,6 +12537,18 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/propagate-close-step.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/recall-bundle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/recall-memory-file-vectors.md",
       "type": "references",
       "computed": false
     },
@@ -12378,6 +12710,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/tdd-organ-build-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/terminal-diagrams.md",
       "type": "references",
       "computed": false
@@ -12397,6 +12735,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/transcribe-models-video.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/upstream-band-pin-bump.md",
       "type": "references",
       "computed": false
     },
@@ -12708,6 +13052,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "guide/features/transcribe.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "guide/getting-started.md",
       "type": "references",
       "computed": false
@@ -12871,6 +13221,12 @@
     {
       "from": "docs/README.md",
       "to": "ideas/drained/wave-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "ideas/pocock-v13-adoption.md",
       "type": "references",
       "computed": false
     },
@@ -13248,6 +13604,12 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
+      "to": "ADR-081-stacked-verdict-evidence-composition.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
       "to": "ADR-082-multi-agent-sizing-function.md",
       "type": "references",
       "computed": false
@@ -13291,6 +13653,12 @@
     {
       "from": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
       "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-059-multi-agent-substrate-selection.md",
+      "to": "ADR-096-cockpit-surface-claude-code-mods.md",
       "type": "references",
       "computed": false
     },
@@ -13866,6 +14234,12 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "to": "ADR-098-retire-upstream-band-install-pocock-plugin.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
       "to": "docs/architecture/research/2026-08-13-matt-pocock-skill-system.md",
       "type": "references",
       "computed": false
@@ -14166,7 +14540,7 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-095-two-machine-memory-sync.md",
-      "to": "docs/architecture/features/mac-knowledge-pack.md",
+      "to": "docs/architecture/features/brana-knowledge-divergence-guard.md",
       "type": "references",
       "computed": false
     },
@@ -14197,6 +14571,114 @@
     {
       "from": "docs/architecture/decisions/ADR-096-cockpit-surface-claude-code-mods.md",
       "to": "docs/ideas/statusline-pipeline-awareness.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "ADR-060-branch-strategy-autonomous-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "ADR-061-goal-integration-three-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "ADR-076-build-receipts-as-executed-evidence.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "ADR-085-skills-as-stations-no-atom-schema.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "ADR-092-graduated-loop-autonomy-ladder.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "ADR-098-retire-upstream-band-install-pocock-plugin.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "docs/architecture/features/pr-body-organ.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "docs/architecture/features/tdd-organ-build-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "docs/architecture/features/upstream-band-pin-bump.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "docs/ideas/pocock-v13-adoption.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "docs/research/2026-08-22-pocock-alignment-decision-matrix.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "to": "docs/research/2026-10-07-pocock-recheck.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md",
+      "to": "ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md",
+      "to": "ADR-097-upstream-band-standing-v1-3.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md",
+      "to": "docs/research/2026-10-07-pocock-recheck.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-099-recall-bundle-and-usage-log.md",
+      "to": "docs/architecture/features/recall-bundle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-099-recall-bundle-and-usage-log.md",
+      "to": "x.md",
       "type": "references",
       "computed": false
     },
@@ -14783,6 +15265,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/local-vector-recall.md",
+      "to": "recall-memory-file-vectors.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/loops-library.md",
       "to": "docs/architecture/decisions/ADR-079-backlog-drain-loop-handoff.md",
       "type": "references",
@@ -14893,6 +15381,24 @@
     {
       "from": "docs/architecture/features/propagate-close-step.md",
       "to": "docs/architecture/decisions/ADR-056-propagate-close-step.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/recall-bundle.md",
+      "to": "docs/architecture/decisions/ADR-099-recall-bundle-and-usage-log.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/recall-bundle.md",
+      "to": "docs/research/recall-bundle/README.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/recall-bundle.md",
+      "to": "x.md",
       "type": "references",
       "computed": false
     },
@@ -16667,6 +17173,12 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/39-kapso-ai-platform.md",
+      "to": "meta-whatsapp-business-tools-mcp.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/46-cc-harness-ecosystem.md",
       "to": "09-claude-code-native-features.md",
       "type": "references",
@@ -17369,6 +17881,12 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/respond-io-case-study.md",
+      "to": "meta-whatsapp-business-tools-mcp.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/ruvnet-case-study.md",
       "to": "22-testing.md",
       "type": "references",
@@ -17460,6 +17978,12 @@
     },
     {
       "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "meta-whatsapp-business-tools-mcp.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
       "to": "meta-whatsapp-templates.md",
       "type": "references",
       "computed": false
@@ -17472,7 +17996,25 @@
     },
     {
       "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "whatsapp-stack-by-project.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
       "to": "ycloud-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-stack-by-project.md",
+      "to": "meta-whatsapp-business-tools-mcp.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-stack-by-project.md",
+      "to": "whatsapp-bsp-architecture.md",
       "type": "references",
       "computed": false
     },
@@ -17707,6 +18249,12 @@
     {
       "from": "docs/guide/features/session-scoped-epic-focus.md",
       "to": "docs/architecture/decisions/ADR-088-session-scoped-epic-focus.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/transcribe.md",
+      "to": "docs/architecture/features/transcribe-models-video.md",
       "type": "references",
       "computed": false
     },
@@ -18743,6 +19291,54 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/pocock-v13-adoption.md",
+      "to": "docs/architecture/decisions/ADR-084-upstream-skill-band-vendored-pocock-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/pocock-v13-adoption.md",
+      "to": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/pocock-v13-adoption.md",
+      "to": "docs/architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/pocock-v13-adoption.md",
+      "to": "docs/architecture/features/pr-body-organ.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/pocock-v13-adoption.md",
+      "to": "docs/architecture/features/tdd-organ-build-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/pocock-v13-adoption.md",
+      "to": "docs/architecture/features/upstream-band-pin-bump.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/pocock-v13-adoption.md",
+      "to": "docs/research/2026-08-22-pocock-alignment-decision-matrix.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/pocock-v13-adoption.md",
+      "to": "docs/research/2026-10-07-pocock-recheck.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/skills-loops-graphs.md",
       "to": "docs/architecture/decisions/ADR-069-lane-identity-and-miss-semantics.md",
       "type": "references",
@@ -18877,6 +19473,12 @@
     {
       "from": "docs/reference/brana-cli.md",
       "to": "docs/guide/features/knowledge-process-url.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/brana-cli.md",
+      "to": "x.md",
       "type": "references",
       "computed": false
     },
@@ -20147,6 +20749,72 @@
       "computed": false
     },
     {
+      "from": "docs/research/recall-bundle/README.md",
+      "to": "build_gold.py",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/README.md",
+      "to": "gates-v1.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/README.md",
+      "to": "gold-v1.jsonl",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/README.md",
+      "to": "labels-v1.tsv",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/README.md",
+      "to": "mine_pairs_v2.py",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/README.md",
+      "to": "score_baseline.py",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/gates-v1.md",
+      "to": "README.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/gates-v1.md",
+      "to": "build_gold.py",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/gates-v1.md",
+      "to": "gold-v1.jsonl",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/gates-v1.md",
+      "to": "labels-v1.tsv",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/recall-bundle/gates-v1.md",
+      "to": "score_baseline.py",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/reviews/backlog-v3-schema-challenge-2026-07-20.md",
       "to": "brana-v3-challenge-2026-07-19.md",
       "type": "references",
@@ -20243,6 +20911,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-098-retire-upstream-band-install-pocock-plugin.md",
+      "to": "docs/architecture/decisions/ADR-097-upstream-band-standing-v1-3.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/bigin-case-study.md",
       "to": "dimensions/53-bigin-crm-platform.md",
       "type": "supersedes",
@@ -20268,9 +20942,9 @@
     }
   ],
   "stats": {
-    "nodes": 657,
-    "edges": 2598,
-    "typed_edges": 754,
-    "orphans": 148
+    "nodes": 675,
+    "edges": 2684,
+    "typed_edges": 772,
+    "orphans": 149
   }
 }
