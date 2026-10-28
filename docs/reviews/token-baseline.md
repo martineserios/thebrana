@@ -281,7 +281,7 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - **This monitor session**: offline
 - **Status**: ✅ weekly-review firing on schedule
 
-## 2026-10-03 to 2026-10-06 (Today)
+## 2026-10-03 to 2026-10-06
 - **Triggers fired in last 24h**: none (next expected weekly-review Thu 2026-10-09)
 - **New commits from agents (24h)**: 0
 - **New review files (today)**: none
@@ -312,6 +312,18 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - **Recent trigger activity**: weekly-review on 2026-10-16 (7 days ago, on schedule)
 - **This monitor session**: haiku (minimal cost)
 - **Status**: ⏳ Monitoring — weekly-review expected to fire later today
+
+## 2026-10-28 (Today)
+- **Triggers fired in last 24h**: none
+- **New commits from agents (24h)**: 0
+- **New review files (today)**: none
+- **Detected fires (past 7 days)**: none (last weekly-review was 2026-10-16, 12 days ago)
+- **Expected fires (missed)**: weekly-review on 2026-10-23 did not fire ⚠️
+- **Trigger status**:
+  - weekly-review: Oct 2✓, Oct 9✓, Oct 16✓ — **MISSED Oct 23** (5 days overdue, expected Thu cadence)
+  - knowledge-review: Oct 1✓ (next expected 2026-11-01)
+- **This monitor session**: haiku (minimal cost)
+- **Status**: ⚠️ ANOMALY — weekly-review missed expected Oct 23 fire; next expected Oct 30 (Thu)
 
 ---
 
