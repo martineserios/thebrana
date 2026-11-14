@@ -349,3 +349,12 @@ Tracking scheduled agent trigger costs to optimize resource usage.
   - Observed cost model: ~9-10K tokens/month baseline (2 weekly + 1 monthly review + daily monitor)
   - Next observation: 2026-10-09 (weekly-review expected Thu), 2026-11-01 (knowledge-review expected monthly)
   - Triggers are stable; continue daily monitoring at current cadence
+
+## 2026-11-14 (Today)
+- **Triggers fired in last 24h**: none
+- **New commits from agents (24h)**: 0
+- **New review files (today)**: none
+- **Last trigger observed**: weekly-2026-10-16.md (29 days ago)
+- **Missed triggers**: ⚠️ knowledge-review (expected 2026-11-01, did not fire); weekly-review (expected ~5 fires: Oct 23, 30, Nov 6, 13 — none observed)
+- **This monitor session**: haiku (minimal cost)
+- **Status**: ⚠️ **CRITICAL ALERT** — triggers offline again after Oct 16; 29-day gap since last fire; knowledge-review and weekly-review both non-functional
