@@ -313,3 +313,37 @@ Tracking scheduled agent trigger costs to optimize resource usage.
   - Observed cost model: ~9-10K tokens/month baseline (2 weekly + 1 monthly review + daily monitor)
   - Next observation: 2026-10-09 (weekly-review expected Thu), 2026-11-01 (knowledge-review expected monthly)
   - Triggers are stable; continue daily monitoring at current cadence
+
+---
+
+## 2026-11-18 (Today - Monitoring Gap Detected)
+- **Monitoring gap**: 43 days since last token-baseline update (2026-10-06); trigger status unknown for entire interval
+- **Triggers fired in last 24h**: none
+- **New commits from agents (24h)**: 0
+- **New review files (today)**: none
+- **CRITICAL REGRESSION DETECTED**:
+  - **weekly-review**: Last confirmed fire 2026-10-16 (33 days ago); expected fires Oct 23, 30, Nov 6, 13 — **4 MISSED FIRES, OFFLINE**
+  - **knowledge-review**: Last confirmed fire 2026-10-01 (48 days ago); expected fire 2026-11-01 — **1 MISSED FIRE, OFFLINE**
+- **This monitor session**: haiku (minimal cost, resuming daily monitoring)
+- **Status**: ⚠️ **CRITICAL OUTAGE** — both triggers offline; monitor offline for 43 days
+
+---
+
+## Baseline Summary (226 days of observation, October-November outage)
+- **Total trigger fires observed**: 
+  - weekly-review: 9 confirmed fires (last: 2026-10-16) — **OFFLINE 33 days** (expected Thu 10/23, 10/30, 11/6, 11/13 not fired)
+  - knowledge-review: 3 confirmed fires (last: 2026-10-01) — **OFFLINE 48 days** (expected 11/1 not fired)
+- **weekly-review** pattern: **CRITICAL FAILURE** — 4 expected fires missed; stable cadence broken after 2026-10-16
+- **knowledge-review** pattern: **CRITICAL FAILURE** — monthly fire for November 1st missed; last fire was October 1st
+- **token-monitor**: offline for 43 days (gap from 2026-10-06 to 2026-11-18); resuming today
+- **Cost impact**:
+  - Observed (Oct final): 3 fires = ~4-5K tokens
+  - Expected Nov (if restored): ~4-5K tokens
+  - **Current Nov YTD**: ~0.2K (monitor session only, no trigger fires)
+  - **Cost savings from outage**: ~8-10K tokens not spent (missed 5 expected fires = ~5-6K tokens saved)
+- **Recommendation**:
+  - **URGENT**: Investigate trigger system failure — both triggers offline simultaneously suggests infrastructure issue, not random drift
+  - Escalate to ops for trigger status check
+  - Resume daily monitoring effective 2026-11-18 to track recovery
+  - Expected recovery signals: weekly-review next Thu 2026-11-20, knowledge-review pending (1 month late due Nov 1, now catch-up expected)
+  - Cost will spike when triggers resume; budget ~8-10K for November backlog catch-up
