@@ -350,6 +350,28 @@ Tracking scheduled agent trigger costs to optimize resource usage.
   - Next observation: 2026-10-09 (weekly-review expected Thu), 2026-11-01 (knowledge-review expected monthly)
   - Triggers are stable; continue daily monitoring at current cadence
 
+---
+
+## 2026-10-23 (Today)
+- **Triggers fired in last 24h**: none (weekly-review expected today Thu, not yet fired at 15:10 UTC)
+- **New commits from agents (24h)**: 0 (last commit Oct 16)
+- **New review files (today)**: none (yet)
+- **Recent trigger activity**: weekly-review on 2026-10-16 (7 days ago, on schedule)
+- **This monitor session**: haiku (minimal cost)
+- **Status**: ⏳ Monitoring — weekly-review expected to fire later today
+
+## 2026-10-28 (Today)
+- **Triggers fired in last 24h**: none
+- **New commits from agents (24h)**: 0
+- **New review files (today)**: none
+- **Detected fires (past 7 days)**: none (last weekly-review was 2026-10-16, 12 days ago)
+- **Expected fires (missed)**: weekly-review on 2026-10-23 did not fire ⚠️
+- **Trigger status**:
+  - weekly-review: Oct 2✓, Oct 9✓, Oct 16✓ — **MISSED Oct 23** (5 days overdue, expected Thu cadence)
+  - knowledge-review: Oct 1✓ (next expected 2026-11-01)
+- **This monitor session**: haiku (minimal cost)
+- **Status**: ⚠️ ANOMALY — weekly-review missed expected Oct 23 fire; next expected Oct 30 (Thu)
+
 ## 2026-11-14 (Today)
 - **Triggers fired in last 24h**: none
 - **New commits from agents (24h)**: 0
@@ -358,3 +380,32 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - **Missed triggers**: ⚠️ knowledge-review (expected 2026-11-01, did not fire); weekly-review (expected ~5 fires: Oct 23, 30, Nov 6, 13 — none observed)
 - **This monitor session**: haiku (minimal cost)
 - **Status**: ⚠️ **CRITICAL ALERT** — triggers offline again after Oct 16; 29-day gap since last fire; knowledge-review and weekly-review both non-functional
+
+## 2026-11-19 (Today)
+- **Triggers fired in last 24h**: none
+- **New commits from agents (24h)**: 0
+- **New review files (today)**: none
+- **Trigger status update**: still offline (last fire 2026-10-16, now 34 days ago)
+  - weekly-review: missed fires on Oct 23, 30, Nov 6, 13 (4 expected Thursdays)
+  - knowledge-review: missed fire on Nov 1 (expected 1st of month)
+- **This monitor session**: haiku (minimal cost)
+- **Status**: 🔴 **CRITICAL FAILURE** — both triggers remain offline; outage now 34 days old
+
+---
+
+## Baseline Summary (207 days of observation, CRITICAL OUTAGE ONGOING)
+- **Total trigger fires observed**:
+  - weekly-review: 8 confirmed fires through 2026-10-16 — **OFFLINE 34 DAYS**
+  - knowledge-review: 3 confirmed fires through 2026-10-01 — **OFFLINE 49 DAYS**
+- **weekly-review** pattern: **OFFLINE** — was Thursday cadence (4-6K chars, ~1K tokens per fire); 4 expected fires missed Oct-Nov
+- **knowledge-review** pattern: **OFFLINE** — was 1st-of-month cadence (7-9K chars, ~1.5-2K tokens per fire); 1 expected fire missed Nov 1
+- **token-monitor**: daily observations, haiku model, <200 tokens per run
+- **Cost impact**:
+  - Missed capacity in outage window: ~7.5-10K tokens (5 missed fires × 1.5-2K each)
+  - Current monthly rate (Nov YTD): ~6K tokens (monitor only; triggers offline)
+  - Normal baseline: ~9-10K tokens/month
+- **Status**: 🔴 Both trigger systems down simultaneously since 2026-10-16 — escalation required
+- **Recommendation**: 
+  - Investigate root cause of dual trigger failure after Oct 16
+  - Check scheduled task configs, cron, MCP server status
+  - Next review: 2026-11-26 (50-day outage milestone) — if unresolved, escalate to system maintenance
