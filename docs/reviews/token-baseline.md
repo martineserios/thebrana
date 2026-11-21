@@ -409,3 +409,41 @@ Tracking scheduled agent trigger costs to optimize resource usage.
   - Investigate root cause of dual trigger failure after Oct 16
   - Check scheduled task configs, cron, MCP server status
   - Next review: 2026-11-26 (50-day outage milestone) — if unresolved, escalate to system maintenance
+
+## 2026-11-20
+- **Triggers fired**: ✓ weekly-review (expected Thursday cadence — RECOVERED!)
+- **New commits from agents (24h)**: 1 (0b0c4fe2 docs(review): weekly portfolio review 2026-11-20)
+- **New review files**: weekly-2026-11-20.md (6.5K markdown)
+- **Output size**: medium report (~1.1-1.3K tokens)
+- **This monitor session**: offline
+- **Status**: ✅ **RECOVERY DETECTED** — weekly-review trigger has restarted after 35-day outage
+
+## 2026-11-21 (Today)
+- **Triggers fired in last 24h**: none (next expected weekly-review Thu 2026-11-27)
+- **New commits from agents (24h)**: 0
+- **New review files (today)**: none
+- **Recovery status**: weekly-review resumed on 2026-11-20 after 35-day offline period (last fire before recovery: 2026-10-16)
+- **Knowledge-review status**: still offline since 2026-10-01 (expected 2026-11-01, now 20 days overdue; next expected 2026-12-01)
+- **This monitor session**: haiku (minimal cost)
+- **Status**: ⚠️ **PARTIAL RECOVERY** — weekly-review active again; knowledge-review still offline
+
+---
+
+## Baseline Summary (208 days of observation, partial recovery observed)
+- **Total trigger fires observed**:
+  - weekly-review: 9 confirmed fires (through 2026-11-20) — **RESUMED after 35-day outage** (last fire before recovery: 2026-10-16)
+  - knowledge-review: 3 confirmed fires through 2026-10-01 — **OFFLINE 51 DAYS (overdue 20 days for Nov 1 expected)**
+- **weekly-review** pattern: **RECOVERED** — Thursday cadence resuming (Nov 20 fire); output: ~6.5K chars, ~1.1-1.3K tokens per fire
+- **knowledge-review** pattern: **OFFLINE** — was 1st-of-month cadence; missed Nov 1 fire; next expected Dec 1
+- **token-monitor**: daily observations, haiku model, <200 tokens per run
+- **Cost impact (Nov 2026 YTD)**:
+  - weekly-review recovery: 1 fire (Nov 20) = ~1.2K tokens
+  - knowledge-review: 0 fires (offline all month)
+  - token-monitor: 21 days observed ≈ ~4.2K tokens
+  - **Total Nov YTD: ~5.4K tokens** (below baseline due to knowledge-review still offline)
+- **Status**: ⚠️ Asymmetric trigger recovery — weekly-review active, knowledge-review remains offline (critical)
+- **Recommendation**: 
+  - ✅ Monitor weekly-review stability (appeared to self-recover, cadence may be catching up)
+  - **URGENT**: Investigate knowledge-review persistent offline status (second trigger, different failure mode)
+  - Verify monthly cadence will fire on 2026-12-01
+  - If knowledge-review doesn't fire by Dec 1, escalate as system-level issue
